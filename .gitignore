@@ -1,0 +1,12 @@
+.idea/
+*.env
+
+# Ignore temporary files in src
+src/temp/
+
+# Ignore logs
+#*.log
+
+src/Query AlphaFold structures
+src/results
+
