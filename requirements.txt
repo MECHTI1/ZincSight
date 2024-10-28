@@ -1,8 +1,8 @@
-biopython == 1.79   #biopython==1.84 #Suggested to use in this release python 3.11, but also should work according with manual with 3.12 version
+# biopython == 1.79   #biopython==1.84 #Suggested to use in this release python 3.11, but also should work according with manual with 3.12 version
 #matplotlib == 3.7.5 - found in colab default
 psycopg2-binary ==2.9.9
-numpy ==1.26.4 #This numpy supports python 3.12
-scipy == 1.11.4 #This scipy is get along with this numpy
-requests == 2.32.3 #Not vulnerable. Created in May. Compatible with python 10 and 11.
+# numpy ==1.26.4 #This numpy supports python 3.12
+# scipy == 1.11.4 #This scipy is get along with this numpy
+# requests == 2.32.3 #Not vulnerable. Created in May. Compatible with python 10 and 11.
 aria2p==0.12.0  # Latest release for 25 Oct
 python-dotenv==1.0.1 # Latest release for 25 Oct
