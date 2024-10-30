@@ -1,5 +1,4 @@
 .idea/
-*.env
 
 # Ignore temporary files in src
 src/temp/

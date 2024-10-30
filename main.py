@@ -90,32 +90,36 @@ def convert_all_pdb_in_dir(directory):
 
 
 if __name__ == "__main__":
-    #Checking_algo_with_default_input = True
+    #FIXME Maybe will use somewhere in this script:
+    # Checking_algo_with_default_input = True
     try:
-        #option_downloading = None
+        #TODO: Delete from this script, but maybe maintain in an optional test module:
+        # ---------------------------------------------------------------------------
+        # print("For downloading structures press: 'd'. To upload structures: 'u'. For both options press '2'")
+        # pressed_choice = input()
+        # if pressed_choice == "2":
+        #     option_downloading = True
+        #     option_uploading = True
+        # elif pressed_choice == "u":
+        #     option_downloading = False
+        #     option_uploading = True
+        # elif pressed_choice == "d":
+        #     option_downloading = True
+        #     option_uploading = False
+        # ------------------------------------------------------------------------------
 
-        print("For downloading structures press: 'd'. To upload structures: 'u'. For both options press '2'")
-        pressed_choice = input()
+        #TODO: Delete from this script, but maybe maintain in the notebook or also within an optional test module:
+        # ---------------------------------------------------------------------------
+        # if option_downloading:
+        #     print(""" Option 1:
+        #                 Please write a list of the protein structure identifiers- 'PDB','AF model' or 'ESMFold models'.
+        #                 For AF models- write a list of UniProt identifiers.
+        #                 For ESMFold models- write a list of their MGnify identifiers
+        #               Option 2:
+        #                 Upload a txt file list of structures download urls within local
+        #               Press 1 or 2 according your preference""")
+        # ---------------------------------------------------------------------------
 
-        if pressed_choice == "2":
-            option_downloading = True
-            option_uploading = True
-        elif pressed_choice == "u":
-            option_downloading = False
-            option_uploading = True
-        elif pressed_choice == "d":
-            option_downloading = True
-            option_uploading = False
-
-        if option_downloading:
-
-            print(""" Option 1: 
-                        Please write a list of the protein structure identifiers- 'PDB','AF model' or 'ESMFold models'.
-                        For AF models- write a list of UniProt identifiers.
-                        For ESMFold models- write a list of their MGnify identifiers                       
-                      Option 2:
-                        Upload a txt file list of structures download urls within local
-                      Press 1 or 2 according your preference""")
 
             preference_list1_or_linkstxt2 = input()
 
