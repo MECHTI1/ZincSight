@@ -90,11 +90,9 @@ def convert_all_pdb_in_dir(directory):
 
 
 if __name__ == "__main__":
-    Checking_algo_with_default_input = True
+    #Checking_algo_with_default_input = True
     try:
-        list_query_structures_files_paths = []  # Initialize list variable
-        list_of_IDs_to_download = []  # Initialize list variable
-        option_downloading = None
+        #option_downloading = None
 
         print("For downloading structures press: 'd'. To upload structures: 'u'. For both options press '2'")
         pressed_choice = input()
