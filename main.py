@@ -89,31 +89,27 @@ def convert_all_pdb_to_cif_in_dir(directory):
 
 
 def execute_zincsight(boolean_his_rot):
-    try:
-        def get_user_uploaded_ids_if_exists(parent_dir_path, file_name):
-            file_path = os.path.join(parent_dir_path, file_name)
-            # Check if folder exists, is not empty, and file exists with non-empty content
-            if os.path.isfile(file_path):
-                with open(file_path, 'r') as f:
-                    content = f.read().strip()
-                    return content if content else False
-            return False
+    def get_user_uploaded_ids_if_exists(parent_dir_path, file_name):
+        file_path = os.path.join(parent_dir_path, file_name)
+        # Check if folder exists, is not empty, and file exists with non-empty content
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as f:
+                content = f.read().strip()
+                return content if content else False
+        return False
 
-        str_struct_ids_for_download = get_user_uploaded_ids_if_exists('text_structures_ids_to_download', 'structure_ids_input.txt')
-        if str_struct_ids_for_download:
-            # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
-            primary_download_structures_list_input(str_struct_ids_for_download)
+    str_struct_ids_for_download = get_user_uploaded_ids_if_exists('text_structures_ids_to_download', 'structure_ids_input.txt')
+    if str_struct_ids_for_download:
+        # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
+        primary_download_structures_list_input(str_struct_ids_for_download)
 
-        # convert PDB formatted query structures to mmCIF format
-        convert_all_pdb_to_cif_in_dir(QUERY_STRUCTURES_DIR)
+    # convert PDB formatted query structures to mmCIF format
+    convert_all_pdb_to_cif_in_dir(QUERY_STRUCTURES_DIR)
 
-        list_query_structures_files_paths = []
-        for root, dirs, files in os.walk(QUERY_STRUCTURES_DIR):
-          for filename in files:
-               list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, filename))
-        execute(list_query_structures_files_paths, boolean_his_rot)
+    list_query_structures_files_paths = []
+    for root, dirs, files in os.walk(QUERY_STRUCTURES_DIR):
+      for filename in files:
+           list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, filename))
+    execute(list_query_structures_files_paths, boolean_his_rot)
 
-    except Exception as e:
-        print(f"An exception occurred: {e}\n Please fill all the parameters.")
-        sys.exit()
 
