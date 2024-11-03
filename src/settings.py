@@ -29,6 +29,9 @@ os.makedirs(TABLES_DIR, exist_ok=True)
 os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
 
 
+DROP_TEMP_TABLES = bool(os.getenv('DROP_TEMP_TABLES'))
+
+
 def get_db_connection():
     owner = True
     try:
