@@ -20,6 +20,7 @@ from src.scoring_and_compression.compress_table_by_proximity import table_compre
 from src.create_structure_models_with_predicted_zn.primary_create_structure_models_with_predicted_zn import locate_predicted_zn_within_structures
 from src.export_final_table_to_csv_format import export_final_table_to_csv_file
 
+from compress_results import compress_unified_results
 
 
 def main(list_query_structures_files_paths,boolean_rotamer_examination):
@@ -162,7 +163,9 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
     print ("total time for prediction without create structure models:",end_time_prediction_process_all_sites- start_time_prediction_process_all_sites)    
     if table_creation==True: export_final_table_to_csv_file()
     print ("time_create_II_Coordinates_tables",time_create_tables)
-        
+
+    compress_unified_results('sample_id', His_rotation) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
+
     if whether_create_structures== True:
            print ("toatal time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
     
