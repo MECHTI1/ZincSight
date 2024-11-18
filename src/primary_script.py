@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Aug  1 18:31:24 2023
-
 @author: mechti
 """
+
 import os
-import psycopg2
-from src.settings import get_db_connection, QUERY_STRUCTURES_DIR
+from src.settings import get_db_connection, QUERY_STRUCTURES_DIR, KEEP_TEMP_TABLES, NEW_QUERY_DATASET
 import time
 from src.create_ii_coordinates_tables.ii_coordinates_primary_generator_structures import main as create_ii_coordinates_tables_query_dataset
 from src.create_ii_coordinates_tables.Insert_Representative_Motifs_to_Query_InitialTables import main as insert_representative_motifs_to_dataset_tables
@@ -19,30 +18,24 @@ from src.scoring_and_compression.add_scores_to_table import final_scoring_and_in
 from src.scoring_and_compression.compress_table_by_proximity import table_compression
 from src.create_structure_models_with_predicted_zn.primary_create_structure_models_with_predicted_zn import locate_predicted_zn_within_structures
 from src.export_final_table_to_csv_format import export_final_table_to_csv_file
-
-from compress_results import compress_unified_results
+from src.compress_results import compress_unified_results
 
 
 def main(list_query_structures_files_paths,boolean_rotamer_examination):
     conn = get_db_connection()
     cur = conn.cursor()
-    
-    table_creation=True
-    His_rotation= boolean_rotamer_examination
+    his_rotation = boolean_rotamer_examination
     whether_create_structures=True
-    
-    if table_creation==True:
-            start_time_create_tables=time.time()
-            
-            create_ii_coordinates_tables_query_dataset(list_query_structures_files_paths)
 
+    if NEW_QUERY_DATASET:
+            start_time_create_tables=time.time()
+
+            create_ii_coordinates_tables_query_dataset(list_query_structures_files_paths)
             insert_representative_motifs_to_dataset_tables()
-            
+
             end_time_create_tables=time.time()
             time_create_tables=end_time_create_tables-start_time_create_tables
-    
-    
-         
+
     start_time_prediction_process_all_sites=time.time()
     # all_sites_final_table
     cur.execute("""
@@ -66,31 +59,26 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
             )
           """)
     conn.commit()
-     
-    
+
     # Execute a SELECT statement to get all the site_id values
     cur.execute("SELECT site_id FROM minimized_training_cluster_information;")
     results = cur.fetchall() # Fetch all the results
-    
     # Extract the site_id values into a list
     site_ids = [result[0] for result in results]
     print(site_ids)
-    
     for site_id in site_ids:
-      
         main_first_step(site_id)
         main_second_step()
         
-        if His_rotation==True:
+        if his_rotation:
             main_third_step_his_rotation_180deg()
-              
         else:
             main_third_step_without_his_rotation()
-            
-        
-       
+
+
+
         cur = conn.cursor()
-        
+
         # Define the name of your source table
         source_table = 'af_dataset_final_motif_search_table_v2'
         
@@ -127,51 +115,53 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
         """
         cur.execute(sql_query)
         conn.commit()
-        
         cur.execute("DROP TABLE AF_DATASET_final_motif_search_table_v2")
         conn.commit()
-    
-    
-    
-    #Drop table with none type under dif_angle_base
-    #This command will not be in the git
-    cur.execute("CREATE TABLE dropped_with_erroredrows AS SELECT * FROM AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables WHERE dif_angle_base IS NULL OR rmsd_overall IS NULL;")# and create new table with the dropped rows information which will be called-"dropped_with_erroredrows".
-    #This command will be in the git
-    cur.execute("DELETE FROM AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables WHERE dif_angle_base IS NULL OR rmsd_overall IS NULL;")# THE DROP COMMAND
+
+    if not KEEP_TEMP_TABLES:
+            cur.execute("DROP TABLE af_dataset_coordinates_table_v2")
+            cur.execute("DROP TABLE af_dataset_detailed_coordinates_table_v2")
+            cur.execute("DROP TABLE af_dataset_ii_table_v2")
     conn.commit()
-    
+
+    if KEEP_TEMP_TABLES:
+        cur.execute("CREATE TABLE dropped_with_erroredrows AS SELECT * FROM AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables WHERE dif_angle_base IS NULL OR rmsd_overall IS NULL;")   #  creates new table with the dropped rows, for scenarios of debugging.
+    cur.execute("DELETE FROM AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables WHERE dif_angle_base IS NULL OR rmsd_overall IS NULL;")
+    conn.commit()
     
     final_scoring_and_insertion_to_table(list_query_structures_files_paths)
-        
-    # cur.execute("DROP TABLE AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables")
-    
+    if not KEEP_TEMP_TABLES:
+        cur.execute("DROP TABLE AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables")
     conn.commit()
+
     table_compression()
     conn.commit()
-    
-    # cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
-    #conn.commit()
+
+    if not KEEP_TEMP_TABLES:
+        cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
     conn.commit()
     end_time_prediction_process_all_sites=time.time()
     
     if whether_create_structures== True:
         start_time_create_predcitedmodelstructures = time.time()
-        tarred_file_path= locate_predicted_zn_within_structures(conn,list_query_structures_files_paths)
+        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths)  #TODO: just notice I did already: delete the caller accepted value- "tarred_file_path"
         end_time_create_predcitedmodelstructures = time.time()
     
     
     print ("total time for prediction without create structure models:",end_time_prediction_process_all_sites- start_time_prediction_process_all_sites)    
-    if table_creation==True: export_final_table_to_csv_file()
+    export_final_table_to_csv_file()
     print ("time_create_II_Coordinates_tables",time_create_tables)
 
-    compress_unified_results('sample_id', His_rotation) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
+    compress_unified_results('sample_id', his_rotation) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
 
     if whether_create_structures== True:
-           print ("toatal time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
-    
+        print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
+
+    if not KEEP_TEMP_TABLES:
+            cur.execute("DROP TABLE final_compressed_table_with_scored_binding_sites")
+    conn.commit()
     cur.close()
     conn.close()
-    return (tarred_file_path)
 
 
 if __name__=="__main__":
@@ -187,10 +177,6 @@ if __name__=="__main__":
        list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, file))
     
    list_query_structures_files_paths =[]     # neeed to set at least one to empty
-    
-
 
    list_of_paths= primary_return_single_argument_as_paths_list(list_query_structures_files_paths,list_of_uniprot_accessions)
    main(list_of_paths)
-
-            

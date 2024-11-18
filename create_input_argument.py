@@ -20,7 +20,6 @@ from dotenv import load_dotenv
 
 
 # Convert all PDB files in the provided directory and subdirectories to CIF format.
-
 def convert_all_pdb_in_dir(directory):
     # Helper function to convert PDB to CIF
     def convert_pdb_to_cif(pdb_file_path):
@@ -110,7 +109,6 @@ if __name__ == "__main__":
         option_uploading = False
 
     if option_downloading:
-
         print(""" Option 1: 
                     Please write a list of the protein structure identifiers- 'PDB','AF model' or 'ESMFold models'.
                     For AF models- write a list of UniProt identifiers.
@@ -180,7 +178,6 @@ if __name__ == "__main__":
         for filename in files:
             print(os.path.join(QUERY_STRUCTURES_DIR, filename))
             list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, filename))
-
 
 
     boolean_rotamer_examination = False  # initialize variable to False

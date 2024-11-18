@@ -8,9 +8,6 @@ Created on Wed Jul  3 08:46:38 2024
 
 import os
 import psycopg2
-import random
-import string
-import subprocess
 from dotenv import load_dotenv
 
 # Set the base directory to the absolute path of the project directory
@@ -28,9 +25,8 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(TABLES_DIR, exist_ok=True)
 os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
 
-
-DROP_TEMP_TABLES = bool(os.getenv('DROP_TEMP_TABLES'))
-
+KEEP_TEMP_TABLES = bool(os.getenv('KEEP_TEMP_TABLES'))
+NEW_QUERY_DATASET = bool(os.getenv('NEW_QUERY_DATASET'))
 
 def get_db_connection():
     owner = True
@@ -41,7 +37,6 @@ def get_db_connection():
             password = os.getenv('PASSWORD')
             host = os.getenv('HOST')
             conn = psycopg2.connect(dbname="zincsight_pipeline_db", user=user_id, host=host, password=password)
-
         else:
             conn = psycopg2.connect(dbname="zincsight_pipeline_db", user="postgres", host="localhost")  # No password
 

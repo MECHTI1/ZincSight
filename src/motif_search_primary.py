@@ -55,7 +55,7 @@ def Create_Coordinates_OF_Matches_Table(conn):
 
 def create_empty_RMSD_of_matches_table(conn):
     cur = conn.cursor()
-  
+
     # SQL command to create Primary_metal_binding_site_table
     MOTIF_SEARCH_TABLE_TEMP_creation_command = """
     CREATE TABLE IF NOT EXISTS AF_DATASET_rmsd_of_matches_table_V2(

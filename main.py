@@ -28,9 +28,8 @@ import sys
 import re
 from src.download_query_structures import download_query_structures
 from Bio.PDB import PDBParser, MMCIFIO
-from src.settings import QUERY_STRUCTURES_DIR
+from src.settings import QUERY_STRUCTURES_DIR,PARENT_DIRECTORY
 from src.primary_script import main as execute
-
 
 
 def str_clean_parse_tolist(input_string):
@@ -60,8 +59,6 @@ def primary_download_structures_list_input(string_of_ids_to_download):
         #print(af_list, pdb_list, esm_list)
         download_query_structures.main(af_list, pdb_list, esm_list)
 
-
-
 def convert_all_pdb_to_cif_in_dir(directory):
     """Convert all PDB files in the provided directory and subdirectories to CIF format"""
     # Helper function to convert PDB to CIF
@@ -87,7 +84,6 @@ def convert_all_pdb_to_cif_in_dir(directory):
                 convert_pdb_to_cif(pdb_file_path)
 
 
-
 def execute_zincsight(boolean_his_rot):
     def get_user_uploaded_ids_if_exists(parent_dir_path, file_name):
         file_path = os.path.join(parent_dir_path, file_name)
@@ -98,7 +94,8 @@ def execute_zincsight(boolean_his_rot):
                 return content if content else False
         return False
 
-    str_struct_ids_for_download = get_user_uploaded_ids_if_exists('text_structures_ids_to_download', 'structure_ids_input.txt')
+    parent_dir_of_input_ids_to_download=os.path.join(PARENT_DIRECTORY, 'text_structures_ids_to_download')
+    str_struct_ids_for_download = get_user_uploaded_ids_if_exists(parent_dir_of_input_ids_to_download,'structure_ids_input.txt')
     if str_struct_ids_for_download:
         # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
         primary_download_structures_list_input(str_struct_ids_for_download)
@@ -111,5 +108,3 @@ def execute_zincsight(boolean_his_rot):
       for filename in files:
            list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, filename))
     execute(list_query_structures_files_paths, boolean_his_rot)
-
-
