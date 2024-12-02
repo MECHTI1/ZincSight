@@ -9,8 +9,7 @@ import os
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor
-from src.settings import QUERY_STRUCTURES_DIR
-
+# from src.settings import QUERY_STRUCTURES_DIR
 
 # Generalized download function with file format handling
 def download_files(url_template, ids, directory, file_extension):
@@ -51,13 +50,13 @@ def download_structures_esm(esm_ids, directory):
     download_files(url_template, esm_ids, directory, file_extension="pdb")
 
 
-def main(uniprot_accessions, pdb_ids, esm_ids):
+def main(uniprot_accessions, pdb_ids, esm_ids, path_query_structures):
     # AlphaFold and PDB downloads use CIF format
-    download_structures_af(uniprot_accessions, QUERY_STRUCTURES_DIR)
-    download_structures_pdb(pdb_ids, QUERY_STRUCTURES_DIR)
+    download_structures_af(uniprot_accessions, path_query_structures)
+    download_structures_pdb(pdb_ids, path_query_structures)
 
     # esm downloads use PDB format
-    download_structures_esm(esm_ids, QUERY_STRUCTURES_DIR)
+    download_structures_esm(esm_ids, path_query_structures)
 
 
 if __name__ == "__main__":
