@@ -27,7 +27,6 @@ import os
 import re
 from src.download_query_structures import download_query_structures
 from Bio.PDB import PDBParser, MMCIFIO
-from src.settings import QUERY_STRUCTURES_DIR
 from src.primary_script import main as execute
 
 def str_clean_parse_tolist(input_string):
@@ -53,6 +52,7 @@ def primary_download_structures_list_input(string_of_ids_to_download, path_query
     if string_of_ids_to_download:
         clean_id_list = str_clean_parse_tolist(string_of_ids_to_download)
         af_list, pdb_list, esm_list = split_struct_db_sources(clean_id_list)
+        print (af_list, pdb_list, esm_list)
         download_query_structures.main(af_list, pdb_list, esm_list , path_query_structures)
 
 def convert_all_pdb_to_cif_in_dir(directory):
@@ -89,8 +89,27 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
     # convert PDB formatted query structures to mmCIF format
     convert_all_pdb_to_cif_in_dir(path_query_structures)
 
+    # # List all entries in the directory
+    # entries = os.listdir(path_query_structures)
+    # list_query_structures_files_full_paths = [entry for entry in entries if entry.endswith('.cif') and os.path.isfile(os.path.join(path_query_structures, entry))]
+    # print("full dirs of query structures:", list_query_structures_files_full_paths)
+    #
     list_query_structures_files_paths = []
     for root, dirs, files in os.walk(path_query_structures):
-      for filename in files:
-           list_query_structures_files_paths.append(os.path.join(path_query_structures, filename))
+        for filename in files:
+            print(os.path.join(path_query_structures, filename))
+            list_query_structures_files_paths.append(os.path.join(path_query_structures, filename))
+
     execute(list_query_structures_files_paths, boolean_his_rot)
+
+if __name__=="__main__": #Behave like a test
+    from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
+    boolean_his_rot=False
+    structure_ids_for_download="""A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30,
+                                           A0A5H1ZR49, G8ZFK7, O60232, P0A6G5, P0DUH5, P37659, P38164,
+                                           Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5,
+                                           Q6CXX6, Q7MVV4, Q86T03, Q8N8R7, Q8NBJ9, Q96JC1, Q9BWG6,
+                                           Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
+    path_query_structures=QUERY_STRUCTURES_DIR
+    path_output= RESULTS_DIR
+    execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output )
