@@ -26,7 +26,6 @@ os.makedirs(TABLES_DIR, exist_ok=True)
 os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
 
 KEEP_TEMP_TABLES = bool(os.getenv('KEEP_TEMP_TABLES'))
-NEW_QUERY_DATASET = bool(os.getenv('NEW_QUERY_DATASET'))
 
 def get_db_connection():
     owner = True

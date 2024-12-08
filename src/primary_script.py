@@ -5,7 +5,7 @@ Created on Tue Aug  1 18:31:24 2023
 @author: mechti
 """
 import os
-from src.settings import get_db_connection, KEEP_TEMP_TABLES, NEW_QUERY_DATASET
+from src.settings import get_db_connection, KEEP_TEMP_TABLES
 # from src.settings import QUERY_STRUCTURES_DIR
 import time
 from src.create_ii_coordinates_tables.ii_coordinates_primary_generator_structures import main as create_ii_coordinates_tables_query_dataset
@@ -27,14 +27,13 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
     his_rotation = boolean_rotamer_examination
     whether_create_structures=True
 
-    if NEW_QUERY_DATASET:
-            start_time_create_tables=time.time()
+    start_time_create_tables=time.time()
 
-            create_ii_coordinates_tables_query_dataset(list_query_structures_files_paths)
-            insert_representative_motifs_to_dataset_tables()
+    create_ii_coordinates_tables_query_dataset(list_query_structures_files_paths)
+    insert_representative_motifs_to_dataset_tables()
 
-            end_time_create_tables=time.time()
-            time_create_tables=end_time_create_tables-start_time_create_tables
+    end_time_create_tables=time.time()
+    time_create_tables=end_time_create_tables-start_time_create_tables
 
     start_time_prediction_process_all_sites=time.time()
     # all_sites_final_table
