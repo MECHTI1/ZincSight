@@ -151,7 +151,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     export_final_table_to_csv_file()
     print ("time_create_II_Coordinates_tables",time_create_tables)
 
-    compress_unified_results('sample_id', his_rotation, path_output) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
+    compressed_resulted_file_path = compress_unified_results('sample_id', his_rotation, path_output) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
 
     if whether_create_structures== True:
         print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
@@ -162,6 +162,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     cur.close()
     conn.close()
 
+    return compressed_resulted_file_path
 
 if __name__=="__main__":
     from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR

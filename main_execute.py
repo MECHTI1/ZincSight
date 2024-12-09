@@ -100,11 +100,12 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
             print(os.path.join(path_query_structures, filename))
             list_query_structures_files_paths.append(os.path.join(path_query_structures, filename))
 
-    execute(list_query_structures_files_paths, boolean_his_rot, path_output)
+    compressed_resulted_file_path = execute(list_query_structures_files_paths, boolean_his_rot, path_output)
+    return compressed_resulted_file_path
 
 if __name__=="__main__": #Behave like a test
     from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
-    boolean_his_rot=False
+    boolean_his_rot=True
     structure_ids_for_download="""A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30,
                                            A0A5H1ZR49, G8ZFK7, O60232, P0A6G5, P0DUH5, P37659, P38164,
                                            Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5,
@@ -112,4 +113,7 @@ if __name__=="__main__": #Behave like a test
                                            Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
     path_query_structures=QUERY_STRUCTURES_DIR
     path_output= RESULTS_DIR
-    execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)
+
+    compressed_resulted_file_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)
+    print (compressed_resulted_file_path)
+
