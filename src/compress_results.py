@@ -1,25 +1,25 @@
 import os
 import subprocess
-from src.settings import RESULTS_DIR
+##TODO:DETELEAFTER: from src.settings import RESULTS_DIR
 from datetime import datetime
 
-def create_results_tarfile(output_filename, folder_names):
+def create_results_tarfile(output_filename, folder_names, path_output):
     """
-    Create a .tar.gz file containing only the specified folders within RESULTS_DIR.
+    Create a .tar.gz file containing only the specified folders within path_output.
 
     Parameters:
         output_filename (str): Path for the output .tar.gz file.
-        folder_names (list of str): List of folder names within RESULTS_DIR to include in the archive.
+        folder_names (list of str): List of folder names within path_output to include in the archive.
     """
     # Ensure output directory exists
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Create the tar.gz file using tar and pigz for the specified folders within RESULTS_DIR
+    # Create the tar.gz file using tar and pigz for the specified folders within path_output
     with open(output_filename, 'wb') as f_out:
-        # Switch to RESULTS_DIR and archive each specified folder by its name, avoiding full paths
-        tar_command = ['tar', 'cf', '-', '-C', RESULTS_DIR] + folder_names
+        # Switch to path_output and archive each specified folder by its name, avoiding full paths
+        tar_command = ['tar', 'cf', '-', '-C', path_output] + folder_names
         p1 = subprocess.Popen(tar_command, stdout=subprocess.PIPE)
         p2 = subprocess.Popen(['pigz'], stdin=p1.stdout, stdout=f_out)
         p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
@@ -27,20 +27,20 @@ def create_results_tarfile(output_filename, folder_names):
     print(f'Tar file created: {output_filename}')
 
 
-def compress_unified_results(sample_id, his_rot_sampling):
+def compress_unified_results(sample_id, his_rot_sampling, path_output):
     """
-    Compress specified input directories within RESULTS_DIR and save to the output directory.
+    Compress specified input directories within path_output and save to the output directory.
 
     Parameters:
         sample_id (str): Identifier for the sample.
         his_rot_sampling (bool): Whether rotation sampling is enabled.
     """
-    # Define input directories to include within RESULTS_DIR
-    input_dirs = ['structures_with_predicted_zn', 'table']
-    folder_suffix = "_".join(input_dirs)  # Join folder names for filename suffix
+    # Define input directories to include within path_output
+    dirs_to_compress = ['structures_with_predicted_zn', 'table']
+    folder_suffix = "_".join(dirs_to_compress)  # Join folder names for filename suffix
 
     # Define output directory
-    output_dir = os.path.join(RESULTS_DIR, "compressed_results")
+    output_dir = os.path.join(path_output, "compressed_results")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -58,10 +58,12 @@ def compress_unified_results(sample_id, his_rot_sampling):
     )
 
     # Call the function to create the tar file with specified folder names (not full paths)
-    create_results_tarfile(output_filename, input_dirs)
+    create_results_tarfile(output_filename, dirs_to_compress, path_output)
 
 
 if __name__ == "__main__":
+    from src.settings import RESULTS_DIR
+    path_output=RESULTS_DIR
     sample_id = "input_id"
     his_rot_sampling_boolean = True
-    compress_unified_results(sample_id, his_rot_sampling_boolean)
+    compress_unified_results(sample_id, his_rot_sampling_boolean, path_output)

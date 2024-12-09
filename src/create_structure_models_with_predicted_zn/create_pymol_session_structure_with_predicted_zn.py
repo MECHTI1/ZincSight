@@ -10,7 +10,7 @@ Created on Tue Jul 16 17:14:53 2024
 from pymol import cmd
 from pathlib import Path
 import os
-from src.settings import STRUCTURES_WITH_PREDICTED_ZN
+##TODO:DETELEAFTER: from src.settings import STRUCTURES_WITH_PREDICTED_ZN
 
 # Custom color dictionary based on score
 import json
@@ -29,7 +29,7 @@ def get_precision(score):
         min(threshold_precision_dict.values()))  # Default to higher than highest threshold the precision is lowest
 
 
-def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_predicted_ZN):
+def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_predicted_ZN, path_output):
     # Initialize PyMOL
     cmd.reinitialize()
 
@@ -80,10 +80,10 @@ def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_pre
                      maximum=max(thresholds))
 
 
-        # cmd.spectrum("b", "black_red_lightbl_blue", "predicted_zincs", minimum=min(thresholds), maximum=max(thresholds))
-
-    # Create a directory, do nothing if it already exists
-    os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
+    # Create the subdirectory for structures with predicted Zn
+    path_structures_with_predicted_zn = os.path.join(path_output, "structures_with_predicted_zn")
+    os.makedirs(path_structures_with_predicted_zn, exist_ok=True)    # Create a directory, do nothing if it already exists
+    ##TODO:DETELEAFTER: os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
     cmd.delete("protein_only")  # delete selection
 
     if list_of_predicted_ZN is not None:
@@ -92,16 +92,21 @@ def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_pre
         with_or_no = "no"
 
     # Save the entire session
-    full_path_pymol_session = os.path.join(STRUCTURES_WITH_PREDICTED_ZN,
-                                           f"{structure_name}_{with_or_no}_predicted_ZN.pse")
+    full_path_pymol_session=os.path.join(path_structures_with_predicted_zn, f"{structure_name}_{with_or_no}_predicted_ZN.pse")
+    ##TODO:DETELEAFTER: full_path_pymol_session = os.path.join(STRUCTURES_WITH_PREDICTED_ZN,f"{structure_name}_{with_or_no}_predicted_ZN.pse")
+
+
     cmd.save(full_path_pymol_session)
 
     print(f"Session saved as '{full_path_pymol_session}'.")
 
 
 if __name__ == "__main__":
+    from src.settings import RESULTS_DIR
+    path_output=RESULTS_DIR
+
     list_of_predicted_ZN = [(17, [-20.313, 5.506, 50.392]), (0.8, [-18.313, 5.506, 50.392]),
                             (22, [-23.313, 5.506, 50.392])]
 
     #TODO: Need to add path to structure
-    create_pymol_session_structure_with_predicted_zn(path_structure, list_of_predicted_ZN)
+    create_pymol_session_structure_with_predicted_zn(path_structure, list_of_predicted_ZN, path_output)

@@ -21,7 +21,7 @@ from src.export_final_table_to_csv_format import export_final_table_to_csv_file
 from src.compress_results import compress_unified_results
 
 
-def main(list_query_structures_files_paths,boolean_rotamer_examination):
+def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output):
     conn = get_db_connection()
     cur = conn.cursor()
     his_rotation = boolean_rotamer_examination
@@ -143,7 +143,7 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
     
     if whether_create_structures== True:
         start_time_create_predcitedmodelstructures = time.time()
-        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths)  #TODO: just notice I did already: delete the caller accepted value- "tarred_file_path"
+        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)  #TODO: just notice I did already: delete the caller accepted value- "tarred_file_path"
         end_time_create_predcitedmodelstructures = time.time()
     
     
@@ -151,7 +151,7 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
     export_final_table_to_csv_file()
     print ("time_create_II_Coordinates_tables",time_create_tables)
 
-    compress_unified_results('sample_id', his_rotation) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
+    compress_unified_results('sample_id', his_rotation, path_output) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
 
     if whether_create_structures== True:
         print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
@@ -164,7 +164,7 @@ def main(list_query_structures_files_paths,boolean_rotamer_examination):
 
 
 if __name__=="__main__":
-    from src.settings import QUERY_STRUCTURES_DIR
+    from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
     from create_input_argument import primary_return_single_argument_as_paths_list
 
     list_of_uniprot_accessions = ["A0A068N621", "A0A0F6AZI6", "A0A292DHH8", "A0A2U3D0N8", "A0A3F2YM30", "A0A5H1ZR49", "G8ZFK7", "O60232", "P0A6G5", "P0DUH5", "P37659", "P38164", "Q03760", "Q08281", "Q2K0Z2", "Q2UFA9", "Q5W0Q7", "Q66K64", "Q68EN5", "Q6CXX6", "Q7MVV4", "Q86T03", "Q8N8R7", "Q8NBJ9", "Q96JC1", "Q9BWG6", "Q9D1N4", "Q9KP27", "Q9M1V3", "Q9NUN7", "Q9NXF7"]
@@ -176,6 +176,8 @@ if __name__=="__main__":
        list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, file))
 
     list_query_structures_files_paths =[]     # neeed to set at least one to empty
+    boolean_rotamer_examination = True
+    path_output = RESULTS_DIR
 
     list_of_paths= primary_return_single_argument_as_paths_list(list_query_structures_files_paths,list_of_uniprot_accessions)
-    main(list_of_paths)
+    main(list_of_paths, boolean_rotamer_examination, path_output)

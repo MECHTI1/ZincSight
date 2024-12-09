@@ -84,7 +84,7 @@ def convert_all_pdb_to_cif_in_dir(directory):
 def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_structures, path_output):
     if structure_ids_for_download:
         # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
-        primary_download_structures_list_input(structure_ids_for_download,path_query_structures )
+        primary_download_structures_list_input(structure_ids_for_download,path_query_structures)
 
     # convert PDB formatted query structures to mmCIF format
     convert_all_pdb_to_cif_in_dir(path_query_structures)
@@ -100,7 +100,7 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
             print(os.path.join(path_query_structures, filename))
             list_query_structures_files_paths.append(os.path.join(path_query_structures, filename))
 
-    execute(list_query_structures_files_paths, boolean_his_rot)
+    execute(list_query_structures_files_paths, boolean_his_rot, path_output)
 
 if __name__=="__main__": #Behave like a test
     from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
@@ -112,4 +112,4 @@ if __name__=="__main__": #Behave like a test
                                            Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
     path_query_structures=QUERY_STRUCTURES_DIR
     path_output= RESULTS_DIR
-    execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output )
+    execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)

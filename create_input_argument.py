@@ -13,10 +13,11 @@ from src.download_query_structures import download_query_structures
 from src.download_query_structures.aria2c_downloader import mount_storage
 from src.download_query_structures import aria2c_downloader
 from Bio.PDB import PDBParser, MMCIFIO
-from src.settings import QUERY_STRUCTURES_DIR
+from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
 from src.primary_script import main as execute
 import requests
 from dotenv import load_dotenv
+
 
 
 # Convert all PDB files in the provided directory and subdirectories to CIF format.
@@ -193,4 +194,6 @@ if __name__ == "__main__":
         else:
             print("Invalid input. Please press N or Y.")
 
-    execute(list_query_structures_files_paths, boolean_rotamer_examination)
+    path_output =  RESULTS_DIR
+
+    execute(list_query_structures_files_paths, boolean_rotamer_examination, path_output)

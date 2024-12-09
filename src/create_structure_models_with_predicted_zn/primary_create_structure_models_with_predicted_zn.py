@@ -20,7 +20,7 @@ import os
 from src.settings import STRUCTURES_WITH_PREDICTED_ZN
 #from src.create_structure_models_with_predicted_zn.tar_all_resulted_structures_with_predicted_zn  import main as create_compressed_tarred_file #TODO: DELETE
 
-def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths):
+def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output):
     list_tarred_sessions_paths=[]
 
     start=time.time()
@@ -79,7 +79,7 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
         for structureID, scores_metalcoords in dict_Key_structure_values_score_metalcoord.items():
             if structureID in base_name_to_full_path:
                 full_path_to_structure = base_name_to_full_path[structureID]
-                tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure, scores_metalcoords)
+                tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure, scores_metalcoords, path_output)
                 list_tarred_sessions_paths.append(tarred_session_path)
                 AF_with_predcited_ZN.add(structureID)
 
@@ -104,7 +104,7 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
     for structureID in AF_structures_without_predicted_sites:
         scores_metalcoords=None                        
         full_path_to_structure=base_name_to_full_path[structureID]
-        tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure,scores_metalcoords)
+        tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure,scores_metalcoords, path_output)
         list_tarred_sessions_paths.append(tarred_session_path)
     end=time.time()
     print ("time: ", end-start)
