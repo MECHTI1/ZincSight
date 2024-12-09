@@ -1,6 +1,5 @@
 import os
 import subprocess
-##TODO:DETELEAFTER: from src.settings import RESULTS_DIR
 from datetime import datetime
 
 def create_results_tarfile(output_file_path, folder_names, path_output):

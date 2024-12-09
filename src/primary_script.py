@@ -6,7 +6,6 @@ Created on Tue Aug  1 18:31:24 2023
 """
 import os
 from src.settings import get_db_connection, KEEP_TEMP_TABLES
-# from src.settings import QUERY_STRUCTURES_DIR
 import time
 from src.create_ii_coordinates_tables.ii_coordinates_primary_generator_structures import main as create_ii_coordinates_tables_query_dataset
 from src.create_ii_coordinates_tables.Insert_Representative_Motifs_to_Query_InitialTables import main as insert_representative_motifs_to_dataset_tables
@@ -143,7 +142,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     
     if whether_create_structures== True:
         start_time_create_predcitedmodelstructures = time.time()
-        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)  #TODO: just notice I did already: delete the caller accepted value- "tarred_file_path"
+        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
         end_time_create_predcitedmodelstructures = time.time()
     
     
@@ -151,7 +150,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     export_final_table_to_csv_file()
     print ("time_create_II_Coordinates_tables",time_create_tables)
 
-    compressed_resulted_file_path = compress_unified_results('sample_id', his_rotation, path_output) #TODO: First- check if works and Second- add connection from colab to here with option of input sample_id
+    compressed_results_path = compress_unified_results('sample_id', his_rotation, path_output)    #TODO: Add option of input sample_id
 
     if whether_create_structures== True:
         print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
@@ -162,7 +161,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     cur.close()
     conn.close()
 
-    return compressed_resulted_file_path
+    return compressed_results_path
 
 if __name__=="__main__":
     from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
@@ -176,7 +175,7 @@ if __name__=="__main__":
     for file in files:
        list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, file))
 
-    list_query_structures_files_paths =[]     # neeed to set at least one to empty
+    list_query_structures_files_paths =[]     # need to set at least one to empty
     boolean_rotamer_examination = True
     path_output = RESULTS_DIR
 

@@ -17,8 +17,6 @@ The omitted structure is then included in the next batch's dictionary, from whic
 import time
 from src.create_structure_models_with_predicted_zn.create_pymol_session_structure_with_predicted_zn import create_pymol_session_structure_with_predicted_zn
 import os
-from src.settings import STRUCTURES_WITH_PREDICTED_ZN
-#from src.create_structure_models_with_predicted_zn.tar_all_resulted_structures_with_predicted_zn  import main as create_compressed_tarred_file #TODO: DELETE
 
 def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output):
     list_tarred_sessions_paths=[]
@@ -108,8 +106,3 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
         list_tarred_sessions_paths.append(tarred_session_path)
     end=time.time()
     print ("time: ", end-start)
-    #TODO: Already deleted command - path_tarred_structures_file= os.path.join(STRUCTURES_WITH_PREDICTED_ZN,"structures_with_predicted_zn_coords.tar.gz")
-    #TODO: Already deleted command - "create_compressed_tarred_file()"
-    #TODO: Already deleted command -"return (path_tarred_structures_file)"
-
-

@@ -10,7 +10,6 @@ Created on Tue Jul 16 17:14:53 2024
 from pymol import cmd
 from pathlib import Path
 import os
-##TODO:DETELEAFTER: from src.settings import STRUCTURES_WITH_PREDICTED_ZN
 
 # Custom color dictionary based on score
 import json
@@ -83,7 +82,6 @@ def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_pre
     # Create the subdirectory for structures with predicted Zn
     path_structures_with_predicted_zn = os.path.join(path_output, "structures_with_predicted_zn")
     os.makedirs(path_structures_with_predicted_zn, exist_ok=True)    # Create a directory, do nothing if it already exists
-    ##TODO:DETELEAFTER: os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
     cmd.delete("protein_only")  # delete selection
 
     if list_of_predicted_ZN is not None:
@@ -93,8 +91,6 @@ def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_pre
 
     # Save the entire session
     full_path_pymol_session=os.path.join(path_structures_with_predicted_zn, f"{structure_name}_{with_or_no}_predicted_ZN.pse")
-    ##TODO:DETELEAFTER: full_path_pymol_session = os.path.join(STRUCTURES_WITH_PREDICTED_ZN,f"{structure_name}_{with_or_no}_predicted_ZN.pse")
-
 
     cmd.save(full_path_pymol_session)
 

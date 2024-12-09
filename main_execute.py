@@ -89,19 +89,15 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
     # convert PDB formatted query structures to mmCIF format
     convert_all_pdb_to_cif_in_dir(path_query_structures)
 
-    # # List all entries in the directory
-    # entries = os.listdir(path_query_structures)
-    # list_query_structures_files_full_paths = [entry for entry in entries if entry.endswith('.cif') and os.path.isfile(os.path.join(path_query_structures, entry))]
-    # print("full dirs of query structures:", list_query_structures_files_full_paths)
-    #
+    # List all entries in the directory
     list_query_structures_files_paths = []
     for root, dirs, files in os.walk(path_query_structures):
         for filename in files:
             print(os.path.join(path_query_structures, filename))
             list_query_structures_files_paths.append(os.path.join(path_query_structures, filename))
 
-    compressed_resulted_file_path = execute(list_query_structures_files_paths, boolean_his_rot, path_output)
-    return compressed_resulted_file_path
+    compressed_results_path = execute(list_query_structures_files_paths, boolean_his_rot, path_output)
+    return compressed_results_path
 
 if __name__=="__main__": #Behave like a test
     from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
@@ -114,6 +110,6 @@ if __name__=="__main__": #Behave like a test
     path_query_structures=QUERY_STRUCTURES_DIR
     path_output= RESULTS_DIR
 
-    compressed_resulted_file_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)
-    print (compressed_resulted_file_path)
+    compressed_results_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)
+    print (compressed_results_path)
 
