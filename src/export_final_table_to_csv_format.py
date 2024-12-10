@@ -1,10 +1,8 @@
-import psycopg2
 from src.settings import get_db_connection
 import csv
-import os 
-from src.settings import TABLES_DIR
+import os
 
-def export_final_table_to_csv_file():
+def export_final_table_to_csv_file(path_output):
     conn = get_db_connection()
 
     # Query to select specific columns
@@ -40,9 +38,11 @@ def export_final_table_to_csv_file():
     
     # Get column names from the cursor
     column_names = [desc[0] for desc in cur.description]
-    
-    csv_file_path = os.path.join(TABLES_DIR,'table_predicted_zn_binding_sites.csv')     # Path to the CSV file (current directory)
-    
+
+    table_dir = os.path.join(path_output, 'table')  # Path to 'table' directory
+    os.makedirs(table_dir, exist_ok=True)   # Create 'table' directory if it doesn't exist
+    csv_file_path = os.path.join(table_dir, 'table_predicted_zn_binding_sites.csv')     # Full path for saving the final CSV file 'table_predicted_zn_binding_sites.csv'
+
     # Write the rows to a CSV file
     with open(csv_file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -56,3 +56,8 @@ def export_final_table_to_csv_file():
     conn.close()
     
     print(f"Data exported successfully to {csv_file_path}")
+
+if __name__ == '__main__':
+    from src.settings import RESULTS_DIR
+    path_output = RESULTS_DIR
+    export_final_table_to_csv_file(path_output)

@@ -147,7 +147,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     
     
     print ("total time for prediction without create structure models:",end_time_prediction_process_all_sites- start_time_prediction_process_all_sites)    
-    export_final_table_to_csv_file()
+    export_final_table_to_csv_file(path_output)
     print ("time_create_II_Coordinates_tables",time_create_tables)
 
     compressed_results_path = compress_unified_results('sample_id', his_rotation, path_output)    #TODO: Add option of input sample_id
