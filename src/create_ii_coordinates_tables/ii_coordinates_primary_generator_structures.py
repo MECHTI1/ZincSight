@@ -13,7 +13,7 @@ import multiprocessing
 import psycopg2
 from src.settings import get_db_connection
 from src.create_ii_coordinates_tables.extract_structure_II_coords import Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure
-from src.create_ii_coordinates_tables.create_insert_indexing_ii_and_coords_tables import create_IIs_and_COORDINATES_TABLES, insert_muliple_rows_from_one_structure as Insert, create_multiple_column_indexes as create_indexes, close_connection
+from src.create_ii_coordinates_tables.create_insert_indexing_ii_and_coords_tables import create_IIs_and_COORDINATES_TABLES, insert_muliple_rows_from_one_structure as Insert, create_multiple_column_indexes as create_indexes
 
 def get_IIs_and_coordinates_lists_of_tuples_and_insert_to_tables(filepath, structure_name,conn,cur,counter):
     start_time_create = time.time()
@@ -58,7 +58,10 @@ def multithreaded_iteratations_structures_insert_into_ii_and_coords_tables(list_
             total_time_create += time_create
             total_time_insert += time_insert
         result_queue.put((total_time_create, total_time_insert))
-        
+
+        cur.close()
+        conn.close()
+
         return total_time_create, total_time_insert
 
    
@@ -102,8 +105,7 @@ def main(list_query_structures_files_paths):
     create_indexes()
     end_time_create_indexes= time.time()
 
-    close_connection()
-    
+
     end_time = time.time()
     print("Overall time: ", end_time - start_time)
     print("Total time for Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure calls: ", total_time_create)

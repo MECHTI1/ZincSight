@@ -13,6 +13,7 @@ from src.settings import get_db_connection
 import json
 
 def create_IIs_and_COORDINATES_TABLES():
+    conn = get_db_connection()
     cur = conn.cursor()  
 
     # SQL command to create a II_TABLE_V2 
@@ -57,6 +58,7 @@ def create_IIs_and_COORDINATES_TABLES():
     conn.commit()
     # Close the cursor and connection
     cur.close()
+    conn.close()
 
 def insert_muliple_rows_from_one_structure(list_of_II_tuples, list_of_coordinates_tuples,all_relevant_atoms_from_residues_list,conn,cur):
     insert_query_II_TABLE_V2 = "INSERT INTO AF_DATASET_II_TABLE_V2 (PDBID_AlphaFoldModel, AA_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) VALUES %s"
@@ -81,6 +83,7 @@ def insert_muliple_rows_from_one_structure(list_of_II_tuples, list_of_coordinate
 
 #create multiple column indexes. three combinations (for three searches- one in the start of the II combination chain, the second and three in the following ssearches in the chain)
 def create_multiple_column_indexes():
+    conn = get_db_connection()
     cur = conn.cursor()
 
     # SQL commands to create indexes
@@ -105,14 +108,9 @@ def create_multiple_column_indexes():
     cur.close()
     # Commit the transaction
     conn.commit()
-
-def close_connection():
     conn.close()
-    
 
-# Establish a connection to the database
-conn = get_db_connection()
-# Create a cursor object
+
 
 
 
