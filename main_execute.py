@@ -125,11 +125,11 @@ if __name__=="__main__": #Behave like a test
             G8ZFK7, O60232, P0A6G5, P0DUH5, P37659, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4, 
             Q86T03, Q8N8R7, Q8NBJ9, Q96JC1, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
         if d_path_file_ids:  # Testing - defined path of txt file include structure ids
-            # Option 1 for input:
-            path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_ids_to_download.txt")
+            # # Option 1 for input:
+            # path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_ids_to_download.txt")
 
-            #Option 2 for input:
-            #path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file", "2-D- UniprotID_of_RepClusters_nMem70Plus.csv")
+            # Option 2 for input:
+            path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file", "2-D- UniprotID_of_RepClusters_nMem70Plus.csv")
 
             # Read the file and convert its content to a comma-separated string
             with open(path_file_with_structure_ids, "r") as file:
@@ -146,5 +146,5 @@ if __name__=="__main__": #Behave like a test
     print (compressed_results_path)
     
     zincsight_total_execution_time = time.time()-zincsight_start_execution
-    print (zincsight_total_execution_time)
+    print ("ZincSight_total_execution_time is: ", zincsight_total_execution_time, " Sec")
 
