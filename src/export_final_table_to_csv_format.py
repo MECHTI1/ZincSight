@@ -21,7 +21,8 @@ def export_final_table_to_csv_file(path_output):
         dif_angle_base, 
         dif_angle_plane, 
         metalcoord, 
-        score
+        score,
+        prob
     FROM final_compressed_table_with_scored_binding_sites
     """
     

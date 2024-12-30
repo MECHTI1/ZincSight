@@ -18,6 +18,7 @@ from src.scoring_and_compression.compress_table_by_proximity import table_compre
 from src.create_structure_models_with_predicted_zn.primary_create_structure_models_with_predicted_zn import locate_predicted_zn_within_structures
 from src.export_final_table_to_csv_format import export_final_table_to_csv_file
 from src.compress_results import compress_unified_results
+from src.add_prob.add_prob_to_final_table import add_column_with_probs
 
 
 def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output):
@@ -134,6 +135,10 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
 
     table_compression()
     conn.commit()
+
+    add_column_with_probs()
+    conn.commit()
+    print("Probabilities added to the database successfully!")
 
     if not KEEP_TEMP_TABLES:
         cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
