@@ -123,9 +123,9 @@ if __name__ == "__main__":
         if int(preference_list1_or_linkstxt2) == 1:
             if Checking_algo_with_default_input:
                 string_of_ids_to_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30,
-                                           A0A5H1ZR49, G8ZFK7, O60232, P0A6G5, P0DUH5, P37659, P38164,
+                                           A0A5H1ZR49, G8ZFK7, P0A6G5, P38164,
                                            Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5,
-                                           Q6CXX6, Q7MVV4, Q86T03, Q8N8R7, Q8NBJ9, Q96JC1, Q9BWG6,
+                                           Q6CXX6, Q7MVV4, Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6,
                                            Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
             else:
                 string_of_ids_to_download = input()
