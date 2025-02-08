@@ -27,7 +27,7 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
     
     # Create a cursor object
     cur= conn.cursor()
-    cur.execute("SELECT pdbid_alphafoldmodel, score, metalcoord FROM final_compressed_table_with_scored_binding_sites ORDER BY pdbid_alphafoldmodel ASC")
+    cur.execute("SELECT structure_id, score, predicted_ion_pos FROM final_compressed_table_with_scored_binding_sites ORDER BY structure_id ASC")
     conn.commit()
     
     batch_size = 1000

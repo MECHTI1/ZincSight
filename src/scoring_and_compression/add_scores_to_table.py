@@ -38,7 +38,11 @@ def final_scoring_and_insertion_to_table(list_query_structures_files_paths):
     # Alter the table to add a score column if it doesn't exist
     cur1.execute("ALTER TABLE scored_af_dataset_with_aggregated_final_tables ADD COLUMN IF NOT EXISTS score DOUBLE PRECISION;")
     conn.commit()
-    
+
+    # Alter the table to add a dis_rmsd column if it doesn't exist
+    cur1.execute("ALTER TABLE scored_af_dataset_with_aggregated_final_tables ADD COLUMN IF NOT EXISTS dis_rmsd DOUBLE PRECISION;")
+    conn.commit()
+
     cur1.execute("ALTER TABLE scored_af_dataset_with_aggregated_final_tables ADD COLUMN id SERIAL PRIMARY KEY;")
     conn.commit()
     
@@ -96,7 +100,7 @@ def final_scoring_and_insertion_to_table(list_query_structures_files_paths):
             
                     # Insert/Update the score in the database for the respective row
                     if angle_with_dis_score is not None:
-                        cur2.execute(f"UPDATE scored_af_dataset_with_aggregated_final_tables SET score = {angle_with_dis_score} WHERE id = {row_id};")
+                        cur2.execute(f"UPDATE scored_af_dataset_with_aggregated_final_tables SET score = {angle_with_dis_score},dis_rmsd = {dis_score} WHERE id = {row_id};")
             
         conn.commit()
         

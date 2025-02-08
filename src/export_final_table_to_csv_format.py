@@ -8,22 +8,22 @@ def export_final_table_to_csv_file(path_output):
     # Query to select specific columns
     query = """
     SELECT 
-        pdbid_alphafoldmodel, 
+        structure_id, 
         chain_resi_1, 
         chain_resi_2, 
         chain_resi_3, 
         chain_resi_4, 
-        chain_resi_5, 
-        resi_comb, 
-        rmsd_overall, 
-        rmsd_close_atom, 
-        distances_list, 
-        dif_angle_base, 
-        dif_angle_plane, 
-        metalcoord, 
+        resi_comb_ordered, 
+        template_rmsd, 
+        template_id,
+        angles_to_mn_rms,
+        angles_to_planes_rms,
+        dis_rmsd,
+        predicted_ion_pos,
         score,
         prob
     FROM final_compressed_table_with_scored_binding_sites
+    ORDER BY prob DESC
     """
     
     
