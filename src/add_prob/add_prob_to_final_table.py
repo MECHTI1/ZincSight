@@ -16,8 +16,22 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 MODEL_PATH = SCRIPT_DIR / "platt_model_score_to_prob.joblib"
 PLATT_MODEL = load(MODEL_PATH)
 
-def print_bold_message():
-    """Display bold message in both Colab and terminal"""
+def cleanup_tables(conn, cur):
+    """Keep only required tables, delete others"""
+    required_tables = {
+        'minimized_training_cluster_information',
+        'motif_representative_coordinates_table_v2',
+        'motif_representative_detailed_coordinates_table_v2',
+        'training_representative_metal_sites_kruskal_v2'
+    }
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+    for table in cur.fetchall():
+        if table[0] not in required_tables:
+            cur.execute(f'DROP TABLE IF EXISTS "{table[0]}" CASCADE')
+    conn.commit()
+
+def print_bold_message_no_predicted_site_and_cleanup_created_tables():
+    """Display bold message and cleanup tables"""
     message = "No predicted zinc-binding sites within the given query structures!"
     try:
         if is_notebook:
@@ -26,9 +40,16 @@ def print_bold_message():
         else:
             print('\033[1m' + message + '\033[0m')
     except:
-        print(message)  # Fallback
+        print(message)
     finally:
-        sys.exit(0)
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cleanup_tables(conn, cur)
+        finally:
+            cur.close()
+            conn.close()
+            sys.exit(0)
 
 def load_scores_to_prob_model_and_predict(scores):
     """Predict probabilities using Platt model"""
@@ -47,7 +68,6 @@ def add_column_with_probs():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Check if table exists
         cur.execute("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -56,30 +76,26 @@ def add_column_with_probs():
             );
         """)
         if not cur.fetchone()[0]:
-            print_bold_message()
+            print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
-        # Add probability column
         cur.execute("""
             ALTER TABLE final_compressed_table_with_scored_binding_sites 
             ADD COLUMN IF NOT EXISTS prob REAL;
         """)
         conn.commit()
 
-        # Get existing data
         cur.execute("SELECT id, score FROM final_compressed_table_with_scored_binding_sites;")
         rows = cur.fetchall()
 
-        if not rows:  # Empty table check
-            print_bold_message()
+        if not rows:
+            print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
-        # Calculate probabilities
         ids, scores = zip(*rows)
         probabilities = load_scores_to_prob_model_and_predict(scores)
 
         if probabilities is None:
-            print_bold_message()
+            print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
-        # Update probabilities
         updates = [(prob, id) for prob, id in zip(probabilities, ids)]
         cur.executemany(
             "UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;",
@@ -88,28 +104,18 @@ def add_column_with_probs():
         conn.commit()
 
     except Exception as e:
-        print_bold_message()
+        print_bold_message_no_predicted_site_and_cleanup_created_tables()
     finally:
-        if cur:
-            try:
-                cur.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        if cur: cur.close()
+        if conn: conn.close()
 
 if __name__ == "__main__":
     try:
-        # Test section
         test_scores = [i for i in range(100)]
         probs = load_scores_to_prob_model_and_predict(test_scores)
         if probs is not None:
             for score, prob in zip(test_scores, probs):
                 print(f"Score: {score}, Calibrated Probability: {prob:.4f}")
-
         add_column_with_probs()
     except Exception as e:
-        print_bold_message()
+        print_bold_message_no_predicted_site_and_cleanup_created_tables()
