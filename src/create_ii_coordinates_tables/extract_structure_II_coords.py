@@ -38,9 +38,12 @@ def create_all_relevant_atoms_from_residues_list(structure, PDBID):
     # Initialize the list of residues
     residue_list = []
 
-   
+    is_nmr_structure = any('NMR' in method.upper() for method in structure.header.get('_exptl.method', '').split(';'))
     # Iterate over all residues in the structure
+    first_model = True  # Flag to track if we're processing the first model
     for model in structure:
+        if is_nmr_structure and not first_model: continue  # Skip non-first models in NMR structures
+        first_model = False  # Mark that we've processed the first model
         for chain in model:
             for residue in chain:
                 residue_name = residue.get_resname()
