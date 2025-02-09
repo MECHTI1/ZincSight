@@ -39,7 +39,7 @@ def print_bold_message_no_predicted_site_and_cleanup_created_tables():
     cleanup_tables(conn, cur)
     cur.close()
     conn.close()
-    sys.exit(0)
+    return False # Not exist final table -no any predicted sites
 
 def load_scores_to_prob_model_and_predict(scores):
     """Predict probabilities using Platt model"""
@@ -92,6 +92,7 @@ def add_column_with_probs():
             updates
         )
         conn.commit()
+        return True
 
     except Exception as e:
         print_bold_message_no_predicted_site_and_cleanup_created_tables()

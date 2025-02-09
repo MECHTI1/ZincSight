@@ -137,10 +137,8 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     table_compression()
     conn.commit()
 
-    add_column_with_probs()
-    conn.commit()
-    print("Probabilities added to the database successfully!")
-
+    boolean_if_any_predicted_site = add_column_with_probs()
+    if not boolean_if_any_predicted_site: return False # no predicted sites
     refine_table()
     conn.commit()
 
