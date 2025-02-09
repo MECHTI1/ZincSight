@@ -33,23 +33,13 @@ def cleanup_tables(conn, cur):
 def print_bold_message_no_predicted_site_and_cleanup_created_tables():
     """Display bold message and cleanup tables"""
     message = "No predicted zinc-binding sites within the given query structures!"
-    try:
-        if is_notebook:
-            from IPython.display import HTML, display
-            display(HTML(f"<b>{message}</b>"))
-        else:
-            print('\033[1m' + message + '\033[0m')
-    except:
-        print(message)
-    finally:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        try:
-            cleanup_tables(conn, cur)
-        finally:
-            cur.close()
-            conn.close()
-            sys.exit(0)
+    print(message, file=sys.stderr, flush=True)  # This ensures visibility
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cleanup_tables(conn, cur)
+    cur.close()
+    conn.close()
+    sys.exit(0)
 
 def load_scores_to_prob_model_and_predict(scores):
     """Predict probabilities using Platt model"""
