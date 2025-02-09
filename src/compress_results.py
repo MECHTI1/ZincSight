@@ -2,7 +2,7 @@ import os
 import subprocess
 from datetime import datetime
 
-def create_results_tarfile(output_file_path, folder_names, path_output):
+def create_results_tarfile(output_file_path, folder_names, path_output,reference_csv_path):
     """
     Create a .tar.gz file containing only the specified folders within path_output.
 
@@ -17,8 +17,15 @@ def create_results_tarfile(output_file_path, folder_names, path_output):
 
     # Create the tar.gz file using tar and pigz for the specified folders within path_output
     with open(output_file_path, 'wb') as f_out:
+
         # Switch to path_output and archive each specified folder by its name, avoiding full paths
         tar_command = ['tar', 'cf', '-', '-C', path_output] + folder_names
+
+        # **Check if the reference CSV exists and add it to the tar command**
+        if os.path.isfile(reference_csv_path):  # <--- New logic to check and add the reference CSV
+            # Add the reference CSV file with its relative path
+            tar_command += ['-C', os.path.dirname(reference_csv_path), os.path.basename(reference_csv_path)]  # <--- New line
+
         p1 = subprocess.Popen(tar_command, stdout=subprocess.PIPE)
         p2 = subprocess.Popen(['pigz'], stdin=p1.stdout, stdout=f_out)
         p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
@@ -56,8 +63,11 @@ def compress_unified_results(sample_id, his_rot_sampling, path_output):
         f"ZincSight_{sample_id}{str_his_rot_sampling}_{folder_suffix}_{date}.tar.gz"
     )
 
+    # **Path to the reference CSV file (assumed to be in the same directory as the script)**
+    reference_csv_path = os.path.join(os.path.dirname(__file__), "reference_motif_templates.csv")  # <--- Added this line
+
     # Call the function to create the tar file with specified folder names (not full paths)
-    create_results_tarfile(output_file_path, dirs_to_compress, path_output)
+    create_results_tarfile(output_file_path, dirs_to_compress, path_output,reference_csv_path)
 
     # Return the full path to the created tar.gz file
     return output_file_path
