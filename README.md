@@ -8,7 +8,12 @@ ZincSight predicts zinc-binding sites in proteins. It accepts input as:
 - Protein IDs (e.g., PDB, AlphaFold, or ESM Metagenomic Atlas)
 - Uploaded structure files in PDB or MMCIF format
 
-The speed  estimated  running time for a batch of 
+The estimated running time for each protein queried within a batch of proteins is 0.6 seconds.
+
+The reults of predcitions:
+1) comprehensively detailed  with an summerizing csv file
+2) PyMOL sessions for easy visulazation
+   
 ## 1. Quick Start with Google Colab
 
 The fastest way to get started with ZincSight is through our interactive Google Colab notebook:
