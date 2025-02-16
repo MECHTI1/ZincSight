@@ -5,8 +5,8 @@ A rapid and precise tool for large-scale zinc ion location prediction in protein
 
 ## Features
 
-- Fast processing: ~0.6 seconds per protein query (using free Google Colab sessions which use Is hyper-threading in single physical core of ntel Xeon CPU @ 2.20GHz.
-### Flexible input opti
+- Fast processing: Approximately 0.5–1 second per protein query on Google Colab—achieved by utilizing two threads on an Intel Xeon® CPU @ 2.20GHz, or alternatively, using two local 11th Gen Intel® Core™ i7-1165G7 CPU cores.
+### Flexible input options
 1. Protein IDs (e.g., PDB, AlphaFold, or ESM Metagenomic Atlas) 
 2. Uploaded structure files in PDB or MMCIF format
 
