@@ -1,18 +1,24 @@
 ZincSight
 =========
 
-**ZincSight** is a rapid and precise tool for large-scale zinc ion location prediction in proteins. The tool is optimized for high-throughput analyses while maintaining accuracy.
+A rapid and precise tool for large-scale zinc ion location prediction in proteins. The tool is optimized for high-throughput analyses while maintaining accuracy.
 
+## Features
 
+- Fast processing: ~0.6 seconds per protein query
+- Flexible input options:
+  - Protein IDs (PDB, AlphaFold, or ESM Metagenomic Atlas)
+  - Uploaded structure files (PDB or MMCIF format)
+- Comprehensive output:
+  - Detailed CSV files including, among others:
+    * predicted zinc-ion x,y,z coordinates
+    * predicted binding residues
+    * probability for being TP site
+    * references for experimentally solved zinc-binding templates used in prediction
+  - PyMOL sessions for easy visualization
 ZincSight predicts zinc-binding sites in proteins. It accepts input as:
 - Protein IDs (e.g., PDB, AlphaFold, or ESM Metagenomic Atlas)
 - Uploaded structure files in PDB or MMCIF format
-
-The estimated running time for each protein queried within a batch of proteins is 0.6 seconds.
-
-The reults of predcitions:
-1) comprehensively detailed  with an summerizing csv file
-2) PyMOL sessions for easy visulazation
    
 ## 1. Quick Start with Google Colab
 
