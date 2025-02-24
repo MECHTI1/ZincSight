@@ -144,7 +144,7 @@ if __name__=="__main__": #Behave like a test
     structure_ids_for_download = manually_written_structure_ids_for_download + structure_ids_from_txt_file
 
 
-    boolean_his_rot = False
+    boolean_his_rot = True
     compressed_results_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)
     print (compressed_results_path)
     
