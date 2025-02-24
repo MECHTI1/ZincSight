@@ -30,4 +30,3 @@ git clone https://github.com/MECHTI1/ZincSight.git
 cd ZincSight
 conda env create -f environment.yml
 conda activate zincsight_env
-python -c "print('ZincSight Environment OK')"
