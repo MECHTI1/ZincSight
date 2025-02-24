@@ -30,3 +30,9 @@ git clone https://github.com/MECHTI1/ZincSight.git
 cd ZincSight
 conda env create -f environment.yml
 conda activate zincsight_env
+```
+
+## 3. Running ZincSight Locally
+
+After installing the environment, you can run ZincSight using the `zincsight_loc.py` script.
+
