@@ -24,7 +24,18 @@ The fastest way to get started with ZincSight is through our interactive Google 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb)
 
 ## 2. Local Installation
+### Requirements
+- **PyMOL** - Confiremed compatibilty with open‐source versions **2.5.0** and **3.0.0**
+- **PostgreSQL** - Confiremed compatibilty with version **15**
 
+### Database setup
+```bash
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'zincsight_pipeline_db';" | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE zincsight_pipeline_db;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE zincsight_pipeline_db TO postgres;"
+sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+```
+
+### Cloning and Conda environment setup
 ```bash
 git clone https://github.com/MECHTI1/ZincSight.git
 cd ZincSight
