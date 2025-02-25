@@ -28,7 +28,7 @@ The fastest way to get started with ZincSight is through our interactive Google 
 - **PyMOL** - Confirmed compatibilty with open‐source versions **2.5.0** and **3.0.0**
 - **PostgreSQL** - Confirmed compatibilty with version **15**
 
-### Clonining
+### Downloading the repository
 ```bash
 git clone https://github.com/MECHTI1/ZincSight.git
 cd ZincSight
