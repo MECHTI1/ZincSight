@@ -30,9 +30,7 @@ The fastest way to get started with ZincSight is through our interactive Google 
 
 ### Database setup
 ```bash
-sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'zincsight_pipeline_db';" | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE zincsight_pipeline_db;"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE zincsight_pipeline_db TO postgres;"
-sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+bash db_setup.sh
 ```
 
 ### Cloning and Conda environment setup
