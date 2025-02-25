@@ -25,9 +25,8 @@ The fastest way to get started with ZincSight is through our interactive Google 
 
 ## 2. Local Installation
 ### Requirements
-- **PyMOL** - Confiremed compatibilty with open‐source versions **2.5.0** and **3.0.0**
-- **PostgreSQL** - Confiremed compatibilty with version **15**
-
+- **PyMOL** - Confirmed compatibilty with open‐source versions **2.5.0** and **3.0.0**
+- **PostgreSQL** - Confirmed compatibilty with version **15**
 
 ### Clonining
 ```bash
