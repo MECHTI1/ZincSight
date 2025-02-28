@@ -43,12 +43,14 @@ def create_pymol_session_structure_with_predicted_zn(path_structure, list_of_pre
         # Create a selection for all predicted zinc atoms
         cmd.select("predicted_zincs", "none")
 
-        for index, score_coordinates in enumerate(list_of_predicted_ZN):
-            score, coordinates = score_coordinates[0], score_coordinates[1]
+        for index, score_probs_coordinates in enumerate(list_of_predicted_ZN):
+            score, prob, coordinates = score_probs_coordinates[0],score_probs_coordinates[1], score_probs_coordinates[2]
 
             # Add a zinc atom at the specified position
             [x, y, z] = coordinates
-            selection_name = f"pZN_{index}_{round(score, 2)}"
+            compact_prob_val=round(prob,3)
+            if compact_prob_val < 0.001:  compact_prob_val= f"{prob:.1e}"
+            selection_name = f"pZN_{index}_{compact_prob_val}"
             cmd.pseudoatom(object=selection_name, elem="Zn", pos=[x, y, z], name="Zn")
 
             # Add this zinc to the overall selection

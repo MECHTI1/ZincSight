@@ -27,7 +27,7 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
     
     # Create a cursor object
     cur= conn.cursor()
-    cur.execute("SELECT structure_id, score, predicted_ion_pos FROM final_compressed_table_with_scored_binding_sites ORDER BY structure_id ASC")
+    cur.execute("SELECT structure_id, score, predicted_ion_pos, prob FROM final_compressed_table_with_scored_binding_sites ORDER BY structure_id ASC")
     conn.commit()
     
     batch_size = 1000
@@ -61,10 +61,12 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
             StructureID= row[0]
             score=row[1]
             metalcoord=row[2]
-            
+            prob = row[3]
+
+
             if StructureID not in dict_Key_structure_values_score_metalcoord:
                 dict_Key_structure_values_score_metalcoord[StructureID]=[]
-            dict_Key_structure_values_score_metalcoord[StructureID].append((score,metalcoord))
+            dict_Key_structure_values_score_metalcoord[StructureID].append((score,prob,metalcoord))
         
         if row_count % 1000==0: # probably did not reached the end of the table (So there will be probably another batch after, which will inherent the last structure data from the current batch)
             last_StructureID_current_batch=StructureID
@@ -74,10 +76,10 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
         
 
         # Process the dictionary of structure IDs and their scores
-        for structureID, scores_metalcoords in dict_Key_structure_values_score_metalcoord.items():
+        for structureID, scores_probs_metalcoords in dict_Key_structure_values_score_metalcoord.items():
             if structureID in base_name_to_full_path:
                 full_path_to_structure = base_name_to_full_path[structureID]
-                tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure, scores_metalcoords, path_output)
+                tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure, scores_probs_metalcoords, path_output)
                 list_tarred_sessions_paths.append(tarred_session_path)
                 AF_with_predcited_ZN.add(structureID)
 
@@ -100,9 +102,9 @@ def locate_predicted_zn_within_structures(conn,list_query_structures_files_paths
     print(AF_structures_without_predicted_sites)
     
     for structureID in AF_structures_without_predicted_sites:
-        scores_metalcoords=None                        
+        scores_probs_metalcoords=None
         full_path_to_structure=base_name_to_full_path[structureID]
-        tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure,scores_metalcoords, path_output)
+        tarred_session_path= create_pymol_session_structure_with_predicted_zn(full_path_to_structure,scores_probs_metalcoords, path_output)
         list_tarred_sessions_paths.append(tarred_session_path)
     end=time.time()
     print ("time: ", end-start)
