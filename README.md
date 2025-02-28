@@ -24,10 +24,21 @@ The fastest way to get started with ZincSight is through our interactive Google 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb)
 
 ## 2. Local Installation
+### Requirements
+- **PyMOL** - Confirmed compatibilty with open‐source versions **2.5.0** and **3.0.0**
+- **PostgreSQL** - Confirmed compatibilty with version **15**
 
+### Downloading the repository
 ```bash
 git clone https://github.com/MECHTI1/ZincSight.git
 cd ZincSight
+```
+### Database setup
+```bash
+bash db_setup.sh
+```
+### Conda environment setup
+```bash
 conda env create -f environment.yml
 conda activate zincsight_env
 ```
