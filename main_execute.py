@@ -123,14 +123,13 @@ if __name__=="__main__": #Behave like a test
 
     if d_manual_ids or d_path_file_ids:
         if d_manual_ids:  # Testing - manually written structure ids
-            manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
-            G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
-            Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
+           manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
+           G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
+           Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
             # manually_written_structure_ids_for_download = "8SUZ"
         if d_path_file_ids:  # Testing - defined path of txt file include structure ids
             # # Option 1 for input:
             # path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_ids_to_download.txt")
-
             # Option 2 for input:
             path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file", "2-D- UniprotID_of_RepClusters_nMem70Plus.csv")
 

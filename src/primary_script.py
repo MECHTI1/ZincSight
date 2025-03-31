@@ -23,10 +23,10 @@ from src.add_prob.add_prob_to_final_table import add_column_with_probs
 
 
 def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output):
+    start_time_not_include_downloading_structures = time.time()
     conn = get_db_connection()
     cur = conn.cursor()
     his_rotation = boolean_rotamer_examination
-    whether_create_structures=True
 
     start_time_create_tables=time.time()
 
@@ -36,7 +36,6 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     end_time_create_tables=time.time()
     time_create_tables=end_time_create_tables-start_time_create_tables
 
-    start_time_prediction_process_all_sites=time.time()
     # all_sites_final_table
     cur.execute("""
           CREATE TABLE AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables (
@@ -145,25 +144,22 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     if not KEEP_TEMP_TABLES:
         cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
     conn.commit()
-    end_time_prediction_process_all_sites=time.time()
+
+    start_time_create_predcitedmodelstructures = time.time()
+    locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
+    end_time_create_predcitedmodelstructures = time.time()
     
-    if whether_create_structures== True:
-        start_time_create_predcitedmodelstructures = time.time()
-        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
-        end_time_create_predcitedmodelstructures = time.time()
-    
-    
-    print ("total time for prediction without create structure models:",end_time_prediction_process_all_sites- start_time_prediction_process_all_sites)    
+
     export_final_table_to_csv_file(path_output)
-    print ("time_create_II_Coordinates_tables",time_create_tables)
-
     compressed_results_path = compress_unified_results('sample_id', his_rotation, path_output)    #TODO: Add option of input sample_id
-
-    if whether_create_structures== True:
-        print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
 
     if not KEEP_TEMP_TABLES:
             cur.execute("DROP TABLE final_compressed_table_with_scored_binding_sites")
+
+    print ("time_create_II_Coordinates_tables",time_create_tables)
+    print ("total time for predictions, not including downloading structures and compression: ", end_time_create_predcitedmodelstructures- start_time_not_include_downloading_structures)
+    print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
+
     conn.commit()
     cur.close()
     conn.close()
