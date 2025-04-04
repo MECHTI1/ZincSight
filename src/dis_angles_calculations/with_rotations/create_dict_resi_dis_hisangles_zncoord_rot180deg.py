@@ -323,7 +323,7 @@ def caclulate_dis_CoordinationAngles_HISangles_stats (dict_residues_in_candidate
                     dict_most_reasonable_candidate_angle_stats= dict_point_2_candidate_point_angles_stast
                     mid_p= mid_points[1]
             
-                distances_list = [np.linalg.norm(mid_p - A["coords"]), np.linalg.norm(mid_p - B["coords"]), np.linalg.norm(mid_p - C["coords"])]
+                distances_list = [float(np.linalg.norm(mid_p - A["coords"])), float(np.linalg.norm(mid_p - B["coords"])), float(np.linalg.norm(mid_p - C["coords"]))]
             
                     
             
