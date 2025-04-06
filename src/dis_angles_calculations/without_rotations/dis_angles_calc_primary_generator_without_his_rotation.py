@@ -8,10 +8,12 @@ import psycopg2
 from src.settings import get_db_connection
 import json
 from src.dis_angles_calculations.without_rotations.create_dict_resi_dis_hisangles_zncoord_without_rot import caclulate_dis_CoordinationAngles_HISangles_stats
-import time 
+import time
+
+
+
 def create_detailed_coordinates_of_matches_table(conn):
-    
-    
+
     # Create a cursor object
     cur = conn.cursor()
     
@@ -157,7 +159,7 @@ def main():
     boolean_whether_delete_detailed_coordinates_of_matches_table=True
     if boolean_whether_delete_detailed_coordinates_of_matches_table:
         cur = conn.cursor()
-        cur.execute("DROP TABLE  AF_DATASET_test_detailed_coordinates_of_matches_table_V2")
+        cur.execute("DROP TABLE AF_DATASET_test_detailed_coordinates_of_matches_table_V2")
         conn.commit()
 
          
