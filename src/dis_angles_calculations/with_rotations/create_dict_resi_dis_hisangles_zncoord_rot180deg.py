@@ -323,7 +323,7 @@ def caclulate_dis_CoordinationAngles_HISangles_stats (dict_residues_in_candidate
                     dict_most_reasonable_candidate_angle_stats= dict_point_2_candidate_point_angles_stast
                     mid_p= mid_points[1]
             
-                distances_list = [np.linalg.norm(mid_p - A["coords"]), np.linalg.norm(mid_p - B["coords"]), np.linalg.norm(mid_p - C["coords"])]
+                distances_list = [float(np.linalg.norm(mid_p - A["coords"])), float(np.linalg.norm(mid_p - B["coords"])), float(np.linalg.norm(mid_p - C["coords"]))]
             
                     
             
@@ -337,7 +337,7 @@ def caclulate_dis_CoordinationAngles_HISangles_stats (dict_residues_in_candidate
                 #print("mid_p: ", mid_p)
                 distances_list=[]
                 for i, point_i in enumerate(coords_list, start=1):
-                    distance_to_point = np.linalg.norm(mid_p - point_i)
+                    distance_to_point = float(np.linalg.norm(mid_p - point_i))
                     distances_list.append (distance_to_point)
                     #print(f"Distance from the point to A{i}: ", distance_to_point)
                     # if not (distance - tolerance_distance <= distance_to_point <= distance + tolerance_distance):
