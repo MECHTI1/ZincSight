@@ -86,7 +86,7 @@ def add_column_with_probs():
     if probabilities is None:
         print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
-    updates = [(prob, id) for prob, id in zip(probabilities, ids)]
+    updates = [(float(prob), float(id)) for prob, id in zip(probabilities, ids)]
     cur.executemany(
         "UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;",
         updates
