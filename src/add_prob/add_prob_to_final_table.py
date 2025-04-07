@@ -67,6 +67,7 @@ def add_column_with_probs():
             );
             """)
         if not cur.fetchone()[0]:
+            print ("debug. not cur.fetchone()[0] is false.","cur.fetchone()[0] type is ",(cur.fetchone()[0]).type ,"cur.fetchone()[0] = ",cur.fetchone()[0])
             print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
         cur.execute("""
@@ -78,15 +79,16 @@ def add_column_with_probs():
         cur.execute("SELECT id, score FROM final_compressed_table_with_scored_binding_sites;")
         rows = cur.fetchall()
 
-        print ("rows type" ,rows.type ,"rows: ", rows)
+        print ("debug. rows type" ,rows.type ,"rows: ", rows)
         if not rows:
-            print("got not into not rows")
+            print("debug. got not into not rows")
             print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
         ids, scores = zip(*rows)
         probabilities = load_scores_to_prob_model_and_predict(scores)
 
         if probabilities is None:
+            print("debug. probabilities is None.", "probabilities = ", probabilities)
             print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
         updates = [(prob, id) for prob, id in zip(probabilities, ids)]
