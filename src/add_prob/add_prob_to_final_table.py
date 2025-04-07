@@ -1,6 +1,6 @@
 from joblib import load
 import numpy as np
-from src.settings import get_db_connection
+from src.settings import get_db_connection, KEEP_TEMP_TABLES
 from pathlib import Path
 import sys
 
@@ -36,7 +36,8 @@ def print_bold_message_no_predicted_site_and_cleanup_created_tables():
     print(message, file=sys.stderr, flush=True)  # This ensures visibility
     conn = get_db_connection()
     cur = conn.cursor()
-    cleanup_tables(conn, cur)
+    if not KEEP_TEMP_TABLES:
+        cleanup_tables(conn, cur)
     cur.close()
     conn.close()
     return False # Not exist final table -no any predicted sites
@@ -64,7 +65,7 @@ def add_column_with_probs():
                 WHERE table_schema = 'public' 
                 AND table_name = 'final_compressed_table_with_scored_binding_sites'
             );
-        """)
+            """)
         if not cur.fetchone()[0]:
             print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
