@@ -153,6 +153,24 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     export_final_table_to_csv_file(path_output)
     compressed_results_path = compress_unified_results('sample_id', his_rotation, path_output)    #TODO: Add option of input sample_id
 
+    def debug_print_last_table(TABLE_NAME):
+        # Run the query
+        cur.execute(f"SELECT * FROM {TABLE_NAME};")
+
+        # Fetch all rows
+        rows = cur.fetchall()
+
+        # Print column names (optional but useful)
+        colnames = [desc[0] for desc in cur.description]
+        print(" | ".join(colnames))
+        print("-" * 50)
+
+        # Print each row
+        for row in rows:
+            print(" | ".join(str(val) for val in row)+ "\n")
+
+    debug_print_last_table('final_compressed_table_with_scored_binding_sites')
+
     if not KEEP_TEMP_TABLES:
             cur.execute("DROP TABLE final_compressed_table_with_scored_binding_sites")
     print ("time_create_II_Coordinates_tables",time_create_tables)
