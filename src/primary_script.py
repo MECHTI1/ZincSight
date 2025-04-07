@@ -5,7 +5,7 @@ Created on Tue Aug  1 18:31:24 2023
 @author: mechti
 """
 import os
-from src.settings import get_db_connection, KEEP_TEMP_TABLES
+from src.settings import get_db_connection, KEEP_TEMP_TABLES, DEBUGGING
 import time
 from src.create_ii_coordinates_tables.ii_coordinates_primary_generator_structures import main as create_ii_coordinates_tables_query_dataset
 from src.create_ii_coordinates_tables.Insert_Representative_Motifs_to_Query_InitialTables import main as insert_representative_motifs_to_dataset_tables
@@ -20,7 +20,7 @@ from src.create_structure_models_with_predicted_zn.primary_create_structure_mode
 from src.export_final_table_to_csv_format import export_final_table_to_csv_file
 from src.compress_results import compress_unified_results
 from src.add_prob.add_prob_to_final_table import add_column_with_probs
-
+from src.db_debugging import debug_print_last_table
 
 def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output):
     start_time_prediction = time.time()
@@ -153,23 +153,8 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     export_final_table_to_csv_file(path_output)
     compressed_results_path = compress_unified_results('sample_id', his_rotation, path_output)    #TODO: Add option of input sample_id
 
-    def debug_print_last_table(TABLE_NAME):
-        # Run the query
-        cur.execute(f"SELECT * FROM {TABLE_NAME};")
-
-        # Fetch all rows
-        rows = cur.fetchall()
-
-        # Print column names (optional but useful)
-        colnames = [desc[0] for desc in cur.description]
-        print(" | ".join(colnames))
-        print("-" * 50)
-
-        # Print each row
-        for row in rows:
-            print(" | ".join(str(val) for val in row)+ "\n")
-
-    debug_print_last_table('final_compressed_table_with_scored_binding_sites')
+    if DEBUGGING == True:
+        debug_print_last_table(conn,'final_compressed_table_with_scored_binding_sites')
 
     if not KEEP_TEMP_TABLES:
             cur.execute("DROP TABLE final_compressed_table_with_scored_binding_sites")

@@ -27,13 +27,19 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(TABLES_DIR, exist_ok=True)
 os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
 
-# Load variables from the .env file into the environment
-load_dotenv()
+load_dotenv() # Load variables from the .env file into the environment
+
+
+def get_env_bool(name, default="false"):
+    return os.getenv(name, default).strip().lower() == "true"
+DEBUGGING = get_env_bool("DEBUGGING")
+KEEP_TEMP_TABLES = get_env_bool("KEEP_TEMP_TABLES")
+
 # KEEP_TEMP_TABLES = bool(os.getenv('KEEP_TEMP_TABLES'))
-KEEP_TEMP_TABLES = True
+
+# KEEP_TEMP_TABLES = True
 def get_db_connection():
             load_dotenv()  # Load environment variables from the .env file
-            # Retrieve the variables
             user_id = os.getenv("DB_USER")
             password = os.getenv("PASSWORD")
             host = os.getenv("HOST")

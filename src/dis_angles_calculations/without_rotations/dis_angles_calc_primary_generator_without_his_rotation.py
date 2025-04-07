@@ -9,7 +9,7 @@ from src.settings import get_db_connection
 import json
 from src.dis_angles_calculations.without_rotations.create_dict_resi_dis_hisangles_zncoord_without_rot import caclulate_dis_CoordinationAngles_HISangles_stats
 import time
-
+import numpy as np
 
 
 def create_detailed_coordinates_of_matches_table(conn):
@@ -84,6 +84,25 @@ def add_dist_angle_stats(conn, dict_stats_batch):
            print ("dict_stats_batch[match_id]") 
            print (match_id)
            continue
+
+           # Convert NumPy arrays/lists to native Python lists of floats
+
+        def safe_convert_array(arr):
+            if isinstance(arr, (list, np.ndarray)):
+                return [float(x) for x in arr]
+            return None
+
+        def safe_convert_scalar(val):
+            if isinstance(val, np.generic):
+                return val.item()
+            return float(val) if isinstance(val, (float, int)) else None
+
+        distances_list = safe_convert_array(values.get('distances_list', []))
+        coordination_angles = safe_convert_array(values.get('Coordination_anlges', []))
+        metalcoord = safe_convert_array(values.get('metalcoord', []))
+        dif_angle_base = safe_convert_scalar(values['HIS_anlges_stats']['candidate_point_angles_stast'].get('dif_angle_base'))
+        dif_angle_plane = safe_convert_scalar(values['HIS_anlges_stats']['candidate_point_angles_stast'].get('dif_angle_plane'))
+
         cur.execute("""
             UPDATE AF_DATASET_final_motif_search_table_v2 
             SET 
@@ -93,7 +112,7 @@ def add_dist_angle_stats(conn, dict_stats_batch):
                 Coordination_anlges = %s,
                 metalcoord= %s
             WHERE match_id = %s
-        """, (values['distances_list'], values['HIS_anlges_stats']['candidate_point_angles_stast']['dif_angle_base'], values['HIS_anlges_stats']['candidate_point_angles_stast']['dif_angle_plane'], values['Coordination_anlges'], values['metalcoord'], match_id))
+        """, (distances_list, dif_angle_base, dif_angle_plane, coordination_angles, metalcoord, match_id))
     conn.commit()
     
 def fetch_and_process_data(conn):
