@@ -55,56 +55,45 @@ def add_column_with_probs():
     """Add probability column to database table"""
     conn = None
     cur = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-        cur.execute("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'final_compressed_table_with_scored_binding_sites'
-            );
-            """)
-        if not cur.fetchone()[0]:
-            print ("debug. not cur.fetchone()[0] is false.","cur.fetchone()[0] type is ",(cur.fetchone()[0]).type ,"cur.fetchone()[0] = ",cur.fetchone()[0])
-            print_bold_message_no_predicted_site_and_cleanup_created_tables()
-
-        cur.execute("""
-            ALTER TABLE final_compressed_table_with_scored_binding_sites 
-            ADD COLUMN IF NOT EXISTS prob REAL;
+    cur.execute("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'final_compressed_table_with_scored_binding_sites'
+        );
         """)
-        conn.commit()
-
-        cur.execute("SELECT id, score FROM final_compressed_table_with_scored_binding_sites;")
-        rows = cur.fetchall()
-
-        print ("debug. rows type" ,rows.type ,"rows: ", rows)
-        if not rows:
-            print("debug. got not into not rows")
-            print_bold_message_no_predicted_site_and_cleanup_created_tables()
-
-        ids, scores = zip(*rows)
-        probabilities = load_scores_to_prob_model_and_predict(scores)
-
-        if probabilities is None:
-            print("debug. probabilities is None.", "probabilities = ", probabilities)
-            print_bold_message_no_predicted_site_and_cleanup_created_tables()
-
-        updates = [(prob, id) for prob, id in zip(probabilities, ids)]
-        cur.executemany(
-            "UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;",
-            updates
-        )
-        conn.commit()
-        return True
-
-    except Exception as e:
-        print ("debug. exception! ", str(e), str(type(e)))
+    if not cur.fetchone()[0]:
         print_bold_message_no_predicted_site_and_cleanup_created_tables()
-    finally:
-        if cur: cur.close()
-        if conn: conn.close()
+
+    cur.execute("""
+        ALTER TABLE final_compressed_table_with_scored_binding_sites 
+        ADD COLUMN IF NOT EXISTS prob REAL;
+    """)
+    conn.commit()
+
+    cur.execute("SELECT id, score FROM final_compressed_table_with_scored_binding_sites;")
+    rows = cur.fetchall()
+
+    if not rows:
+        print_bold_message_no_predicted_site_and_cleanup_created_tables()
+
+    ids, scores = zip(*rows)
+    probabilities = load_scores_to_prob_model_and_predict(scores)
+
+    if probabilities is None:
+        print_bold_message_no_predicted_site_and_cleanup_created_tables()
+
+    updates = [(prob, id) for prob, id in zip(probabilities, ids)]
+    cur.executemany(
+        "UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;",
+        updates
+    )
+    conn.commit()
+    return True
+
 
 if __name__ == "__main__":
     try:
