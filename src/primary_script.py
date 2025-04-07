@@ -23,7 +23,7 @@ from src.add_prob.add_prob_to_final_table import add_column_with_probs
 
 
 def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output):
-    start_time_not_include_downloading_structures = time.time()
+    start_time_prediction = time.time()
     conn = get_db_connection()
     cur = conn.cursor()
     his_rotation = boolean_rotamer_examination
@@ -58,13 +58,13 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
             )
           """)
     conn.commit()
+    print ("mile 1")
 
     # Execute a SELECT statement to get all the site_id values
     cur.execute("SELECT site_id FROM minimized_training_cluster_information;")
     results = cur.fetchall() # Fetch all the results
     # Extract the site_id values into a list
     site_ids = [result[0] for result in results]
-    print(site_ids)
     for site_id in site_ids:
         main_first_step(site_id)
         main_second_step()
@@ -73,7 +73,6 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
             main_third_step_his_rotation_180deg()
         else:
             main_third_step_without_his_rotation()
-
 
 
         cur = conn.cursor()
@@ -122,12 +121,13 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
             cur.execute("DROP TABLE af_dataset_detailed_coordinates_table_v2")
             cur.execute("DROP TABLE af_dataset_ii_table_v2")
     conn.commit()
+    print ("KEEP_TEMP_TABLES=", KEEP_TEMP_TABLES)
 
     if KEEP_TEMP_TABLES:
         cur.execute("CREATE TABLE dropped_with_erroredrows AS SELECT * FROM AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables WHERE dif_angle_base IS NULL OR rmsd_overall IS NULL;")   #  creates new table with the dropped rows, for scenarios of debugging.
     cur.execute("DELETE FROM AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables WHERE dif_angle_base IS NULL OR rmsd_overall IS NULL;")
     conn.commit()
-    
+
     final_scoring_and_insertion_to_table(list_query_structures_files_paths)
     if not KEEP_TEMP_TABLES:
         cur.execute("DROP TABLE AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables")
@@ -145,9 +145,9 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
         cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
     conn.commit()
 
-    start_time_create_predcitedmodelstructures = time.time()
+    start_time_create_models= time.time()
     locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
-    end_time_create_predcitedmodelstructures = time.time()
+    end_time_create_models = time.time()
     
 
     export_final_table_to_csv_file(path_output)
@@ -155,32 +155,27 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
 
     if not KEEP_TEMP_TABLES:
             cur.execute("DROP TABLE final_compressed_table_with_scored_binding_sites")
-
     print ("time_create_II_Coordinates_tables",time_create_tables)
-    print ("total time for predictions, not including downloading structures and compression: ", end_time_create_predcitedmodelstructures- start_time_not_include_downloading_structures)
-    print ("total time for create structures: ", end_time_create_predcitedmodelstructures- start_time_create_predcitedmodelstructures)
-
+    print ("total time for predictions, not including downloading structures and compression: ", start_time_create_models- start_time_prediction)
+    print ("total time for create structures: ", end_time_create_models- start_time_create_models)
     conn.commit()
-    cur.close()
     conn.close()
 
     return compressed_results_path
 
 if __name__=="__main__":
     from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
-    from create_input_argument import primary_return_single_argument_as_paths_list
 
     list_of_uniprot_accessions = ["A0A068N621", "A0A0F6AZI6", "A0A292DHH8", "A0A2U3D0N8", "A0A3F2YM30", "A0A5H1ZR49", "G8ZFK7", "O60232", "P0A6G5", "P0DUH5", "P37659", "P38164", "Q03760", "Q08281", "Q2K0Z2", "Q2UFA9", "Q5W0Q7", "Q66K64", "Q68EN5", "Q6CXX6", "Q7MVV4", "Q86T03", "Q8N8R7", "Q8NBJ9", "Q96JC1", "Q9BWG6", "Q9D1N4", "Q9KP27", "Q9M1V3", "Q9NUN7", "Q9NXF7"]
 
 
-    list_query_structures_files_paths=[]
     files = os.listdir(QUERY_STRUCTURES_DIR)
-    for file in files:
-       list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, file))
 
     list_query_structures_files_paths =[]     # need to set at least one to empty
+    for file in files:
+        list_query_structures_files_paths.append(os.path.join(QUERY_STRUCTURES_DIR, file))
+
     boolean_rotamer_examination = True
     path_output = RESULTS_DIR
 
-    list_of_paths= primary_return_single_argument_as_paths_list(list_query_structures_files_paths,list_of_uniprot_accessions)
-    main(list_of_paths, boolean_rotamer_examination, path_output)
+    main(list_query_structures_files_paths, boolean_rotamer_examination, path_output)
