@@ -78,7 +78,9 @@ def add_column_with_probs():
         cur.execute("SELECT id, score FROM final_compressed_table_with_scored_binding_sites;")
         rows = cur.fetchall()
 
+        print ("rows type" ,rows.type ,"rows: ", rows)
         if not rows:
+            print("got not into not rows")
             print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
         ids, scores = zip(*rows)
