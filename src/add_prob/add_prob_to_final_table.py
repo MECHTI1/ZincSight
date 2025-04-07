@@ -100,6 +100,7 @@ def add_column_with_probs():
         return True
 
     except Exception as e:
+        print ("debug. exception! ", str(e), str(type(e)))
         print_bold_message_no_predicted_site_and_cleanup_created_tables()
     finally:
         if cur: cur.close()
