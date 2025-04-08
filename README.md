@@ -1,7 +1,7 @@
 ZincSight
 =========
 
-A rapid and precise tool for large-scale zinc ion location prediction in proteins. The tool is optimized for high-throughput analyses while maintaining accuracy.
+Interpretable prediction of zinc ion location in proteins with ZincSight. The tool is optimized for high-throughput analyses while maintaining accuracy.
 
 ## Features
 
