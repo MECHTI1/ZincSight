@@ -1,7 +1,7 @@
 ZincSight
 =========
 
-Interpretable prediction of zinc ion location in proteins with ZincSight. The tool is optimized for high-throughput analyses while maintaining accuracy.
+ZincSight is a computational tool for the accurate and interpretable prediction of zinc ion binding sites in proteins.  The tool is optimized for high-throughput analyses while maintaining accuracy.
 
 ## Features
 
