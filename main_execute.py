@@ -30,7 +30,7 @@ from Bio.PDB import PDBParser, MMCIFIO
 from src.primary_script import main as execute
 
 def str_clean_parse_tolist(input_string):
-    cleaned_string = re.sub(r"[^\w,]", "",input_string)  # Remove everything that isn't a letter, number, hyphen, or comma
+    cleaned_string = re.sub(r"[^\w,-]", "",input_string)  # Remove everything that isn't a letter, number, hyphen, or comma
     clean_items_list = [item.strip() for item in cleaned_string.split(",") if item.strip()]  # Split by commas, strip leading/trailing spaces, and remove any empty strings
     return clean_items_list
 
