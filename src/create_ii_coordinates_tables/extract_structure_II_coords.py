@@ -12,6 +12,7 @@ import numpy as np
 from functools import lru_cache
 import time
 import math
+from src.settings import DEBUGGING
 
 # Declare the function signature
 aa_dict = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R', 'SER': 'S', 'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'} 
@@ -38,12 +39,7 @@ def create_all_relevant_atoms_from_residues_list(structure, PDBID):
     # Initialize the list of residues
     residue_list = []
 
-    is_nmr_structure = any('NMR' in method.upper() for method in structure.header.get('_exptl.method', '').split(';'))
-    # Iterate over all residues in the structure
-    first_model = True  # Flag to track if we're processing the first model
     for model in structure:
-        if is_nmr_structure and not first_model: continue  # Skip non-first models in NMR structures
-        first_model = False  # Mark that we've processed the first model
         for chain in model:
             for residue in chain:
                 residue_name = residue.get_resname()
@@ -60,10 +56,10 @@ def create_all_relevant_atoms_from_residues_list(structure, PDBID):
                             # Get coordinates and round them to 4 decimal places
                             coords = residue[atom].get_coord().tolist()
                             atom_coords[atom] = [round(coord, 4) for coord in coords]
-    
+
                     # Add the residue to the list as a tuple
                     residue_list.append((PDBID, residue_id, residue_name, atom_coords))
-    
+
     return residue_list
 
 
@@ -217,12 +213,31 @@ def Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure(PDBpath,PDBID,call_c
         
         parser = MMCIFParser() 
 
-    #   structure = parser.get_structure("PHA-L", PDBID +".cif") # required download of file before to computer
-        structure = parser.get_structure(PDBID,PDBpath)
-        all_relevant_atoms_from_residues_list = create_all_relevant_atoms_from_residues_list(structure,PDBID)
-        all_resi_in_structure = structure.get_residues()
+        # structure = parser.get_structure("PHA-L", PDBID +".cif") # required download of file before to computer
+        structure = parser.get_structure(PDBID, PDBpath)
 
-        
+        # Detect NMR and handle only first model
+        method = structure.header.get('structure_method', '') or structure.header.get('_exptl.method', '')
+        methods = method.upper().split(';')
+        is_nmr_structure = any('NMR' in m for m in methods)
+
+        if DEBUGGING:
+            print(f"for structureID={PDBID} , is_nmr_structure = {is_nmr_structure}")           #  Print whether NMR only if debugging is enabled
+
+        if is_nmr_structure:
+            models = list(structure.get_models())
+            model_count = len(models)
+            if model_count > 1:
+                structure = [models[0]]  # Use only the first model
+
+
+        all_relevant_atoms_from_residues_list = create_all_relevant_atoms_from_residues_list(structure,PDBID)
+
+        if isinstance(structure, list): # In case it was NMR structure with multiple models
+            all_resi_in_structure = structure[0].get_residues()
+        else:
+            all_resi_in_structure = structure.get_residues()
+
         resi_relevant_AA_type = [residue for residue in all_resi_in_structure if residue.get_resname() in metal_binding_residues]
         
         resi_relevant = []
@@ -231,7 +246,7 @@ def Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure(PDBpath,PDBID,call_c
                     if check_b_factor(residue,"Binary") is not None:
                        resi_relevant.append(residue)
 
-        else: 
+        else:
             for residue in resi_relevant_AA_type:
                 if get_atom_close_coordinates(residue) is not None and get_far_atom_coordinates(residue) is not None and residue.has_id("CA"):  # append residue to resi_relevant list only if have all the coordinates
                        resi_relevant.append(residue)
