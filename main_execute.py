@@ -56,22 +56,25 @@ def primary_download_structures_list_input(string_of_ids_to_download, path_query
         print (af_list, pdb_list, esm_list)
         download_query_structures.main(af_list, pdb_list, esm_list , path_query_structures)
 
+import os
+from Bio.PDB import PDBParser, MMCIFIO
+
 def convert_all_pdb_to_cif_in_dir(directory):
     """Convert all PDB files in the provided directory and subdirectories to CIF format"""
     # Helper function to convert PDB to CIF
     def convert_pdb_to_cif(pdb_file_path):
         try:
-            parser = PDBParser(QUIET=True)  # Initialize PDBParser
-            structure_id = os.path.basename(pdb_file_path).replace('.pdb', '')  # Get a unique structure ID
-            structure = parser.get_structure(structure_id, pdb_file_path)  # Parse the structure from the .pdb file
-            io = MMCIFIO()  # Initialize MMCIFIO to save the structure in CIF format
+            parser = PDBParser(QUIET=True)
+            structure_id = os.path.basename(pdb_file_path).replace('.pdb', '')
+            structure = parser.get_structure(structure_id, pdb_file_path)
+            io = MMCIFIO()
             io.set_structure(structure)
-            cif_file_path = pdb_file_path.replace('.pdb', '.cif')  # Save as .cif file (replacing .pdb with .cif)
+            cif_file_path = pdb_file_path.replace('.pdb', '.cif')
             io.save(cif_file_path)
-            os.remove(pdb_file_path)  # Delete the original .pdb file
+            os.remove(pdb_file_path)
+            print(f"Converted {pdb_file_path} to {cif_file_path}")
         except Exception as e:
-            print(f"Failed: {pdb_file_path}converting {pdb_file_path}: {str(e)}")
-        print(f"Converted {pdb_file_path} to {cif_file_path}")
+            print(f"Failed to convert {pdb_file_path}: {str(e)}")
 
     # Walk through directory and subdirectories
     for root, _, files in os.walk(directory):
@@ -125,9 +128,9 @@ if __name__=="__main__": #Behave like a test
     if d_manual_ids or d_path_file_ids:
         if d_manual_ids:  # Testing - manually written structure ids
             manually_written_structure_ids_for_download = """8QEP, 2A0S-assembly1, 1KLS, P0A6G5, AF-A0A068N621-F1-v4, MGYP002718891411"""
-           # manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
-           # G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
-           # Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
+            # manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
+            # G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
+            # Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
             # manually_written_structure_ids_for_download = "8SUZ"
         if d_path_file_ids:  # Testing - defined path of txt file include structure ids
             # # Option 1 for input:
