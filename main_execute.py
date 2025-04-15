@@ -56,14 +56,9 @@ def primary_download_structures_list_input(string_of_ids_to_download, path_query
         print (af_list, pdb_list, esm_list)
         download_query_structures.main(af_list, pdb_list, esm_list , path_query_structures)
 
-import os
-from Bio.PDB import PDBParser, MMCIFIO
-
 def convert_all_pdb_to_cif_in_dir(directory):
     """Convert all PDB files in the provided directory and subdirectories to CIF format"""
-    # Helper function to convert PDB to CIF
     def convert_pdb_to_cif(pdb_file_path):
-        try:
             parser = PDBParser(QUIET=True)
             structure_id = os.path.basename(pdb_file_path).replace('.pdb', '')
             structure = parser.get_structure(structure_id, pdb_file_path)
@@ -73,8 +68,6 @@ def convert_all_pdb_to_cif_in_dir(directory):
             io.save(cif_file_path)
             os.remove(pdb_file_path)
             print(f"Converted {pdb_file_path} to {cif_file_path}")
-        except Exception as e:
-            print(f"Failed to convert {pdb_file_path}: {str(e)}")
 
     # Walk through directory and subdirectories
     for root, _, files in os.walk(directory):
