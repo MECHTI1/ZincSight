@@ -29,15 +29,18 @@ os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
 
 load_dotenv() # Load variables from the .env file into the environment
 
-
 def get_env_bool(name, default="false"):
-    return os.getenv(name, default).strip().lower() == "true"
+    return os.getenv(name, default).strip().lower() == "true"   # returns True only if the string is exactly "true" (case-insensitive).
+
 DEBUGGING = get_env_bool("DEBUGGING")
 KEEP_TEMP_TABLES = get_env_bool("KEEP_TEMP_TABLES")
 
-# KEEP_TEMP_TABLES = bool(os.getenv('KEEP_TEMP_TABLES'))
+""" Filtering out predictions that have prob below threshold val stored in EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD var.       
+    If FILTER_PROB_AFTER_COMPRESSION is assigned as true: will executed after compression,
+ otherwise nothing in the meanwhile""" #TODO:maybe can add option to remove before gor maybe enhance
+FILTER_PROB_AFTER_COMPRESSION = get_env_bool("FILTER_PROB_AFTER_COMPRESSION")
+MIN_THRESHOLD_PROB = float(os.getenv("EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD") or "0.0")   # Retrieve the threshold value and convert it to a float
 
-# KEEP_TEMP_TABLES = True
 def get_db_connection():
             load_dotenv()  # Load environment variables from the .env file
             user_id = os.getenv("DB_USER")

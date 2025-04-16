@@ -1,6 +1,6 @@
 from joblib import load
 import numpy as np
-from src.settings import get_db_connection, KEEP_TEMP_TABLES
+from src.settings import get_db_connection, KEEP_TEMP_TABLES, MIN_THRESHOLD_PROB, FILTER_PROB_AFTER_COMPRESSION
 from pathlib import Path
 import sys
 
@@ -51,11 +51,8 @@ def load_scores_to_prob_model_and_predict(scores):
         print(f"Error in probability prediction: {str(e)}")
         return None
 
-def add_column_with_probs():
+def add_column_with_probs(conn):
     """Add probability column to database table"""
-    conn = None
-    cur = None
-    conn = get_db_connection()
     cur = conn.cursor()
 
     cur.execute("""
@@ -72,7 +69,6 @@ def add_column_with_probs():
         ALTER TABLE final_compressed_table_with_scored_binding_sites 
         ADD COLUMN IF NOT EXISTS prob REAL;
     """)
-    conn.commit()
 
     cur.execute("SELECT id, score FROM final_compressed_table_with_scored_binding_sites;")
     rows = cur.fetchall()
@@ -86,12 +82,15 @@ def add_column_with_probs():
     if probabilities is None:
         print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
-    updates = [(float(prob), float(id)) for prob, id in zip(probabilities, ids)]
-    cur.executemany(
-        "UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;",
-        updates
-    )
+    updates = [(float(prob), int(id)) for prob, id in zip(probabilities, ids)]
+    cur.executemany("UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;", updates)
+
+    if FILTER_PROB_AFTER_COMPRESSION: # defined by .env
+        # Delete rows with probability less than min threshold
+        cur.execute("DELETE FROM final_compressed_table_with_scored_binding_sites WHERE prob < %s;", (float(MIN_THRESHOLD_PROB),))
+
     conn.commit()
+    cur.close()
     return True
 
 

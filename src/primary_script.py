@@ -133,10 +133,10 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
         cur.execute("DROP TABLE AF_DATASET_with_metalcoord_test_sites_aggregated_final_tables")
     conn.commit()
 
-    table_compression()
+    table_compression(conn)
     conn.commit()
 
-    boolean_if_any_predicted_site = add_column_with_probs()
+    boolean_if_any_predicted_site = add_column_with_probs(conn)
     if not boolean_if_any_predicted_site: return False # no predicted sites
     refine_table()
     conn.commit()
