@@ -25,9 +25,9 @@ def rotate_point_vectorized(vectors, axis, angle_rad):
     sin_theta = np.sin(angle_rad)
     dot = np.dot(vectors, axis)
 
-    rotated = (vectors * cos_theta[:, None] if isinstance(cos_theta, np.ndarray) else vectors * cos_theta +
-               np.cross(axis, vectors) * sin_theta +
-               axis * dot[:, np.newaxis] * (1 - cos_theta))
+    rotated = (vectors * cos_theta[:, None] if isinstance(cos_theta, np.ndarray) else vectors * cos_theta) + \
+              np.cross(axis, vectors) * sin_theta + \
+              axis * dot[:, np.newaxis] * (1 - cos_theta)
     return rotated
 
 def rotate_histidine_both_directions(residue_info, rotation_angle):
