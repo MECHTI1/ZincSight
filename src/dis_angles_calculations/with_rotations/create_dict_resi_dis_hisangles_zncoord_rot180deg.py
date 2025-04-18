@@ -10,7 +10,7 @@ import time
 from src.dis_angles_calculations.with_rotations.calculate_angles_between_vectors import compute_angles_between_vectors
 from scipy.optimize import least_squares
 from src.dis_angles_calculations.with_rotations.calculated_his_angle_stats import check_candidate_metal_coord_valid_histidines_angles
-from src.dis_angles_calculations.with_rotations.return_dicts_comb_each_his_15deg_rotations import generate_rotation_combinations
+from src.dis_angles_calculations.with_rotations.return_dicts_comb_each_his_15deg_rotations_vectorized import generate_vectorized_rotation_combinations
 import traceback
 from src.dis_angles_calculations.with_rotations.return_nonredundant_dicts_his_comb import main as create_list_only_new_dicts_his_rot
 
@@ -262,7 +262,7 @@ def caclulate_dis_CoordinationAngles_HISangles_stats (dict_residues_in_candidate
     while in_angle_improvement_process==True: 
         count_rounds_lists_of_his_rotated_comb+=1
         if whether_his_found==True:
-          list_all_comb_15degrotated_his= generate_rotation_combinations(dict_residues_candidate_motif_with_best_angle_score,rotation_angle)
+          list_all_comb_15degrotated_his= generate_vectorized_rotation_combinations(dict_residues_candidate_motif_with_best_angle_score,rotation_angle)
         if last_list_all_comb_15degrotated_his!=None:
           list_all_comb_15degrotated_his= create_list_only_new_dicts_his_rot(list_all_comb_15degrotated_his,last_list_all_comb_15degrotated_his)  # not run the same values likw the previous dict
         #print (rotated_his_comb)
