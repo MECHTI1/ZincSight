@@ -30,7 +30,7 @@ from Bio.PDB import PDBParser, MMCIFIO
 from src.primary_script import main as execute
 
 def str_clean_parse_tolist(input_string):
-    cleaned_string = re.sub(r"[^\w,-]", "",input_string)  # Remove everything that isn't a letter, number, hyphen, or comma
+    cleaned_string = re.sub(r"[^\w,-.]", "",input_string)  # Remove everything that isn't a letter, number, hyphen, or comma
     clean_items_list = [item.strip() for item in cleaned_string.split(",") if item.strip()]  # Split by commas, strip leading/trailing spaces, and remove any empty strings
     return clean_items_list
 
@@ -38,15 +38,17 @@ def str_clean_parse_tolist(input_string):
 def split_struct_db_sources(list_non_processed_input_names):
     af_list, pdb_list, esm_list = [], [], []
     for id_name in list_non_processed_input_names:
-        if 'AF-' in id_name:
-            af_list.append(id_name.split('-')[1])  # Append the af uniprot id to af_list
-        elif id_name.startswith("MGY"):
-            esm_list.append(id_name)  # Append full mgnify protein id to esm_list
-        elif len(id_name) == 4 and id_name[0].isdigit(): #4 letter name with a number in the start considered a PDB structure
-            pdb_list.append(id_name) # Insert to pdb_list
-        elif "-assembly" in id_name: pdb_list.append(id_name) #biological assembly
+        base_id = id_name.split('.')[0]
+        print (base_id)
+        if 'AF-' in base_id:
+            af_list.append(base_id.split('-')[1])  # Append the af uniprot id to af_list
+        elif base_id.startswith("MGY"):
+            esm_list.append(base_id)  # Append full mgnify protein id to esm_list
+        elif len(base_id) == 4 and base_id[0].isdigit(): #4 letter name with a number in the start considered a PDB structure
+            pdb_list.append(base_id) # Insert to pdb_list
+        elif "-assembly" in base_id: pdb_list.append(base_id) #biological assembly
         else:  # If an input id name is not starting with 'MGY' or is a 4 letter name (with a number in the start), it will be considered as s uniprot af model
-            af_list.append(id_name)
+            af_list.append(base_id)
     return af_list, pdb_list, esm_list
 
 def primary_download_structures_list_input(string_of_ids_to_download, path_query_structures):
@@ -120,7 +122,7 @@ if __name__=="__main__": #Behave like a test
 
     if d_manual_ids or d_path_file_ids:
         if d_manual_ids:  # Testing - manually written structure ids
-            manually_written_structure_ids_for_download = "8QEP, 2A0S-assembly1, 1KLS, P0A6G5, AF-A0A068N621-F1-v4, MGYP002718891411"
+             manually_written_structure_ids_for_download = "8QEP, 2A0S-assembly1, 1KLS, P0A6G5, AF-A0A068N621-F1-v4, MGYP002718891411"
             # manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
             # G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
             # Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
@@ -129,8 +131,10 @@ if __name__=="__main__": #Behave like a test
             # # Option 1 for input:
             # path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_ids_to_download.txt")
             # Option 2 for input:
-            path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file", "2-D- UniprotID_of_RepClusters_nMem70Plus.csv")
-
+            # path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file", "2-D- UniprotID_of_RepClusters_nMem70Plus.csv")
+            ## Other metals:
+            # path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_in_other-metals_testset.csv")
+            path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_in_other-metals_testset_with_assembly1.csv")
             # Read the file and convert its content to a comma-separated string
             with open(path_file_with_structure_ids, "r") as file:
                 lines = file.read().splitlines()  # Read all lines and remove newline characters
