@@ -32,8 +32,8 @@ load_dotenv() # Load variables from the .env file into the environment
 def get_env_bool(name, default="false"):
     return os.getenv(name, default).strip().lower() == "true"   # returns True only if the string is exactly "true" (case-insensitive).
 
-DEBUGGING = get_env_bool("DEBUGGING")
-KEEP_TEMP_TABLES = get_env_bool("KEEP_TEMP_TABLES")
+DEBUGGING = get_env_bool("DEBUGGING_TEMP")
+KEEP_TEMP_TABLES = get_env_bool("KEEP_TEMP_TABLES_TEMP")
 
 """ Filtering out predictions that have prob below threshold val stored in EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD var.       
     If FILTER_PROB_AFTER_COMPRESSION is assigned as true: will executed after compression,
