@@ -5,7 +5,7 @@ Created on Tue Aug  1 18:31:24 2023
 @author: mechti
 """
 import os
-from src.settings import get_db_connection, KEEP_TEMP_TABLES, DEBUGGING
+from src.settings import get_db_connection, KEEP_TEMP_TABLES, DEBUGGING, cleanup_tables
 import time
 from src.create_ii_coordinates_tables.ii_coordinates_primary_generator_structures import main as create_ii_coordinates_tables_query_dataset
 from src.create_ii_coordinates_tables.Insert_Representative_Motifs_to_Query_InitialTables import main as insert_representative_motifs_to_dataset_tables
@@ -26,6 +26,8 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     start_time_prediction = time.time()
     conn = get_db_connection()
     cur = conn.cursor()
+
+    cleanup_tables(cur, conn)
     his_rotation = boolean_rotamer_examination
 
     start_time_create_tables=time.time()

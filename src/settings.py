@@ -50,7 +50,19 @@ def get_db_connection():
 
             return conn
 
-
+def cleanup_tables(cur,conn):
+    """Keep only required tables, delete others"""
+    required_tables = {
+        'minimized_training_cluster_information',
+        'motif_representative_coordinates_table_v2',
+        'motif_representative_detailed_coordinates_table_v2',
+        'training_representative_metal_sites_kruskal_v2'
+    }
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+    for table in cur.fetchall():
+        if table[0] not in required_tables:
+            cur.execute(f'DROP TABLE IF EXISTS "{table[0]}" CASCADE')
+    conn.commit()
 
 if __name__== "__main__":
     conn = get_db_connection()
