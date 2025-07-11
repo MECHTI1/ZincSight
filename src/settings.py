@@ -7,9 +7,11 @@ Created on Wed Jul  3 08:46:38 2024
 """
 
 import os
+
+import pgserver
 import psycopg2
 from dotenv import load_dotenv
-
+from pathlib import Path
 
 
 # Set the base directory to the absolute path of the project directory
@@ -41,14 +43,14 @@ KEEP_TEMP_TABLES = get_env_bool("KEEP_TEMP_TABLES_TEMP")
 FILTER_PROB_AFTER_COMPRESSION = get_env_bool("FILTER_PROB_AFTER_COMPRESSION")
 MIN_THRESHOLD_PROB = float(os.getenv("EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD") or "0.0")   # Retrieve the threshold value and convert it to a float
 
-def get_db_connection():
-            load_dotenv()  # Load environment variables from the .env file
-            user_id = os.getenv("DB_USER")
-            password = os.getenv("PASSWORD")
-            host = os.getenv("HOST")
-            conn = psycopg2.connect(dbname="zincsight_pipeline_db", user=user_id, host=host, password=password)
 
-            return conn
+def get_db():
+    return pgserver.get_server(Path.home() / 'zincsight_db')
+
+
+def get_db_connection():
+    return psycopg2.connect(get_db().get_uri())
+
 
 def cleanup_tables(cur,conn):
     """Keep only required tables, delete others"""
@@ -63,6 +65,3 @@ def cleanup_tables(cur,conn):
         if table[0] not in required_tables:
             cur.execute(f'DROP TABLE IF EXISTS "{table[0]}" CASCADE')
     conn.commit()
-
-if __name__== "__main__":
-    conn = get_db_connection()

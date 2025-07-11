@@ -5,6 +5,11 @@ Created on Tue Oct 29 23:29:54 2024
 
 @author: mechti
 """
+import platform
+import sys
+from pathlib import Path
+
+import pgserver
 
 """
 "main.py" mediates between user input (jupyter notebook) to the src/primary_scirpt.py
@@ -79,8 +84,13 @@ def convert_all_pdb_to_cif_in_dir(directory):
                 convert_pdb_to_cif(pdb_file_path)
 
 
-
 def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_structures, path_output):
+
+    # Create and populate database tables
+    executable_suffix = '.exe' if platform.system() == 'Windows' else ''
+    executable = Path(pgserver.__file__).parent / 'pginstall' / 'bin' / f'psql{executable_suffix}'
+    os.system(f'{executable} {get_db().get_uri()} -f "src/setup_pg_db_with_tables/PostgreSQL_4_necessary_tables.sql"')
+
     if structure_ids_for_download:
         # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
         primary_download_structures_list_input(structure_ids_for_download,path_query_structures)
@@ -104,7 +114,8 @@ if __name__=="__main__": #Behave like a test
     import time
     zincsight_start_execution = time.time()
     
-    from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR
+    from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR, get_db_connection, get_db
+
     path_query_structures = QUERY_STRUCTURES_DIR
     path_output= RESULTS_DIR
 

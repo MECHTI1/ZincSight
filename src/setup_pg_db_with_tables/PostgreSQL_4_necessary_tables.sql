@@ -20,11 +20,15 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
---
--- Name: minimized_training_cluster_information; Type: TABLE; Schema: public; Owner: postgres
---
+SET SEARCH_PATH = public;
 
-CREATE TABLE public.minimized_training_cluster_information (
+DROP TABLE IF EXISTS minimized_training_cluster_information;
+DROP TABLE IF EXISTS motif_representative_coordinates_table_v2;
+DROP TABLE IF EXISTS motif_representative_detailed_coordinates_table_v2;
+DROP TABLE IF EXISTS training_representative_metal_sites_kruskal_v2;
+
+
+CREATE TABLE minimized_training_cluster_information (
     site_id integer,
     pdbid character varying(255),
     resi_comb character varying(255),
@@ -32,14 +36,7 @@ CREATE TABLE public.minimized_training_cluster_information (
     cluster_size integer
 );
 
-
-ALTER TABLE public.minimized_training_cluster_information OWNER TO postgres;
-
---
--- Name: motif_representative_coordinates_table_v2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.motif_representative_coordinates_table_v2 (
+CREATE TABLE motif_representative_coordinates_table_v2 (
     pdbid character varying(255),
     chain_resi character varying(255),
     close_atom_coord real[],
@@ -47,28 +44,14 @@ CREATE TABLE public.motif_representative_coordinates_table_v2 (
     b_factor smallint
 );
 
-
-ALTER TABLE public.motif_representative_coordinates_table_v2 OWNER TO postgres;
-
---
--- Name: motif_representative_detailed_coordinates_table_v2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.motif_representative_detailed_coordinates_table_v2 (
+CREATE TABLE motif_representative_detailed_coordinates_table_v2 (
     pdbid character varying(255),
     chain_resi character varying(255),
     resi_type character varying(10),
     dict_atom_coord json
 );
 
-
-ALTER TABLE public.motif_representative_detailed_coordinates_table_v2 OWNER TO postgres;
-
---
--- Name: training_representative_metal_sites_kruskal_v2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.training_representative_metal_sites_kruskal_v2 (
+CREATE TABLE training_representative_metal_sites_kruskal_v2 (
     site_id integer,
     ii_order_id integer,
     pdbid character varying(255),
@@ -79,14 +62,7 @@ CREATE TABLE public.training_representative_metal_sites_kruskal_v2 (
     chain_resi_2 character varying(255)
 );
 
-
-ALTER TABLE public.training_representative_metal_sites_kruskal_v2 OWNER TO postgres;
-
---
--- Data for Name: minimized_training_cluster_information; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.minimized_training_cluster_information (site_id, pdbid, resi_comb, num_of_residues, cluster_size) FROM stdin;
+COPY minimized_training_cluster_information (site_id, pdbid, resi_comb, num_of_residues, cluster_size) FROM stdin;
 1	5urb	{C,C,C,C}	4	341
 2	3v94	{D,D,H,H}	4	58
 3	4nrn	{E,H,H}	3	132
@@ -131,12 +107,7 @@ COPY public.minimized_training_cluster_information (site_id, pdbid, resi_comb, n
 74	5opj	{C,C,C,E}	4	4
 \.
 
-
---
--- Data for Name: motif_representative_coordinates_table_v2; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_atom_coord, far_atom_coord, b_factor) FROM stdin;
+COPY motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_atom_coord, far_atom_coord, b_factor) FROM stdin;
 5urb	B_142	{-45.856,47.027,-92.657}	{-47.095,47.903,-91.639}	29
 5urb	B_145	{-49.074,44.834,-92.907}	{-48.981,44.441,-94.663}	33
 5urb	B_155	{-46.916,44.65,-89.936}	{-45.187,45.108,-89.575}	32
@@ -493,12 +464,7 @@ COPY public.motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_
 7mdh	C_229	{43.0925,70.579,102.988}	{43.331,71.12,101.624}	47
 \.
 
-
---
--- Data for Name: motif_representative_detailed_coordinates_table_v2; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.motif_representative_detailed_coordinates_table_v2 (pdbid, chain_resi, resi_type, dict_atom_coord) FROM stdin;
+COPY motif_representative_detailed_coordinates_table_v2 (pdbid, chain_resi, resi_type, dict_atom_coord) FROM stdin;
 5urb	B_142	CYS	{"SG": [-45.856, 47.027, -92.657]}
 5urb	B_145	CYS	{"SG": [-49.074, 44.834, -92.907]}
 5urb	B_155	CYS	{"SG": [-46.916, 44.65, -89.936]}
@@ -855,12 +821,7 @@ COPY public.motif_representative_detailed_coordinates_table_v2 (pdbid, chain_res
 7mdh	C_229	HIS	{"CG": [43.331, 71.12, 101.624], "CD2": [44.158, 71.529, 102.613], "ND1": [42.434, 70.252, 102.209], "CE1": [42.708, 70.141, 103.497], "NE2": [43.751, 70.906, 103.767]}
 \.
 
-
---
--- Data for Name: training_representative_metal_sites_kruskal_v2; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.training_representative_metal_sites_kruskal_v2 (site_id, ii_order_id, pdbid, aa_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) FROM stdin;
+COPY training_representative_metal_sites_kruskal_v2 (site_id, ii_order_id, pdbid, aa_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) FROM stdin;
 1	1	5urb	CC	3.8	4	B_142	B_155
 1	2	5urb	CC	3.8	6.3	B_142	B_158
 1	3	5urb	CC	3.7	6.4	B_145	B_155
