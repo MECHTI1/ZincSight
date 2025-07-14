@@ -1,8 +1,11 @@
 import os
 import subprocess
+import tarfile
 from datetime import datetime
+from pathlib import Path
 
-def create_results_tarfile(output_file_path, folder_names, path_output,reference_csv_path):
+
+def create_results_tarfile(output_file_path, folder_names, reference_csv_path):
     """
     Create a .tar.gz file containing only the specified folders within path_output.
 
@@ -15,21 +18,12 @@ def create_results_tarfile(output_file_path, folder_names, path_output,reference
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Create the tar.gz file using tar and pigz for the specified folders within path_output
-    with open(output_file_path, 'wb') as f_out:
+    with tarfile.open(output_file_path, 'w:gz') as tf:
+        for dir_name in folder_names:
+            tf.add(Path(__file__).parent.parent / 'results' / dir_name, dir_name)
 
-        # Switch to path_output and archive each specified folder by its name, avoiding full paths
-        tar_command = ['tar', 'cf', '-', '-C', path_output] + folder_names
+        tf.add(reference_csv_path, reference_csv_path.name)
 
-        # **Check if the reference CSV exists and add it to the tar command**
-        if os.path.isfile(reference_csv_path):  # <--- New logic to check and add the reference CSV
-            # Add the reference CSV file with its relative path
-            tar_command += ['-C', os.path.dirname(reference_csv_path), os.path.basename(reference_csv_path)]  # <--- New line
-
-        p1 = subprocess.Popen(tar_command, stdout=subprocess.PIPE)
-        p2 = subprocess.Popen(['pigz'], stdin=p1.stdout, stdout=f_out)
-        p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-        p2.communicate()
     print(f'Tar file created: {output_file_path}')
 
 
@@ -64,10 +58,10 @@ def compress_unified_results(sample_id, his_rot_sampling, path_output):
     )
 
     # **Path to the reference CSV file (assumed to be in the same directory as the script)**
-    reference_csv_path = os.path.join(os.path.dirname(__file__), "reference_motif_templates.csv")  # <--- Added this line
+    reference_csv_path = Path(__file__).parent / 'reference_motif_templates.csv'
 
     # Call the function to create the tar file with specified folder names (not full paths)
-    create_results_tarfile(output_file_path, dirs_to_compress, path_output,reference_csv_path)
+    create_results_tarfile(output_file_path, dirs_to_compress, reference_csv_path)
 
     # Return the full path to the created tar.gz file
     return output_file_path
