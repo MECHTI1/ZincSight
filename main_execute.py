@@ -33,6 +33,7 @@ import re
 from src.download_query_structures import download_query_structures
 from Bio.PDB import PDBParser, MMCIFIO
 from src.primary_script import main as execute
+from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR, get_db_connection, get_db
 
 def str_clean_parse_tolist(input_string):
     cleaned_string = re.sub(r"[^\w,-.]", "",input_string)  # Remove everything that isn't a letter, number, hyphen, or comma
@@ -113,8 +114,6 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
 if __name__=="__main__": #Behave like a test
     import time
     zincsight_start_execution = time.time()
-    
-    from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR, get_db_connection, get_db
 
     path_query_structures = QUERY_STRUCTURES_DIR
     path_output= RESULTS_DIR
