@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-def create_results_tarfile(output_file_path, folder_names, reference_csv_path):
+def create_results_tarfile(output_file_path, dir_paths, reference_csv_path):
     """
     Create a .tar.gz file containing only the specified folders within path_output.
 
@@ -19,8 +19,8 @@ def create_results_tarfile(output_file_path, folder_names, reference_csv_path):
         os.makedirs(output_dir)
 
     with tarfile.open(output_file_path, 'w:gz') as tf:
-        for dir_name in folder_names:
-            tf.add(Path(__file__).parent.parent / 'results' / dir_name, dir_name)
+        for dir_path in dir_paths:
+            tf.add(dir_path, dir_path.name)
 
         tf.add(reference_csv_path, reference_csv_path.name)
 
@@ -36,8 +36,7 @@ def compress_unified_results(sample_id, his_rot_sampling, path_output):
         his_rot_sampling (bool): Whether rotation sampling is enabled.
     """
     # Define input directories to include within path_output
-    dirs_to_compress = ['structures_with_predicted_zn', 'table']
-    folder_suffix = "_".join(dirs_to_compress)  # Join folder names for filename suffix
+    dirs_to_compress = [Path(path_output) / 'structures_with_predicted_zn', Path(path_output) / 'table']
 
     # Define output directory
     output_dir = os.path.join(path_output, "compressed_results")
@@ -54,7 +53,7 @@ def compress_unified_results(sample_id, his_rot_sampling, path_output):
     # Define path for the compressed resulted file , such that the file will be within the output directory
     output_file_path = os.path.join(
         output_dir,
-        f"ZincSight_{sample_id}{str_his_rot_sampling}_{folder_suffix}_{date}.tar.gz"
+        f"ZincSight_{sample_id}{str_his_rot_sampling}_{date}.tar.gz"
     )
 
     # **Path to the reference CSV file (assumed to be in the same directory as the script)**
