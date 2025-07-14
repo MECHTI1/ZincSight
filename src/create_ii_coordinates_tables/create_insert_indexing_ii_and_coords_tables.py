@@ -60,25 +60,19 @@ def create_IIs_and_COORDINATES_TABLES():
     cur.close()
     conn.close()
 
-def insert_muliple_rows_from_one_structure(list_of_II_tuples, list_of_coordinates_tuples,all_relevant_atoms_from_residues_list,conn,cur):
-    insert_query_II_TABLE_V2 = "INSERT INTO AF_DATASET_II_TABLE_V2 (PDBID_AlphaFoldModel, AA_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) VALUES %s"
-    insert_query_COORDINATES_TABLE_V2= "INSERT INTO AF_DATASET_COORDINATES_TABLE_V2 (PDBID_AlphaFoldModel, chain_resi, close_atom_coord, far_atom_coord,B_factor) VALUES %s"
-    insert_query_DETAILED_COORDINATES_TABLE_V2= "INSERT INTO AF_DATASET_DETAILED_COORDINATES_TABLE_V2 (PDBID_AlphaFoldModel, chain_resi,resi_type, dict_atom_coord) VALUES %s"
-    
-    
-    all_relevant_atoms_from_residues_list_converted_list = [(pdb, chain, resi, json.dumps(atom_dict)) for pdb, chain, resi, atom_dict in all_relevant_atoms_from_residues_list]
-    #print (all_relevant_atoms_from_residues_list_converted_list)
+def insert_muliple_rows_from_one_structure(list_of_II_tuples, list_of_coordinates_tuples,all_relevant_atoms_from_residues_list):
 
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            insert_query_II_TABLE_V2 = "INSERT INTO AF_DATASET_II_TABLE_V2 (PDBID_AlphaFoldModel, AA_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) VALUES %s"
+            insert_query_COORDINATES_TABLE_V2= "INSERT INTO AF_DATASET_COORDINATES_TABLE_V2 (PDBID_AlphaFoldModel, chain_resi, close_atom_coord, far_atom_coord,B_factor) VALUES %s"
+            insert_query_DETAILED_COORDINATES_TABLE_V2= "INSERT INTO AF_DATASET_DETAILED_COORDINATES_TABLE_V2 (PDBID_AlphaFoldModel, chain_resi,resi_type, dict_atom_coord) VALUES %s"
 
-    # Execute the INSERT query
-    psycopg2.extras.execute_values(cur, insert_query_II_TABLE_V2, list_of_II_tuples)
-    psycopg2.extras.execute_values(cur, insert_query_COORDINATES_TABLE_V2, list_of_coordinates_tuples)
-    psycopg2.extras.execute_values(cur, insert_query_DETAILED_COORDINATES_TABLE_V2, all_relevant_atoms_from_residues_list_converted_list)
-    
-    
-    # Commit the transaction
-    conn.commit()
+            all_relevant_atoms_from_residues_list_converted_list = [(pdb, chain, resi, json.dumps(atom_dict)) for pdb, chain, resi, atom_dict in all_relevant_atoms_from_residues_list]
 
+            psycopg2.extras.execute_values(cur, insert_query_II_TABLE_V2, list_of_II_tuples)
+            psycopg2.extras.execute_values(cur, insert_query_COORDINATES_TABLE_V2, list_of_coordinates_tuples)
+            psycopg2.extras.execute_values(cur, insert_query_DETAILED_COORDINATES_TABLE_V2, all_relevant_atoms_from_residues_list_converted_list)
 
 
 #create multiple column indexes. three combinations (for three searches- one in the start of the II combination chain, the second and three in the following ssearches in the chain)

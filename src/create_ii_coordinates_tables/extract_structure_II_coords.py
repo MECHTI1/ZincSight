@@ -199,16 +199,9 @@ def create_inverted_index_from_a_pair(pair,PDBID):
   
     #except:return
 
-def Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure(PDBpath,PDBID,call_counter):
+def Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure(PDBpath,PDBID):
         TIME_START=time.time()
 
-        # Clear the cache every 50th call
-        if call_counter % 50 == 0:
-            check_b_factor.cache_clear()
-            get_residue_id.cache_clear()
-            get_atom_close_coordinates.cache_clear()
-            get_far_atom_coordinates.cache_clear()
-        
         primary_list_inverted_index_one_protein=[]                
         
         parser = MMCIFParser() 
@@ -260,6 +253,7 @@ def Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure(PDBpath,PDBID,call_c
             if pair_inverted_index!= None: #Distance_pair> 6
 
                 primary_list_inverted_index_one_protein.append (pair_inverted_index)
+
         TIME_FINISH=time.time()
         print ("overall_time", TIME_FINISH-TIME_START  )
         return (primary_list_inverted_index_one_protein, primary_list_coordinates_one_protein,all_relevant_atoms_from_residues_list)
