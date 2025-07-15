@@ -35,7 +35,7 @@ cd ZincSight
 ### Conda environment setup
 ```bash
 conda env create -f environment.yml
-conda activate zincsight_env
+conda activate zincsight
 ```
 
 ## 3. Running ZincSight Locally

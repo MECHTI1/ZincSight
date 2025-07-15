@@ -4,6 +4,7 @@ Spyder Editor
 
 This is a temporary script file.
 """
+import os
 
 import psycopg2
 from src.settings import get_db_connection
@@ -172,7 +173,7 @@ def fetch_and_process_data(conn):
 
 
         # Set the number of processes to 2 explicitly
-        with multiprocessing.Pool(processes=2) as pool:
+        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
             results = pool.map(worker, data_dict.items())
         dict_match_id_to_dis_CoordinationAngles_HISangles_stats_single_batch = dict(results)
 
