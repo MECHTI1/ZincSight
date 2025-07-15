@@ -90,7 +90,7 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
     # Create and populate database tables
     executable_suffix = '.exe' if platform.system() == 'Windows' else ''
     executable = Path(pgserver.__file__).parent / 'pginstall' / 'bin' / f'psql{executable_suffix}'
-    os.system(f'{executable} {get_db().get_uri()} -f "src/setup_pg_db_with_tables/PostgreSQL_4_necessary_tables.sql"')
+    os.system(f'{executable} {get_db().get_uri()} < {(Path(__file__).parent / "src"/ "setup_pg_db_with_tables/PostgreSQL_4_necessary_tables.sql").absolute()}')
 
     if structure_ids_for_download:
         # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
