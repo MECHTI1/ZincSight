@@ -10,7 +10,7 @@ import os
 
 from src.settings import get_db_connection
 from src.create_ii_coordinates_tables.extract_structure_II_coords import Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure
-from src.create_ii_coordinates_tables.create_insert_indexing_ii_and_coords_tables import create_IIs_and_COORDINATES_TABLES, insert_muliple_rows_from_one_structure as Insert, create_multiple_column_indexes as create_indexes
+from src.create_ii_coordinates_tables.create_insert_indexing_ii_and_coords_tables import create_IIs_and_COORDINATES_TABLES, insert_muliple_rows_from_one_structure as Insert
 
 def get_IIs_and_coordinates_lists_of_tuples_and_insert_to_tables(filepath, structure_name):
     IIs_and_coordinates_lists_of_tuples = Create_IIs_Coordinates_ListOfTuples_of_ProteinStructure(
@@ -37,7 +37,6 @@ def main(list_query_structures_files_paths):
     create_IIs_and_COORDINATES_TABLES()
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
         pool.map(structures_insert_into_ii_and_coords_tables, list_query_structures_files_paths)
-    create_indexes()
 
 
 if __name__ == '__main__':

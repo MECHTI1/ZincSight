@@ -32,26 +32,6 @@ def Insert_representative_motif_coordinates_to_User_dataset_coordinates_table(cu
     # Commit the transaction
     conn.commit()
     
-    
-def Create_indexes_on_II_coordinates_tables(cur,conn):
-    index_creation_commands = [
-        "CREATE INDEX idx_1_v2_II ON AF_DATASET_II_TABLE_V2 (AA_pair, close_atom_dis, far_atom_dis)",
-        "CREATE INDEX idx_2_v2_II ON AF_DATASET_II_TABLE_V2 (PDBID_AlphaFoldModel, AA_pair, close_atom_dis, far_atom_dis, chain_resi_1)",
-        "CREATE INDEX idx_3_v2_II ON AF_DATASET_II_TABLE_V2 (PDBID_AlphaFoldModel, AA_pair, close_atom_dis, far_atom_dis, chain_resi_2)",
-        "CREATE INDEX idx_1_v2_COORD ON AF_DATASET_COORDINATES_TABLE_V2 (PDBID_AlphaFoldModel, chain_resi)",
-        "CREATE INDEX idx_1_COORDINATES_v2_COORD ON AF_DATASET_DETAILED_COORDINATES_TABLE_V2 (PDBID_AlphaFoldModel, chain_resi)"
-    ]
-    
-    for command in index_creation_commands:
-        try:
-            cur.execute(command)
-            conn.commit()
-        except psycopg2.errors.DuplicateTable:  # The error that PostgreSQL raises when an index already exists
-            print(f"Index already exists: {command}")
-            conn.rollback()  # Rollback the current transaction to recover from the error
-    cur.close()    
-    # commit the transaction
-    conn.commit()
 
 def main():
     # Establish a connection to the database
@@ -60,8 +40,7 @@ def main():
     cur = conn.cursor()
     
     Insert_representative_motif_coordinates_to_User_dataset_coordinates_table (cur,conn)
-    Create_indexes_on_II_coordinates_tables(cur,conn)
-        
+
     # Close the cursor and connection
     cur.close()
     conn.close()

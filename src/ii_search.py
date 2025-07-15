@@ -347,16 +347,10 @@ def iterative_motif_search(conn, site_id, Boolean_whether_delete_all_motif_searc
         conn.commit()
         
 
-
 def main(site_id,Boolean_whether_delete_all_motif_search_table_temp_after_iteration):
-    # Establish a connection to the database
     conn = get_db_connection()
-
-    # search_algo
     create_motif_search_table_temp_1(conn)
     iterative_motif_search(conn, site_id, Boolean_whether_delete_all_motif_search_table_temp_after_iteration)
-    # give_new_primary_key_to_FINAL_MOTIF_SEARCH_TABLE(conn)
-
     conn.close()
 
 
