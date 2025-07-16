@@ -40,5 +40,17 @@ conda activate zincsight
 
 ## 3. Running ZincSight Locally
 
-After installing the environment, you can run ZincSight using the `zincsight_loc.py` script.
+After installing the environment, you can run ZincSight using the `zincsight.py` script with the following arguments:
 
+| Argument                                          | Description                                  |
+|---------------------------------------------------|----------------------------------------------|
+| `-r`, `--rotamers`                                | Include histidine rotamers (default: no)     |
+| `-i <IDENTIFIERs>`, `--identifiers <IDENTIFIERS>` | Comma-separated identifiers                  |
+| `-f <FILE>`, `--file <FILE>`                      | Path of a text file with identifier per line |
+
+At least one of `IDENTIFIERS` or `FILE` is required.
+
+Script execution with the included example input file:
+```shell
+python ./zincsight.py -f example_input.txt
+```

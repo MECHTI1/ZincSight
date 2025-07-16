@@ -7,6 +7,7 @@ Created on Tue Oct 29 23:29:54 2024
 """
 import platform
 import sys
+import time
 from pathlib import Path
 
 import pgserver
@@ -112,11 +113,11 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
     return compressed_results_path
 
 if __name__=="__main__": #Behave like a test
-    import time
+
     zincsight_start_execution = time.time()
 
     path_query_structures = QUERY_STRUCTURES_DIR
-    path_output= RESULTS_DIR
+    path_output = RESULTS_DIR
 
     """
     Testing both Structure inputs: 
@@ -128,7 +129,7 @@ if __name__=="__main__": #Behave like a test
     manually_written_structure_ids_for_download = ""
     structure_ids_from_txt_file= ""
 
-    d_manual_ids, d_path_file_ids, u_structures =[True,False,False]
+    d_manual_ids, d_path_file_ids =[True,False]
 
     if d_manual_ids or d_path_file_ids:
         if d_manual_ids:  # Testing - manually written structure ids
@@ -155,7 +156,7 @@ if __name__=="__main__": #Behave like a test
     structure_ids_for_download = manually_written_structure_ids_for_download + structure_ids_from_txt_file
 
 
-    boolean_his_rot = True
+    boolean_his_rot = not True
     compressed_results_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output)
     print (compressed_results_path)
     
