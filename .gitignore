@@ -9,7 +9,7 @@ src/temp/
 src/Query AlphaFold structures
 src/results
 src/download_query_structures/structures_urls_to_download.txt       #That file have been used for tests for batch downlading via given input url
-
+cif_templates/
 .ipynb_checkpoints/
 
 results
