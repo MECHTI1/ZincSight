@@ -19,12 +19,12 @@ ZincSight is a tool for predicting zinc ion binding sites in protein structures.
     * references for experimentally solved zinc-binding templates used in prediction
   - PyMOL sessions for easy visualization
 
-## 1. Quick Start with Google Colab
+## Quick Start with Google Colab
 The fastest way to get started with ZincSight is through our interactive Google Colab notebook:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb)
 
-## 2. Local Installation
+## Local Installation
 
 ### Downloading the repository
 ```bash
@@ -38,7 +38,21 @@ conda env create -f environment.yml
 conda activate zincsight
 ```
 
-## 3. Running ZincSight Locally
+### ***Optional***: adding a new zinc-binding motif template to the training set
+
+In order to add a new zinc-binding motif from a PDB structure that was not available at the time of training, use the `add_template.py` script with the following arguments:
+
+| Argument | Description                             |
+|----------|-----------------------------------------|
+| PDB_ID   | PDB identifier                          |
+| RESIDUES | Comma-separated pairs of CHAIN_RESIDUEs |
+
+Example execution:
+```shell
+python ./add_templates 4f3w B_89,B_56,B_92
+```
+
+### ZincSight execution
 
 After installing the environment, you can run ZincSight using the `zincsight.py` script with the following arguments:
 
