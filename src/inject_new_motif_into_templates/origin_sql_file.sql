@@ -20,11 +20,15 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
---
--- Name: minimized_training_cluster_information; Type: TABLE; Schema: public; Owner: postgres
---
+SET SEARCH_PATH = public;
 
-CREATE TABLE public.minimized_training_cluster_information (
+DROP TABLE IF EXISTS minimized_training_cluster_information;
+DROP TABLE IF EXISTS motif_representative_coordinates_table_v2;
+DROP TABLE IF EXISTS motif_representative_detailed_coordinates_table_v2;
+DROP TABLE IF EXISTS training_representative_metal_sites_kruskal_v2;
+
+
+CREATE TABLE minimized_training_cluster_information (
     site_id integer,
     pdbid character varying(255),
     resi_comb character varying(255),
@@ -32,14 +36,7 @@ CREATE TABLE public.minimized_training_cluster_information (
     cluster_size integer
 );
 
-
-ALTER TABLE public.minimized_training_cluster_information OWNER TO postgres;
-
---
--- Name: motif_representative_coordinates_table_v2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.motif_representative_coordinates_table_v2 (
+CREATE TABLE motif_representative_coordinates_table_v2 (
     pdbid character varying(255),
     chain_resi character varying(255),
     close_atom_coord real[],
@@ -47,28 +44,14 @@ CREATE TABLE public.motif_representative_coordinates_table_v2 (
     b_factor smallint
 );
 
-
-ALTER TABLE public.motif_representative_coordinates_table_v2 OWNER TO postgres;
-
---
--- Name: motif_representative_detailed_coordinates_table_v2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.motif_representative_detailed_coordinates_table_v2 (
+CREATE TABLE motif_representative_detailed_coordinates_table_v2 (
     pdbid character varying(255),
     chain_resi character varying(255),
     resi_type character varying(10),
     dict_atom_coord json
 );
 
-
-ALTER TABLE public.motif_representative_detailed_coordinates_table_v2 OWNER TO postgres;
-
---
--- Name: training_representative_metal_sites_kruskal_v2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.training_representative_metal_sites_kruskal_v2 (
+CREATE TABLE training_representative_metal_sites_kruskal_v2 (
     site_id integer,
     ii_order_id integer,
     pdbid character varying(255),
@@ -80,13 +63,7 @@ CREATE TABLE public.training_representative_metal_sites_kruskal_v2 (
 );
 
 
-ALTER TABLE public.training_representative_metal_sites_kruskal_v2 OWNER TO postgres;
-
---
--- Data for Name: minimized_training_cluster_information; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.minimized_training_cluster_information (site_id, pdbid, resi_comb, num_of_residues, cluster_size) FROM stdin;
+COPY minimized_training_cluster_information (site_id, pdbid, resi_comb, num_of_residues, cluster_size) FROM stdin;
 1	5urb	{C,C,C,C}	4	341
 2	3v94	{D,D,H,H}	4	58
 3	4nrn	{E,H,H}	3	132
@@ -100,7 +77,7 @@ COPY public.minimized_training_cluster_information (site_id, pdbid, resi_comb, n
 11	5f7t	{D,C,H,H}	4	9
 12	1n4q	{D,C,C,H}	4	8
 13	1xll	{D,D,E,H}	4	5
-14	1du3	{C,C,C}	3	33
+14	4f3w	{C,C,C}	3	33
 15	4ox3	{D,H,H}	3	176
 16	4la2	{E,H,H,Y}	4	5
 17	6slf	{C,H,H}	3	36
@@ -131,12 +108,262 @@ COPY public.minimized_training_cluster_information (site_id, pdbid, resi_comb, n
 74	5opj	{C,C,C,E}	4	4
 \.
 
+COPY training_representative_metal_sites_kruskal_v2 (site_id, ii_order_id, pdbid, aa_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) FROM stdin;
+1	1	5urb	CC	3.8	4.0	B_142	B_155
+1	2	5urb	CC	3.8	6.3	B_142	B_158
+1	3	5urb	CC	3.7	6.4	B_145	B_155
+2	1	3v94	DH	3.7	6.7	F_521	F_372
+2	2	3v94	DH	3.5	5.5	F_521	F_409
+2	3	3v94	DH	3.6	4.3	F_410	F_409
+3	1	4nrn	EH	4.3	5.7	A_58	A_47
+3	2	4nrn	EH	5.5	5.9	A_58	A_60
+4	1	2wjy	CC	3.7	3.7	A_123	A_145
+4	2	2wjy	CH	4.1	5.3	A_145	A_155
+5	1	3sxk	HH	5.2	7.2	B_134	B_196
+5	2	3sxk	HH	4.5	5.7	B_174	B_196
+6	1	4k2h	DE	4.0	6.9	C_22	D_13
+6	2	4k2h	DH	4.4	5.1	C_22	D_46
+6	3	4k2h	EE	3.4	6.5	D_13	D_14
+7	1	1j30	EE	3.5	7.7	A_53	B_126
+7	2	1j30	EH	4.1	6.2	A_53	B_129
+7	3	1j30	EE	3.9	6.2	B_92	B_126
+8	1	1f2p	DH	4.7	7.4	A_97	A_85
+8	2	1f2p	DH	4.2	5.5	A_160	A_85
+9	1	2ux1	DH	4.7	7.1	K_74	I_47
+9	2	2ux1	DE	3.1	5.2	K_74	K_78
+10	1	3alr	CC	3.8	5.2	A_92	A_119
+10	2	3alr	CC	3.7	6.5	A_95	A_119
+10	3	3alr	CH	4.2	6.4	A_95	A_108
+11	1	5f7t	CD	4.1	4.3	F_108	F_111
+11	2	5f7t	DH	4.2	5.8	F_111	F_125
+11	3	5f7t	DH	3.6	5.9	F_111	F_128
+12	1	1n4q	CD	3.2	5.7	J_271	J_269
+12	2	1n4q	CD	3.7	7.1	Q_508	J_269
+12	3	1n4q	CH	4.0	5.6	Q_508	J_321
+13	1	1xll	EH	3.3	4.1	A_216	A_219
+13	2	1xll	DE	4.1	7.1	A_256	A_216
+13	3	1xll	DD	3.3	5.7	A_254	A_256
+14	1	4f3w	CC	3.6	5.0	B_56	B_92
+14	2	4f3w	CC	3.9	5.1	B_89	B_92
+15	1	4ox3	DH	3.7	6.6	A_192	A_185
+15	2	4ox3	HH	4.6	6.5	A_185	A_244
+16	1	4la2	EH	3.8	6.2	B_129	B_125
+16	2	4la2	EY	4.7	5.4	B_129	B_131
+16	3	4la2	EH	4.4	6.9	B_129	B_163
+17	1	6slf	CH	4.5	4.4	C_105	C_107
+17	2	6slf	CH	4.0	6.6	C_105	C_168
+18	1	3kdk	CE	4.4	5.3	B_604	B_468
+18	2	3kdk	EH	4.0	6.4	B_468	B_606
+19	1	4fk5	CC	3.9	4.9	A_60	A_63
+19	2	4fk5	CH	4.3	5.4	A_60	A_83
+19	3	4fk5	CH	3.9	7.0	A_63	A_77
+20	1	5ze3	HY	4.3	5.1	A_626	A_689
+20	2	5ze3	HY	3.9	6.1	A_628	A_689
+20	3	5ze3	HY	3.7	5.7	A_630	A_689
+21	1	3rym	EH	4.2	5.2	A_105	A_36
+21	2	3rym	EE	3.5	7.6	A_105	C_105
+21	3	3rym	EH	4.3	5.2	C_105	C_36
+22	1	1u10	DH	3.6	6.2	A_120	A_110
+22	2	1u10	DH	3.8	6.6	A_120	A_113
+22	3	1u10	HH	4.2	6.3	A_113	A_211
+23	1	6f1j	EH	5.4	5.8	B_220	A_180
+23	2	6f1j	ES	5.0	5.3	B_220	B_24
+24	1	1jqg	HH	4.6	5.6	A_69	A_196
+24	2	1jqg	EH	4.4	5.8	A_72	A_196
+25	1	2f4l	DN	2.7	6.3	A_148	A_146
+25	2	2f4l	DN	4.0	6.3	A_173	A_146
+26	1	6oad	DD	4.0	7.1	B_200	B_277
+26	2	6oad	DE	3.0	5.6	B_200	B_279
+27	1	3q4r	EE	4.2	7.5	A_54	A_113
+27	2	3q4r	EH	4.2	6.1	A_54	A_146
+28	1	4txd	CD	3.4	4.8	A_130	A_149
+28	2	4txd	CC	3.6	6.5	A_130	A_155
+28	3	4txd	CD	3.6	5.3	A_152	A_149
+29	1	5h7r	CC	3.7	5.4	D_46	D_65
+29	2	5h7r	CD	3.4	5.3	D_65	D_68
+30	1	4a91	CY	3.5	4.6	A_101	A_115
+30	2	4a91	CY	3.8	5.0	A_103	A_115
+30	3	4a91	CY	3.5	4.7	A_119	A_115
+31	1	4ybg	EH	3.7	6.6	A_131	A_291
+31	2	4ybg	CE	3.9	6.4	A_300	A_131
+31	3	4ybg	CC	3.8	5.6	A_288	A_300
+32	1	4cz1	DH	4.5	6.5	B_56	B_50
+32	2	4cz1	DE	3.3	6.3	B_56	B_173
+32	3	4cz1	EH	4.8	5.8	B_173	B_54
+33	1	2gyq	EE	3.7	6.2	A_26	A_117
+33	2	2gyq	EE	2.8	4.8	A_117	A_147
+34	1	4cn9	DS	3.6	6.8	B_173	B_62
+34	2	4cn9	DS	2.5	5.7	B_173	B_64
+35	1	3zu0	DN	3.0	6.9	B_94	B_126
+35	2	3zu0	DH	3.7	5.4	B_94	B_227
+35	3	3zu0	DN	4.0	6.6	B_250	B_126
+36	1	1m2x	CD	3.9	7.4	B_221	B_120
+36	2	1m2x	CH	4.4	5.7	B_221	B_263
+37	1	1lr5	HH	4.1	5.4	A_57	A_106
+37	2	1lr5	HH	4.5	7.0	A_59	A_106
+37	3	1lr5	EH	4.0	6.0	A_63	A_59
+38	1	4fc5	DD	4.4	7.5	A_61	A_157
+38	2	4fc5	DD	3.7	5.3	A_61	A_246
+39	1	3psq	DE	3.7	7.4	A_66	A_86
+39	2	3psq	EE	3.0	6.5	A_86	A_90
+40	1	4k1r	CH	4.4	5.8	A_397	A_356
+40	2	4k1r	CH	4.3	6.9	A_397	A_404
+40	3	4k1r	CH	4.6	5.8	A_397	A_406
+41	1	1l7o	CE	4.1	5.4	B_697	B_699
+41	2	1l7o	CC	4.2	4.7	A_197	B_697
+41	3	1l7o	CE	4.0	5.4	A_197	A_199
+42	1	4faj	EE	2.9	5.7	A_279	A_421
+42	2	4faj	EY	3.6	6.1	A_421	A_301
+43	1	2i2x	CE	3.8	6.8	I_269	I_164
+43	2	2i2x	CC	3.9	4.8	I_220	I_269
+46	1	4hex	DT	5.8	5.3	B_21	B_27
+46	2	4hex	DE	4.5	6.2	B_21	B_32
+46	3	4hex	DE	4.2	6.3	B_23	B_32
+47	1	2i0m	DD	4.1	6.3	A_152	A_156
+47	2	2i0m	DD	4.0	6.6	A_152	A_195
+47	3	2i0m	DE	3.3	6.2	A_195	A_191
+48	1	4hvl	HT	4.3	4.9	A_155	A_156
+48	2	4hvl	ET	3.9	7.4	A_203	A_156
+49	1	1smp	HH	5.1	5.9	A_176	A_180
+49	2	1smp	HH	4.8	6.4	A_180	A_186
+49	3	1smp	HS	4.8	5.9	A_186	I_1
+50	1	1nsa	EH	4.4	5.1	A_72	A_69
+50	2	1nsa	HH	4.5	5.7	A_69	A_196
+51	1	4lmy	HH	4.3	6.6	B_4	B_97
+51	2	4lmy	HH	4.3	6.3	B_4	B_99
+51	3	4lmy	HN	3.2	5.5	B_97	B_15
+51	4	4lmy	HN	4.2	5.8	B_19	B_15
+51	5	4lmy	HH	4.2	6.2	B_6	B_19
+52	1	1py0	HM	4.0	5.9	A_40	A_86
+52	2	1py0	CM	4.0	3.6	A_78	A_86
+52	3	1py0	CH	4.5	5.0	A_78	A_81
+53	1	4n7s	ES	3.8	6.5	A_375	A_378
+53	2	4n7s	DE	4.8	7.7	A_382	A_375
+53	3	4n7s	DN	5.0	5.0	A_382	A_384
+54	1	4n80	DE	4.1	5.1	A_262	A_258
+54	2	4n80	DE	3.9	7.1	A_262	B_126
+54	3	4n80	ES	2.8	5.2	B_126	A_275
+55	1	1qwy	DN	3.2	6.8	A_214	A_117
+55	2	1qwy	DH	3.7	6.5	A_214	A_210
+55	3	1qwy	HN	4.0	5.7	A_293	A_117
+56	1	3ht2	HH	4.8	5.3	C_53	C_55
+56	2	3ht2	HH	4.2	6.5	C_55	C_59
+56	3	3ht2	HH	4.4	6.8	C_55	C_95
+57	1	3e2d	DH	3.5	4.6	B_315	B_316
+57	2	3e2d	DD	3.0	5.6	B_12	B_315
+57	3	3e2d	DS	3.0	6.2	B_12	B_65
+58	1	1shn	DT	4.1	7.0	B_37	B_151
+58	2	1shn	HT	4.0	5.0	B_149	B_151
+58	3	1shn	ET	3.2	5.9	B_310	B_151
+59	1	5zon	DE	3.2	4.1	C_44	C_68
+59	2	5zon	EE	4.5	5.1	C_67	C_68
+59	3	5zon	DE	2.7	4.9	C_83	C_67
+60	1	1u19	EH	5.2	5.2	A_122	A_211
+60	2	1u19	HM	6.0	7.3	A_211	A_163
+61	1	4pxv	DN	2.7	6.2	A_35	A_37
+61	2	4pxv	DN	3.0	6.4	C_26	A_37
+61	3	4pxv	DE	2.9	6.2	C_26	B_28
+62	1	1ud9	DN	4.4	6.3	C_179	D_135
+62	2	1ud9	DS	4.9	7.8	C_179	D_137
+63	1	4toi	DH	4.2	5.4	A_188	A_18
+63	2	4toi	DD	4.2	4.6	A_188	A_204
+63	3	4toi	DD	4.0	5.6	A_204	A_205
+64	1	4upl	CD	3.6	6.6	A_49	A_9
+64	2	4upl	DD	3.1	5.7	A_9	A_326
+64	3	4upl	DH	3.7	4.7	A_326	A_327
+65	1	2a2i	CE	3.3	4.5	B_2011	B_2222
+65	2	2a2i	CD	4.1	4.6	B_2011	B_2233
+65	3	2a2i	EH	3.5	5.5	B_2222	B_2185
+66	1	4z7r	CN	3.5	5.8	A_19	A_268
+66	2	4z7r	CN	3.5	6.5	A_21	A_268
+66	3	4z7r	CN	3.5	5.2	A_24	A_268
+67	1	2dkd	DS	3.6	5.4	A_292	A_66
+67	2	2dkd	DD	3.9	6.6	A_290	A_292
+67	3	2dkd	DD	3.3	5.6	A_292	A_294
+68	1	3e4z	EH	3.8	6.9	A_189	A_108
+68	2	3e4z	EH	4.7	7.6	A_189	A_112
+68	3	3e4z	ET	4.6	6.2	A_189	C_16
+70	1	2gsn	DT	3.4	7.0	A_54	A_90
+70	2	2gsn	DD	3.3	6.0	A_54	A_257
+70	3	2gsn	DH	3.5	4.6	A_257	A_258
+71	1	5c66	DT	4.0	7.1	A_51	A_155
+71	2	5c66	ET	3.0	5.6	A_322	A_155
+72	1	5dhf	CM	5.3	6.9	C_197	C_156
+72	2	5dhf	CS	4.6	6.9	C_197	C_216
+72	3	5dhf	CY	5.9	5.9	C_197	C_220
+74	1	5opj	CE	4.2	6.5	A_416	A_339
+74	2	5opj	CC	4.0	5.2	A_341	A_416
+74	3	5opj	CC	3.7	5.4	A_341	A_417
+75	1	6xt1	HH	4.7	5.6	B_751	B_755
+75	2	6xt1	HS	4.3	4.2	B_751	B_1006
+75	3	6xt1	EH	4.0	7.1	B_766	B_755
+76	1	5td3	HY	3.7	6.1	B_235	B_175
+76	2	5td3	HY	4.3	5.6	B_237	B_175
+77	1	2wjy	CS	3.7	4.4	A_137	A_140
+77	2	2wjy	HS	3.9	5.8	A_159	A_140
+78	1	6tyj	EH	4.1	6.6	A_109	A_11
+78	2	6tyj	EE	3.2	6.1	A_49	A_109
+78	3	6tyj	EH	3.8	5.0	A_49	A_45
+78	4	6tyj	EH	3.8	7.4	A_49	A_105
+79	1	6h1c	DH	3.8	6.3	A_123	A_87
+79	2	6h1c	DN	4.5	7.0	A_123	A_125
+80	1	6y2c	DS	4.1	5.2	B_304	B_259
+80	2	6y2c	DH	4.9	6.8	B_304	B_334
+81	1	5yhx	CE	3.5	6.6	S_30	S_41
+81	2	5yhx	CE	3.8	6.2	S_30	S_107
+82	1	6c72	DT	3.4	5.2	B_705	B_707
+82	2	6c72	DN	3.2	6.8	B_705	B_761
+83	1	6e4z	HN	4.0	6.3	H_164	L_137
+83	2	6e4z	HN	3.8	7.2	H_164	L_138
+84	1	6e4z	EH	3.2	6.6	P_49	L_27
+85	1	3fns	EH	4.1	7.0	A_278	B_32
+85	2	3fns	DE	3.9	6.9	B_215	A_278
+86	1	3g4h	DE	4.0	7.6	B_204	B_18
+86	2	3g4h	DN	3.8	5.3	B_204	B_154
+87	1	6eke	DM	4.7	4.4	B_13	C_0
+87	2	6eke	DD	3.7	6.2	B_11	B_13
+88	1	3h69	HN	3.8	5.8	D_352	D_303
+88	2	3h69	HN	3.7	6.0	D_427	D_303
+89	1	6hb0	CE	3.7	5.6	B_261	B_126
+89	2	6hb0	DE	3.0	6.5	B_290	B_126
+91	1	6i5r	DS	2.6	4.9	A_125	A_127
+91	2	6i5r	DD	3.2	7.1	A_125	A_408
+91	3	6i5r	DN	2.9	5.5	A_408	A_412
+92	1	3k6j	CH	4.0	6.8	A_217	A_-5
+92	2	3k6j	CH	4.1	5.1	A_217	A_173
+92	3	3k6j	CE	3.9	6.1	A_217	A_185
+93	1	3lq0	DH	4.1	6.4	A_21	A_96
+93	2	3lq0	DH	4.0	7.3	A_21	A_102
+93	3	3lq0	HH	4.6	5.6	A_92	A_96
+94	1	3lzn	HH	4.5	7.0	A_132	B_95
+94	2	3lzn	HM	4.0	4.5	B_95	B_88
+94	3	3lzn	HM	4.3	7.1	B_42	B_88
+95	1	6m2i	DH	3.8	6.6	A_36	A_38
+95	2	6m2i	DH	4.3	6.4	A_36	A_213
+95	3	6m2i	EH	4.4	5.8	A_267	A_213
+95	4	6m2i	DE	3.1	4.5	A_340	A_267
+96	1	3n55	DD	3.3	6.1	A_74	A_91
+96	2	3n55	DT	3.3	6.1	A_91	A_93
+97	1	3ne8	EH	3.7	4.7	A_203	A_188
+97	2	3ne8	DE	3.3	5.9	A_259	A_203
+97	3	3ne8	DH	4.6	5.8	A_259	A_257
+97	4	3ne8	DE	3.0	5.0	A_259	A_290
+99	1	6pcz	CS	3.8	5.9	B_243	B_278
+99	2	6pcz	ES	3.8	5.2	B_442	B_278
+99	3	6pcz	HS	4.1	5.9	B_443	B_278
+100	1	6px5	EH	4.3	7.0	B_97	X_187
+101	1	6uel	HN	4.1	4.8	B_337	B_315
+101	2	6uel	EN	3.6	7.1	B_362	B_315
+102	1	3swn	EY	3.9	6.1	S_49	T_69
+102	2	3swn	HY	4.1	5.5	S_60	T_69
+103	1	6za7	HN	4.0	5.9	D_141	D_137
+103	2	6za7	HN	3.7	6.8	D_192	D_137
+103	3	6za7	HH	4.3	5.7	D_192	D_214
+104	1	7mdh	CN	3.2	5.7	C_175	C_173
+104	2	7mdh	HN	4.4	6.7	C_229	C_173
+\.
 
---
--- Data for Name: motif_representative_coordinates_table_v2; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_atom_coord, far_atom_coord, b_factor) FROM stdin;
+COPY motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_atom_coord, far_atom_coord, b_factor) FROM stdin;
 5urb	B_142	{-45.856,47.027,-92.657}	{-47.095,47.903,-91.639}	29
 5urb	B_145	{-49.074,44.834,-92.907}	{-48.981,44.441,-94.663}	33
 5urb	B_155	{-46.916,44.65,-89.936}	{-45.187,45.108,-89.575}	32
@@ -184,9 +411,6 @@ COPY public.motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_
 1xll	A_219	{30.0075,71.342,8.4045}	{31.173,70.485,8.055}	9
 1xll	A_254	{27.0705,68.2975,9.053}	{26.049,67.106,7.709}	9
 1xll	A_256	{26.4355,68.962,12.205}	{25.569,67.355,13.382}	11
-1du3	J_230	{40.948,6.029,67.817}	{39.856,7.371,68.371}	24
-1du3	K_230	{41.24,4.041,69.327}	{40.886,2.583,70.364}	21
-1du3	L_230	{41.597,3.625,66.797}	{41.001,3.21,65.121}	29
 4ox3	A_185	{13.307,9.882,10.193}	{13.661,11.179,9.551}	8
 4ox3	A_192	{11.538,7.006,11.666}	{11.39,5.097,10.948}	8
 4ox3	A_244	{15.0635,8.9685,14.327}	{14.54,7.793,15.078}	9
@@ -491,14 +715,12 @@ COPY public.motif_representative_coordinates_table_v2 (pdbid, chain_resi, close_
 7mdh	C_173	{42.246,67.046,100.456}	{42.267,64.667,100.208}	39
 7mdh	C_175	{39.637,68.947,100.336}	{39.86,69.547,98.674}	44
 7mdh	C_229	{43.0925,70.579,102.988}	{43.331,71.12,101.624}	47
+4f3w	B_89	{6.598,10.575,-35.312}	{6.430,11.840,-36.596}	13
+4f3w	B_56	{3.349,8.717,-33.735}	{2.750,7.077,-34.158}	12
+4f3w	B_92	{5.757,6.695,-35.594}	{6.860,6.757,-37.039}	13
 \.
 
-
---
--- Data for Name: motif_representative_detailed_coordinates_table_v2; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.motif_representative_detailed_coordinates_table_v2 (pdbid, chain_resi, resi_type, dict_atom_coord) FROM stdin;
+COPY motif_representative_detailed_coordinates_table_v2 (pdbid, chain_resi, resi_type, dict_atom_coord) FROM stdin;
 5urb	B_142	CYS	{"SG": [-45.856, 47.027, -92.657]}
 5urb	B_145	CYS	{"SG": [-49.074, 44.834, -92.907]}
 5urb	B_155	CYS	{"SG": [-46.916, 44.65, -89.936]}
@@ -546,9 +768,6 @@ COPY public.motif_representative_detailed_coordinates_table_v2 (pdbid, chain_res
 1xll	A_219	HIS	{"CG": [31.173, 70.485, 8.055], "CD2": [30.037, 69.877, 8.411], "ND1": [30.892, 71.847, 8.094], "CE1": [29.648, 72.034, 8.487], "NE2": [29.123, 70.837, 8.715]}
 1xll	A_254	ASP	{"OD1": [27.847, 67.567, 9.098], "OD2": [26.294, 69.028, 9.008]}
 1xll	A_256	ASP	{"OD1": [27.341, 68.472, 12.239], "OD2": [25.53, 69.452, 12.171]}
-1du3	J_230	CYS	{"SG": [40.948, 6.029, 67.817]}
-1du3	K_230	CYS	{"SG": [41.24, 4.041, 69.327]}
-1du3	L_230	CYS	{"SG": [41.597, 3.625, 66.797]}
 4ox3	A_185	HIS	{"CG": [13.661, 11.179, 9.551], "CD2": [13.052, 11.216, 10.76], "ND1": [13.792, 9.848, 9.235], "CE1": [13.239, 9.112, 10.186], "NE2": [12.822, 9.916, 11.151]}
 4ox3	A_192	ASP	{"OD1": [12.324, 6.692, 12.413], "OD2": [10.752, 7.32, 10.919]}
 4ox3	A_244	HIS	{"CG": [14.54, 7.793, 15.078], "CD2": [15.84, 8.13, 15.258], "ND1": [14.033, 8.706, 14.181], "CE1": [14.983, 9.568, 13.845], "NE2": [16.094, 9.231, 14.473]}
@@ -853,270 +1072,9 @@ COPY public.motif_representative_detailed_coordinates_table_v2 (pdbid, chain_res
 7mdh	C_173	ASN	{"ND2": [42.591, 65.82, 102.318], "OD1": [42.246, 67.046, 100.456]}
 7mdh	C_175	CYS	{"SG": [39.637, 68.947, 100.336]}
 7mdh	C_229	HIS	{"CG": [43.331, 71.12, 101.624], "CD2": [44.158, 71.529, 102.613], "ND1": [42.434, 70.252, 102.209], "CE1": [42.708, 70.141, 103.497], "NE2": [43.751, 70.906, 103.767]}
+4f3w	B_89	CYS	{"SG": [6.5980000495910645, 10.574999809265137, -35.3120002746582], "CB": [6.429999828338623, 11.84000015258789, -36.59600067138672]}
+4f3w	B_56	CYS	{"SG": [3.3489999771118164, 8.717000007629395, -33.73500061035156], "CB": [2.75, 7.077000141143799, -34.15800094604492]}
+4f3w	B_92	CYS	{"SG": [5.756999969482422, 6.695000171661377, -35.59400177001953], "CB": [6.860000133514404, 6.756999969482422, -37.03900146484375]}
 \.
 
-
---
--- Data for Name: training_representative_metal_sites_kruskal_v2; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.training_representative_metal_sites_kruskal_v2 (site_id, ii_order_id, pdbid, aa_pair, close_atom_dis, far_atom_dis, chain_resi_1, chain_resi_2) FROM stdin;
-1	1	5urb	CC	3.8	4	B_142	B_155
-1	2	5urb	CC	3.8	6.3	B_142	B_158
-1	3	5urb	CC	3.7	6.4	B_145	B_155
-2	1	3v94	DH	3.7	6.7	F_521	F_372
-2	2	3v94	DH	3.5	5.5	F_521	F_409
-2	3	3v94	DH	3.6	4.3	F_410	F_409
-3	1	4nrn	EH	4.3	5.7	A_58	A_47
-3	2	4nrn	EH	5.5	5.9	A_58	A_60
-4	1	2wjy	CC	3.7	3.7	A_123	A_145
-4	2	2wjy	CH	4.1	5.3	A_145	A_155
-5	1	3sxk	HH	5.2	7.2	B_134	B_196
-5	2	3sxk	HH	4.5	5.7	B_174	B_196
-6	1	4k2h	DE	4	6.9	C_22	D_13
-6	2	4k2h	DH	4.4	5.1	C_22	D_46
-6	3	4k2h	EE	3.4	6.5	D_13	D_14
-7	1	1j30	EE	3.5	7.7	A_53	B_126
-7	2	1j30	EH	4.1	6.2	A_53	B_129
-7	3	1j30	EE	3.9	6.2	B_92	B_126
-8	1	1f2p	DH	4.7	7.4	A_97	A_85
-8	2	1f2p	DH	4.2	5.5	A_160	A_85
-9	1	2ux1	DH	4.7	7.1	K_74	I_47
-9	2	2ux1	DE	3.1	5.2	K_74	K_78
-10	1	3alr	CC	3.8	5.2	A_92	A_119
-10	2	3alr	CC	3.7	6.5	A_95	A_119
-10	3	3alr	CH	4.2	6.4	A_95	A_108
-11	1	5f7t	CD	4.1	4.3	F_108	F_111
-11	2	5f7t	DH	4.2	5.8	F_111	F_125
-11	3	5f7t	DH	3.6	5.9	F_111	F_128
-12	1	1n4q	CD	3.2	5.7	J_271	J_269
-12	2	1n4q	CD	3.7	7.1	Q_508	J_269
-12	3	1n4q	CH	4	5.6	Q_508	J_321
-13	1	1xll	EH	3.3	4.1	A_216	A_219
-13	2	1xll	DE	4.1	7.1	A_256	A_216
-13	3	1xll	DD	3.3	5.7	A_254	A_256
-14	1	1du3	CC	2.5	5.3	J_230	K_230
-14	2	1du3	CC	2.6	5.3	K_230	L_230
-15	1	4ox3	DH	3.7	6.6	A_192	A_185
-15	2	4ox3	HH	4.6	6.5	A_185	A_244
-16	1	4la2	EH	3.8	6.2	B_129	B_125
-16	2	4la2	EY	4.7	5.4	B_129	B_131
-16	3	4la2	EH	4.4	6.9	B_129	B_163
-17	1	6slf	CH	4.5	4.4	C_105	C_107
-17	2	6slf	CH	4	6.6	C_105	C_168
-18	1	3kdk	CE	4.4	5.3	B_604	B_468
-18	2	3kdk	EH	4	6.4	B_468	B_606
-19	1	4fk5	CC	3.9	4.9	A_60	A_63
-19	2	4fk5	CH	4.3	5.4	A_60	A_83
-19	3	4fk5	CH	3.9	7	A_63	A_77
-20	1	5ze3	HY	4.3	5.1	A_626	A_689
-20	2	5ze3	HY	3.9	6.1	A_628	A_689
-20	3	5ze3	HY	3.7	5.7	A_630	A_689
-21	1	3rym	EH	4.2	5.2	A_105	A_36
-21	2	3rym	EE	3.5	7.6	A_105	C_105
-21	3	3rym	EH	4.3	5.2	C_105	C_36
-22	1	1u10	DH	3.6	6.2	A_120	A_110
-22	2	1u10	DH	3.8	6.6	A_120	A_113
-22	3	1u10	HH	4.2	6.3	A_113	A_211
-23	1	6f1j	EH	5.4	5.8	B_220	A_180
-23	2	6f1j	ES	5	5.3	B_220	B_24
-24	1	1jqg	HH	4.6	5.6	A_69	A_196
-24	2	1jqg	EH	4.4	5.8	A_72	A_196
-25	1	2f4l	DN	2.7	6.3	A_148	A_146
-25	2	2f4l	DN	4	6.3	A_173	A_146
-26	1	6oad	DD	4	7.1	B_200	B_277
-26	2	6oad	DE	3	5.6	B_200	B_279
-27	1	3q4r	EE	4.2	7.5	A_54	A_113
-27	2	3q4r	EH	4.2	6.1	A_54	A_146
-28	1	4txd	CD	3.4	4.8	A_130	A_149
-28	2	4txd	CC	3.6	6.5	A_130	A_155
-28	3	4txd	CD	3.6	5.3	A_152	A_149
-29	1	5h7r	CC	3.7	5.4	D_46	D_65
-29	2	5h7r	CD	3.4	5.3	D_65	D_68
-30	1	4a91	CY	3.5	4.6	A_101	A_115
-30	2	4a91	CY	3.8	5	A_103	A_115
-30	3	4a91	CY	3.5	4.7	A_119	A_115
-31	1	4ybg	EH	3.7	6.6	A_131	A_291
-31	2	4ybg	CE	3.9	6.4	A_300	A_131
-31	3	4ybg	CC	3.8	5.6	A_288	A_300
-32	1	4cz1	DH	4.5	6.5	B_56	B_50
-32	2	4cz1	DE	3.3	6.3	B_56	B_173
-32	3	4cz1	EH	4.8	5.8	B_173	B_54
-33	1	2gyq	EE	3.7	6.2	A_26	A_117
-33	2	2gyq	EE	2.8	4.8	A_117	A_147
-34	1	4cn9	DS	3.6	6.8	B_173	B_62
-34	2	4cn9	DS	2.5	5.7	B_173	B_64
-35	1	3zu0	DN	3	6.9	B_94	B_126
-35	2	3zu0	DH	3.7	5.4	B_94	B_227
-35	3	3zu0	DN	4	6.6	B_250	B_126
-36	1	1m2x	CD	3.9	7.4	B_221	B_120
-36	2	1m2x	CH	4.4	5.7	B_221	B_263
-37	1	1lr5	HH	4.1	5.4	A_57	A_106
-37	2	1lr5	HH	4.5	7	A_59	A_106
-37	3	1lr5	EH	4	6	A_63	A_59
-38	1	4fc5	DD	4.4	7.5	A_61	A_157
-38	2	4fc5	DD	3.7	5.3	A_61	A_246
-39	1	3psq	DE	3.7	7.4	A_66	A_86
-39	2	3psq	EE	3	6.5	A_86	A_90
-40	1	4k1r	CH	4.4	5.8	A_397	A_356
-40	2	4k1r	CH	4.3	6.9	A_397	A_404
-40	3	4k1r	CH	4.6	5.8	A_397	A_406
-41	1	1l7o	CE	4.1	5.4	B_697	B_699
-41	2	1l7o	CC	4.2	4.7	A_197	B_697
-41	3	1l7o	CE	4	5.4	A_197	A_199
-42	1	4faj	EE	2.9	5.7	A_279	A_421
-42	2	4faj	EY	3.6	6.1	A_421	A_301
-43	1	2i2x	CE	3.8	6.8	I_269	I_164
-43	2	2i2x	CC	3.9	4.8	I_220	I_269
-46	1	4hex	DT	5.8	5.3	B_21	B_27
-46	2	4hex	DE	4.5	6.2	B_21	B_32
-46	3	4hex	DE	4.2	6.3	B_23	B_32
-47	1	2i0m	DD	4.1	6.3	A_152	A_156
-47	2	2i0m	DD	4	6.6	A_152	A_195
-47	3	2i0m	DE	3.3	6.2	A_195	A_191
-48	1	4hvl	HT	4.3	4.9	A_155	A_156
-48	2	4hvl	ET	3.9	7.4	A_203	A_156
-49	1	1smp	HH	5.1	5.9	A_176	A_180
-49	2	1smp	HH	4.8	6.4	A_180	A_186
-49	3	1smp	HS	4.8	5.9	A_186	I_1
-50	1	1nsa	EH	4.4	5.1	A_72	A_69
-50	2	1nsa	HH	4.5	5.7	A_69	A_196
-51	1	4lmy	HH	4.3	6.6	B_4	B_97
-51	2	4lmy	HH	4.3	6.3	B_4	B_99
-51	3	4lmy	HN	3.2	5.5	B_97	B_15
-51	4	4lmy	HN	4.2	5.8	B_19	B_15
-51	5	4lmy	HH	4.2	6.2	B_6	B_19
-52	1	1py0	HM	4	5.9	A_40	A_86
-52	2	1py0	CM	4	3.6	A_78	A_86
-52	3	1py0	CH	4.5	5	A_78	A_81
-53	1	4n7s	ES	3.8	6.5	A_375	A_378
-53	2	4n7s	DE	4.8	7.7	A_382	A_375
-53	3	4n7s	DN	5	5	A_382	A_384
-54	1	4n80	DE	4.1	5.1	A_262	A_258
-54	2	4n80	DE	3.9	7.1	A_262	B_126
-54	3	4n80	ES	2.8	5.2	B_126	A_275
-55	1	1qwy	DN	3.2	6.8	A_214	A_117
-55	2	1qwy	DH	3.7	6.5	A_214	A_210
-55	3	1qwy	HN	4	5.7	A_293	A_117
-56	1	3ht2	HH	4.8	5.3	C_53	C_55
-56	2	3ht2	HH	4.2	6.5	C_55	C_59
-56	3	3ht2	HH	4.4	6.8	C_55	C_95
-57	1	3e2d	DH	3.5	4.6	B_315	B_316
-57	2	3e2d	DD	3	5.6	B_12	B_315
-57	3	3e2d	DS	3	6.2	B_12	B_65
-58	1	1shn	DT	4.1	7	B_37	B_151
-58	2	1shn	HT	4	5	B_149	B_151
-58	3	1shn	ET	3.2	5.9	B_310	B_151
-59	1	5zon	DE	3.2	4.1	C_44	C_68
-59	2	5zon	EE	4.5	5.1	C_67	C_68
-59	3	5zon	DE	2.7	4.9	C_83	C_67
-60	1	1u19	EH	5.2	5.2	A_122	A_211
-60	2	1u19	HM	6	7.3	A_211	A_163
-61	1	4pxv	DN	2.7	6.2	A_35	A_37
-61	2	4pxv	DN	3	6.4	C_26	A_37
-61	3	4pxv	DE	2.9	6.2	C_26	B_28
-62	1	1ud9	DN	4.4	6.3	C_179	D_135
-62	2	1ud9	DS	4.9	7.8	C_179	D_137
-63	1	4toi	DH	4.2	5.4	A_188	A_18
-63	2	4toi	DD	4.2	4.6	A_188	A_204
-63	3	4toi	DD	4	5.6	A_204	A_205
-64	1	4upl	CD	3.6	6.6	A_49	A_9
-64	2	4upl	DD	3.1	5.7	A_9	A_326
-64	3	4upl	DH	3.7	4.7	A_326	A_327
-65	1	2a2i	CE	3.3	4.5	B_2011	B_2222
-65	2	2a2i	CD	4.1	4.6	B_2011	B_2233
-65	3	2a2i	EH	3.5	5.5	B_2222	B_2185
-66	1	4z7r	CN	3.5	5.8	A_19	A_268
-66	2	4z7r	CN	3.5	6.5	A_21	A_268
-66	3	4z7r	CN	3.5	5.2	A_24	A_268
-67	1	2dkd	DS	3.6	5.4	A_292	A_66
-67	2	2dkd	DD	3.9	6.6	A_290	A_292
-67	3	2dkd	DD	3.3	5.6	A_292	A_294
-68	1	3e4z	EH	3.8	6.9	A_189	A_108
-68	2	3e4z	EH	4.7	7.6	A_189	A_112
-68	3	3e4z	ET	4.6	6.2	A_189	C_16
-70	1	2gsn	DT	3.4	7	A_54	A_90
-70	2	2gsn	DD	3.3	6	A_54	A_257
-70	3	2gsn	DH	3.5	4.6	A_257	A_258
-71	1	5c66	DT	4	7.1	A_51	A_155
-71	2	5c66	ET	3	5.6	A_322	A_155
-72	1	5dhf	CM	5.3	6.9	C_197	C_156
-72	2	5dhf	CS	4.6	6.9	C_197	C_216
-72	3	5dhf	CY	5.9	5.9	C_197	C_220
-74	1	5opj	CE	4.2	6.5	A_416	A_339
-74	2	5opj	CC	4	5.2	A_341	A_416
-74	3	5opj	CC	3.7	5.4	A_341	A_417
-75	1	6xt1	HH	4.7	5.6	B_751	B_755
-75	2	6xt1	HS	4.3	4.2	B_751	B_1006
-75	3	6xt1	EH	4	7.1	B_766	B_755
-76	1	5td3	HY	3.7	6.1	B_235	B_175
-76	2	5td3	HY	4.3	5.6	B_237	B_175
-77	1	2wjy	CS	3.7	4.4	A_137	A_140
-77	2	2wjy	HS	3.9	5.8	A_159	A_140
-78	1	6tyj	EH	4.1	6.6	A_109	A_11
-78	2	6tyj	EE	3.2	6.1	A_49	A_109
-78	3	6tyj	EH	3.8	5	A_49	A_45
-78	4	6tyj	EH	3.8	7.4	A_49	A_105
-79	1	6h1c	DH	3.8	6.3	A_123	A_87
-79	2	6h1c	DN	4.5	7	A_123	A_125
-80	1	6y2c	DS	4.1	5.2	B_304	B_259
-80	2	6y2c	DH	4.9	6.8	B_304	B_334
-81	1	5yhx	CE	3.5	6.6	S_30	S_41
-81	2	5yhx	CE	3.8	6.2	S_30	S_107
-82	1	6c72	DT	3.4	5.2	B_705	B_707
-82	2	6c72	DN	3.2	6.8	B_705	B_761
-83	1	6e4z	HN	4	6.3	H_164	L_137
-83	2	6e4z	HN	3.8	7.2	H_164	L_138
-84	1	6e4z	EH	3.2	6.6	P_49	L_27
-85	1	3fns	EH	4.1	7	A_278	B_32
-85	2	3fns	DE	3.9	6.9	B_215	A_278
-86	1	3g4h	DE	4	7.6	B_204	B_18
-86	2	3g4h	DN	3.8	5.3	B_204	B_154
-87	1	6eke	DM	4.7	4.4	B_13	C_0
-87	2	6eke	DD	3.7	6.2	B_11	B_13
-88	1	3h69	HN	3.8	5.8	D_352	D_303
-88	2	3h69	HN	3.7	6	D_427	D_303
-89	1	6hb0	CE	3.7	5.6	B_261	B_126
-89	2	6hb0	DE	3	6.5	B_290	B_126
-91	1	6i5r	DS	2.6	4.9	A_125	A_127
-91	2	6i5r	DD	3.2	7.1	A_125	A_408
-91	3	6i5r	DN	2.9	5.5	A_408	A_412
-92	1	3k6j	CH	4	6.8	A_217	A_-5
-92	2	3k6j	CH	4.1	5.1	A_217	A_173
-92	3	3k6j	CE	3.9	6.1	A_217	A_185
-93	1	3lq0	DH	4.1	6.4	A_21	A_96
-93	2	3lq0	DH	4	7.3	A_21	A_102
-93	3	3lq0	HH	4.6	5.6	A_92	A_96
-94	1	3lzn	HH	4.5	7	A_132	B_95
-94	2	3lzn	HM	4	4.5	B_95	B_88
-94	3	3lzn	HM	4.3	7.1	B_42	B_88
-95	1	6m2i	DH	3.8	6.6	A_36	A_38
-95	2	6m2i	DH	4.3	6.4	A_36	A_213
-95	3	6m2i	EH	4.4	5.8	A_267	A_213
-95	4	6m2i	DE	3.1	4.5	A_340	A_267
-96	1	3n55	DD	3.3	6.1	A_74	A_91
-96	2	3n55	DT	3.3	6.1	A_91	A_93
-97	1	3ne8	EH	3.7	4.7	A_203	A_188
-97	2	3ne8	DE	3.3	5.9	A_259	A_203
-97	3	3ne8	DH	4.6	5.8	A_259	A_257
-97	4	3ne8	DE	3	5	A_259	A_290
-99	1	6pcz	CS	3.8	5.9	B_243	B_278
-99	2	6pcz	ES	3.8	5.2	B_442	B_278
-99	3	6pcz	HS	4.1	5.9	B_443	B_278
-100	1	6px5	EH	4.3	7	B_97	X_187
-101	1	6uel	HN	4.1	4.8	B_337	B_315
-101	2	6uel	EN	3.6	7.1	B_362	B_315
-102	1	3swn	EY	3.9	6.1	S_49	T_69
-102	2	3swn	HY	4.1	5.5	S_60	T_69
-103	1	6za7	HN	4	5.9	D_141	D_137
-103	2	6za7	HN	3.7	6.8	D_192	D_137
-103	3	6za7	HH	4.3	5.7	D_192	D_214
-104	1	7mdh	CN	3.2	5.7	C_175	C_173
-104	2	7mdh	HN	4.4	6.7	C_229	C_173
-\.
-
-
---
 -- PostgreSQL database dump complete
---
-
