@@ -24,6 +24,8 @@ RESULTS_DIR= os.path.join(PARENT_DIRECTORY,'results')
 TABLES_DIR=os.path.join(RESULTS_DIR,'table')
 STRUCTURES_WITH_PREDICTED_ZN= os.path.join(RESULTS_DIR,'structures_with_predicted_zn')
 
+NUM_CORES_DEFAULT=2
+
 os.makedirs(QUERY_STRUCTURES_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(TABLES_DIR, exist_ok=True)

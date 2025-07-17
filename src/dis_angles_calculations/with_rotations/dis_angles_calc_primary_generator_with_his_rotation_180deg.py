@@ -7,7 +7,7 @@ This is a temporary script file.
 import os
 
 import psycopg2
-from src.settings import get_db_connection
+from src.settings import get_db_connection,NUM_CORES_DEFAULT
 import json
 from src.dis_angles_calculations.with_rotations.create_dict_resi_dis_hisangles_zncoord_rot180deg import caclulate_dis_CoordinationAngles_HISangles_stats
 import time 
@@ -173,7 +173,7 @@ def fetch_and_process_data(conn):
 
 
         # Set the number of processes to 2 explicitly
-        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+        with multiprocessing.Pool(processes=NUM_CORES_DEFAULT) as pool:
             results = pool.map(worker, data_dict.items())
         dict_match_id_to_dis_CoordinationAngles_HISangles_stats_single_batch = dict(results)
 
