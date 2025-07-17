@@ -15,6 +15,7 @@ dependencies:
   - joblib
   - aria2p
   - pydash
+  - pandas
   - pip:
       - appdirs==1.4.4
       - aria2p==0.12.0

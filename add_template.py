@@ -5,12 +5,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Run full motif injection pipeline'
     )
-    parser.add_argument('--pdbid', default='4f3w', help='PDB ID for new motif')
-    parser.add_argument('--residues', default='B_89,B_56,B_92',
-                        help='Comma-separated residues, e.g. B_8,B_9,B_19')
-    parser.add_argument('--output', default='dump.sql', help='Final SQL dump path')
+    parser.add_argument('pdb_id', help='PDB ID with a new motif')
+    parser.add_argument('residues', help='Comma-separated CHAIN_RESIDUE pairs, e.g. B_8,B_9,B_19')
     args = parser.parse_args()
     add_template(
-        pdbid=args.pdbid,
+        pdbid=args.pdb_id,
         residues=args.residues,
     )
