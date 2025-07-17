@@ -29,7 +29,7 @@ def table_compression(conn):
     
             for j, (other_coord, _, _) in enumerate(coords_score_id):
                 if j != i and j not in processed:   #If a predicted coord processed already and have been put into a group, will not be processed again by the function beacuse already belongs to a group
-                    if all(calculate_distance(other_coord, member_coord[0]) <= 2.6 for member_coord in current_group):          # Check distance with all members in the current group
+                    if all(calculate_distance(other_coord, member_coord[0]) <= 2.54 for member_coord in current_group):          # Check distance with all members in the current group
                         current_group.append(coords_score_id[j])
                         processed.add(j)
             grouped_coords.append(current_group)
