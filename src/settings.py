@@ -45,7 +45,7 @@ MIN_THRESHOLD_PROB = float(os.getenv("EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD") 
 
 
 def get_db():
-    return pgserver.get_server(Path(__file__).parent.parent / 'postgresql')
+    return pgserver.get_server(Path(__file__).parent.parent / 'postgresql', 'delete')
 
 
 def get_db_connection():
