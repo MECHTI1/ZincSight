@@ -32,10 +32,9 @@ git clone https://github.com/MECHTI1/ZincSight.git
 cd ZincSight
 ```
 
-### Conda environment setup
+### Dependencies installation
 ```bash
-conda env create -f environment.yml
-conda activate zincsight
+pip install -r requirements.txt
 ```
 
 ### ***Optional***: adding a new zinc-binding motif template to the training set

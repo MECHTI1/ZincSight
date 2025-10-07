@@ -1,0 +1,16 @@
+pymol-open-source==3.2.0a0
+scipy
+biopython==1.78
+matplotlib
+psycopg2-binary
+scikit-learn
+python-dotenv
+joblib
+aria2p
+pydash
+pandas
+appdirs==1.4.4
+aria2p==0.12.0
+loguru==0.7.2
+psycopg2-binary==2.9.9
+pgserver==0.1.4
