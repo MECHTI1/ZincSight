@@ -34,7 +34,7 @@ def download_files(url_template, ids, directory, file_extension):
 
 # Specific download functions for AF, PDB (in CIF), and esm (in PDB)
 def download_structures_af(uniprot_accessions, directory):
-    af_ids = ["AF-" + accession + "-F1-model_v6" for accession in uniprot_accessions]
+    af_ids = ["AF-" + accession + "-2-F1-model_v6" for accession in uniprot_accessions]
     url_template = 'https://alphafold.ebi.ac.uk/files/{}.{}'
 
     download_files(url_template, af_ids, directory, file_extension="cif")
