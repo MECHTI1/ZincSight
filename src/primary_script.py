@@ -22,7 +22,7 @@ from src.compress_results import compress_unified_results
 from src.add_prob.add_prob_to_final_table import add_column_with_probs
 from src.db_debugging import debug_print_last_table
 
-def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output):
+def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output,num_cores):
     start_time_prediction = time.time()
     conn = get_db_connection()
     cur = conn.cursor()
@@ -32,7 +32,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
 
     start_time_create_tables=time.time()
 
-    create_ii_coordinates_tables_query_dataset(list_query_structures_files_paths)
+    create_ii_coordinates_tables_query_dataset(list_query_structures_files_paths,num_cores)
     insert_representative_motifs_to_dataset_tables()
 
     end_time_create_tables=time.time()

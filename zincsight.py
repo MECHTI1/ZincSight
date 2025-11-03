@@ -12,6 +12,8 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--rotamers', action='store_true', help='Include histidine rotamers')
     parser.add_argument('-i', '--identifiers', help='Comma-delimited list of identifiers')
     parser.add_argument('-f', '--file', help='Path to text file containing identifier per line')
+    parser.add_argument('-c','--cores', type=int, help='Number of cores', default=2)
+
 
     args = parser.parse_args()
 
@@ -35,11 +37,14 @@ if __name__ == '__main__':
 
     structure_ids_for_download = ','.join(ids)
 
+    num_cores= args.cores
+
     compressed_results_path = execute_zincsight(
         include_histidine_rotamers,
         structure_ids_for_download,
         query_structures_path,
-        output_path
+        output_path,
+        num_cores
     )
 
     print(f" Compressed predictions path: {compressed_results_path}")

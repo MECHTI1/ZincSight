@@ -16,15 +16,16 @@ def download_files(url_template, ids, directory, file_extension):
     start_time=time.time()
 
     def download_file(file_id):
-        url = url_template.format(file_id, file_extension)
-        response = requests.get(url)
-        if response.status_code == 200:
-            filename = os.path.join(directory, f'{file_id}.{file_extension}')
-            with open(filename, 'wb') as file:
-                file.write(response.content)
-            print(f'Downloaded {filename}')
-        else:
-            print(f'Failed to download {file_id}.{file_extension}')
+        filename = os.path.join(directory, f'{file_id}.{file_extension}')
+        if not os.path.isfile(filename):
+            url = url_template.format(file_id, file_extension)
+            response = requests.get(url)
+            if response.status_code == 200:
+                with open(filename, 'wb') as file:
+                    file.write(response.content)
+                print(f'Downloaded {filename}')
+            else:
+                print(f'Failed to download {file_id}.{file_extension}')
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         executor.map(download_file, ids)

@@ -7,7 +7,7 @@ This is a temporary script file.
 import os
 
 import psycopg2
-from src.settings import get_db_connection,NUM_CORES_DEFAULT
+from src.settings import get_db_connection
 import json
 from src.dis_angles_calculations.with_rotations.create_dict_resi_dis_hisangles_zncoord_rot180deg import caclulate_dis_CoordinationAngles_HISangles_stats
 import time 
@@ -129,7 +129,7 @@ def worker(item):
     result = caclulate_dis_CoordinationAngles_HISangles_stats(dict_residues_in_candidate_motif)
     return match_id, result
 
-def fetch_and_process_data(conn):
+def fetch_and_process_data(conn,num_cores):
     # Create a cursor object
     cur = conn.cursor()
     
@@ -173,7 +173,7 @@ def fetch_and_process_data(conn):
 
 
         # Set the number of processes to 2 explicitly
-        with multiprocessing.Pool(processes=NUM_CORES_DEFAULT) as pool:
+        with multiprocessing.Pool(processes=num_cores) as pool:
             results = pool.map(worker, data_dict.items())
         dict_match_id_to_dis_CoordinationAngles_HISangles_stats_single_batch = dict(results)
 
@@ -185,12 +185,12 @@ def fetch_and_process_data(conn):
 
 
 
-def main():
+def main(num_cores):
     # Establish a connection to the PostgreSQL database
     conn = get_db_connection()
     create_detailed_coordinates_of_matches_table(conn)
     add_columns_of_dist_angles_stats_to_final_motif_search_table(conn)
-    fetch_and_process_data(conn)
+    fetch_and_process_data(conn,num_cores)
     
     boolean_whether_delete_detailed_coordinates_of_matches_table=True
     if boolean_whether_delete_detailed_coordinates_of_matches_table:
