@@ -72,7 +72,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
         main_second_step()
         
         if his_rotation:
-            main_third_step_his_rotation_180deg()
+            main_third_step_his_rotation_180deg(num_cores)
         else:
             main_third_step_without_his_rotation()
 

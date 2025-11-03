@@ -155,8 +155,8 @@ if __name__=="__main__": #Behave like a test
     # Combine the raw manual and file-based IDs (Create a combined string with these two strings)
     structure_ids_for_download = manually_written_structure_ids_for_download + structure_ids_from_txt_file
 
-    num_cores=2
-    boolean_his_rot = not True
+    num_cores=6
+    boolean_his_rot = True
     compressed_results_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output,num_cores)
     print (compressed_results_path)
     
