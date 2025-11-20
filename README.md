@@ -6,7 +6,6 @@ ZincSight is a tool for predicting zinc ion binding sites in protein structures.
 
 ## Features
 
-- Fast processing: Approximately 0.5–1 second per protein query on Google Colab—achieved by utilizing two threads on an Intel Xeon® CPU @ 2.20GHz, or alternatively, using two local 11th Gen Intel® Core™ i7-1165G7 CPU cores.
 ### Flexible input options
 1. Protein IDs (e.g., PDB, AlphaFold, or ESM Metagenomic Atlas) 
 2. Uploaded structure files in PDB or MMCIF format
@@ -58,8 +57,10 @@ After installing the environment, you can run ZincSight using the `zincsight.py`
 | Argument                                          | Description                                  |
 |---------------------------------------------------|----------------------------------------------|
 | `-r`, `--rotamers`                                | Include histidine rotamers (default: no)     |
-| `-i <IDENTIFIERs>`, `--identifiers <IDENTIFIERS>` | Comma-separated identifiers                  |
+| `-i <IDENTIFIERS>`, `--identifiers <IDENTIFIERS>` | Comma-separated identifiers                  |
 | `-f <FILE>`, `--file <FILE>`                      | Path of a text file with identifier per line |
+| `-c <NUMBER>`, `--cores <NUMBER>`                 | Number of cores (default: 2)                 |
+
 
 At least one of `IDENTIFIERS` or `FILE` is required.
 
