@@ -63,7 +63,7 @@ def create_all_relevant_atoms_from_residues_list(structure, PDBID):
     return residue_list
 
 
-@lru_cache(maxsize=None)
+@lru_cache
 def check_b_factor(residue,return_BinaryForAlphaFold_or_value):
     c_alpha_atom_b_factor= residue["CA"].get_bfactor()
     if return_BinaryForAlphaFold_or_value== "Binary":
@@ -74,13 +74,13 @@ def check_b_factor(residue,return_BinaryForAlphaFold_or_value):
     else:                        # if the return_BinaryForAlphaFold_or_value== "Value"
         return round (c_alpha_atom_b_factor)
 
-@lru_cache(maxsize=None)
+@lru_cache
 def get_residue_id(residue):
    residue_full_id=residue.get_full_id()
    Identifier_format_resi=(str(residue_full_id[2])+("_")+str(residue_full_id[3][1]))
    return Identifier_format_resi
 
-@lru_cache(maxsize=None)
+@lru_cache
 def get_atom_close_coordinates(residue):
     atom_dict = {
         'HIS': ('NE2', 'ND1'),  # AVG (NE2, ND1)
@@ -106,7 +106,7 @@ def get_atom_close_coordinates(residue):
         return None
 
 
-@lru_cache(maxsize=None)
+@lru_cache
 def get_far_atom_coordinates(residue):
     atom_dict = {
         'HIS': 'CG',

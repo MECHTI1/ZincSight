@@ -67,7 +67,7 @@ FAR_RULES = {
     'ASP': 'CB', 'MET': 'CG', 'TYR': 'CZ', 'SER': 'CB', 'ASN': 'CB'
 }
 
-@lru_cache(maxsize=None)
+@lru_cache
 def get_atom_close_coordinates(residue):
     choice = CLOSE_RULES.get(residue.get_resname())
     if not choice:
@@ -80,7 +80,7 @@ def get_atom_close_coordinates(residue):
     atom = residue[choice]
     return atom.get_coord().tolist(), atom.get_bfactor()
 
-@lru_cache(maxsize=None)
+@lru_cache
 def get_far_atom_coordinates(residue):
     choice = FAR_RULES.get(residue.get_resname())
     if not choice:
