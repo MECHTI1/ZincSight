@@ -86,7 +86,7 @@ def convert_all_pdb_to_cif_in_dir(directory):
                 convert_pdb_to_cif(pdb_file_path)
 
 
-def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_structures, path_output,num_cpu=2):
+def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_structures, path_output,num_cpu=2, boolean_pse_output=True):
 
     # Create and populate database tables
     executable_suffix = '.exe' if platform.system() == 'Windows' else ''
@@ -107,7 +107,7 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
             print(os.path.join(path_query_structures, filename))
             list_query_structures_files_paths.append(os.path.join(path_query_structures, filename))
 
-    compressed_results_path = execute(list_query_structures_files_paths, boolean_his_rot, path_output,num_cpu)
+    compressed_results_path = execute(list_query_structures_files_paths, boolean_his_rot, path_output,num_cpu,boolean_pse_output)
     if compressed_results_path == False:
         print ("No predicted zinc-binding sites within the given query structures!")
     return compressed_results_path
@@ -157,7 +157,8 @@ if __name__=="__main__": #Behave like a test
 
     num_cores=2
     boolean_his_rot = True
-    compressed_results_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output,num_cores)
+    boolean_pse_output=True
+    compressed_results_path = execute_zincsight(boolean_his_rot,structure_ids_for_download, path_query_structures,path_output,num_cores,boolean_pse_output)
     print (compressed_results_path)
     
     zincsight_total_execution_time = time.time()-zincsight_start_execution

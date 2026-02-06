@@ -13,6 +13,9 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--identifiers', help='Comma-delimited list of identifiers')
     parser.add_argument('-f', '--file', help='Path to text file containing identifier per line')
     parser.add_argument('-c','--cores', type=int, help='Number of cores', default=2)
+    # NEW: add boolean flag
+    parser.add_argument('-p','--pse_output', action='store_true',help='If set, generate PyMOL .pse session output')
+
 
 
     args = parser.parse_args()
@@ -31,6 +34,7 @@ if __name__ == '__main__':
         ids.extend(py_(path.read_text('utf8').split('\n')).map(lambda x: x.strip()).reject(is_empty).value())
 
     include_histidine_rotamers = args.rotamers
+    create_pse_output=args.pse_output
     project_dir = Path(__file__).parent
     query_structures_path = QUERY_STRUCTURES_DIR
     output_path = str((project_dir / 'results').absolute())
@@ -44,7 +48,8 @@ if __name__ == '__main__':
         structure_ids_for_download,
         query_structures_path,
         output_path,
-        num_cores
+        num_cores,
+        create_pse_output
     )
 
     print(f" Compressed predictions path: {compressed_results_path}")

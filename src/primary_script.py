@@ -22,7 +22,7 @@ from src.compress_results import compress_unified_results
 from src.add_prob.add_prob_to_final_table import add_column_with_probs
 from src.db_debugging import debug_print_last_table
 
-def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output,num_cores):
+def main(list_query_structures_files_paths, boolean_rotamer_examination, path_output,num_cores,boolean_create_pse_output):
     start_time_prediction = time.time()
     conn = get_db_connection()
     cur = conn.cursor()
@@ -147,9 +147,10 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
         cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
     conn.commit()
 
-    start_time_create_models= time.time()
-    locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
-    end_time_create_models = time.time()
+    if boolean_create_pse_output:
+        start_time_create_models= time.time()
+        locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
+        end_time_create_models = time.time()
     
 
     export_final_table_to_csv_file(path_output)
