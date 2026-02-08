@@ -37,7 +37,7 @@ def compress_unified_results(sample_id, his_rot_sampling, path_output):
     """
     # Define input directories to include within path_output
     dirs_to_compress = [Path(path_output) / 'structures_with_predicted_zn', Path(path_output) / 'table']
-
+    dirs_to_compress = [p for p in dirs_to_compress if p.exists()]
     # Define output directory
     output_dir = os.path.join(path_output, "compressed_results")
     if not os.path.exists(output_dir):

@@ -147,8 +147,8 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
         cur.execute("DROP TABLE scored_af_dataset_with_aggregated_final_tables")
     conn.commit()
 
+    start_time_create_models = time.time()
     if boolean_create_pse_output:
-        start_time_create_models= time.time()
         locate_predicted_zn_within_structures(conn,list_query_structures_files_paths, path_output)
         end_time_create_models = time.time()
     
@@ -163,7 +163,8 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
             cur.execute("DROP TABLE final_compressed_table_with_scored_binding_sites")
     print ("time_create_II_Coordinates_tables",time_create_tables)
     print ("total time for predictions, not including downloading structures and compression: ", start_time_create_models- start_time_prediction)
-    print ("total time for create structures: ", end_time_create_models- start_time_create_models)
+    if boolean_create_pse_output:
+        print ("total time for create structures: ", end_time_create_models- start_time_create_models)
     conn.commit()
     conn.close()
 
