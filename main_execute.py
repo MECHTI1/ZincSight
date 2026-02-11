@@ -9,9 +9,15 @@ import platform
 import sys
 import time
 from pathlib import Path
-
+import multiprocessing
 import pgserver
-
+from src.download_query_structures.remove_bad_query_files import remove_corrupted_cifs_grep
+import os
+import re
+from src.download_query_structures import download_query_structures
+from Bio.PDB import PDBParser, MMCIFIO
+from src.primary_script import main as execute
+from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR, get_db_connection, get_db
 """
 "main.py" mediates between user input (jupyter notebook) to the src/primary_scirpt.py
 This script actions:
@@ -29,12 +35,7 @@ This script actions:
     This execution run on the query structures (Which located within the 'Query AlphaFold structures' dir
 """
 
-import os
-import re
-from src.download_query_structures import download_query_structures
-from Bio.PDB import PDBParser, MMCIFIO
-from src.primary_script import main as execute
-from src.settings import QUERY_STRUCTURES_DIR, RESULTS_DIR, get_db_connection, get_db
+
 
 def str_clean_parse_tolist(input_string):
     cleaned_string = re.sub(r"[^\w,-.]", "",input_string)  # Remove everything that isn't a letter, number, hyphen, or comma
@@ -43,47 +44,82 @@ def str_clean_parse_tolist(input_string):
 
 # TODO: need to check if I already implemented 'ESM' and 'PDB' options
 def split_struct_db_sources(list_non_processed_input_names):
-    af_list, pdb_list, esm_list = [], [], []
+    af_list, pdb_list, esm_list,ted_list = [], [], [], []
     for id_name in list_non_processed_input_names:
         base_id = id_name.split('.')[0]
         print (base_id)
-        if 'AF-' in base_id:
+        if ('AF-' in base_id) and ('TED' not in base_id):
             af_list.append(base_id.split('-')[1])  # Append the af uniprot id to af_list
         elif base_id.startswith("MGY"):
             esm_list.append(base_id)  # Append full mgnify protein id to esm_list
+        elif 'TED' in base_id:
+            ted_list.append(base_id)
         elif len(base_id) == 4 and base_id[0].isdigit(): #4 letter name with a number in the start considered a PDB structure
             pdb_list.append(base_id) # Insert to pdb_list
         elif "-assembly" in base_id: pdb_list.append(base_id) #biological assembly
         else:  # If an input id name is not starting with 'MGY' or is a 4 letter name (with a number in the start), it will be considered as s uniprot af model
             af_list.append(base_id)
-    return af_list, pdb_list, esm_list
+    return af_list, pdb_list, esm_list, ted_list
 
-def primary_download_structures_list_input(string_of_ids_to_download, path_query_structures):
+def primary_download_structures_list_input(string_of_ids_to_download, path_query_structures,num_cpu):
     if string_of_ids_to_download:
         clean_id_list = str_clean_parse_tolist(string_of_ids_to_download)
-        af_list, pdb_list, esm_list = split_struct_db_sources(clean_id_list)
-        print (af_list, pdb_list, esm_list)
-        download_query_structures.main(af_list, pdb_list, esm_list , path_query_structures)
+        af_list, pdb_list, esm_list, ted_list = split_struct_db_sources(clean_id_list)
+        print (af_list, pdb_list, esm_list, ted_list)
+        download_query_structures.main(af_list, pdb_list, esm_list , ted_list, path_query_structures,num_cpu)
 
-def convert_all_pdb_to_cif_in_dir(directory):
-    """Convert all PDB files in the provided directory and subdirectories to CIF format"""
-    def convert_pdb_to_cif(pdb_file_path):
-            parser = PDBParser(QUIET=True)
-            structure_id = os.path.basename(pdb_file_path).replace('.pdb', '')
-            structure = parser.get_structure(structure_id, pdb_file_path)
-            io = MMCIFIO()
-            io.set_structure(structure)
-            cif_file_path = pdb_file_path.replace('.pdb', '.cif')
-            io.save(cif_file_path)
+def _worker_convert_pdb_to_cif(pdb_file_path):
+    """Convert one PDB to CIF robustly (top-level for multiprocessing)."""
+    try:
+        # Remove empty files
+        if os.path.getsize(pdb_file_path) == 0:
             os.remove(pdb_file_path)
-            print(f"Converted {pdb_file_path} to {cif_file_path}")
+            return f"Removed empty file: {pdb_file_path}"
+        parser = PDBParser(QUIET=True)
+        structure_id = os.path.basename(pdb_file_path).replace(".pdb", "")
+        structure = parser.get_structure(structure_id, pdb_file_path)
+        io = MMCIFIO()
+        io.set_structure(structure)
+        cif_file_path = pdb_file_path[:-4] + ".cif"  # replace .pdb with .cif
+        io.save(cif_file_path)
+        os.remove(pdb_file_path)
+        return None
+    except Exception as e:
+        # Remove leftover PDB on failure (matches your robust behavior)
+        try:
+            if os.path.exists(pdb_file_path):
+                os.remove(pdb_file_path)
+        except OSError:
+            pass
+        return f"Error converting {pdb_file_path}: {e} (file removed)"
 
-    # Walk through directory and subdirectories
+def convert_all_pdb_to_cif_in_dir(directory,num_cpu):
+    """Convert all PDB files in directory/subdirs to CIF using all cores (robust)."""
+
+    # Gather all PDB files first
+    pdb_files = []
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith(".pdb"):
-                pdb_file_path = os.path.join(root, file)
-                convert_pdb_to_cif(pdb_file_path)
+                pdb_files.append(os.path.join(root, file))
+
+    if not pdb_files:
+        print(f"No PDB files found in {directory}")
+        return
+
+    print(f"Found {len(pdb_files)} PDB files. Converting using {num_cpu} cores...")
+
+    with multiprocessing.Pool(num_cpu) as pool:
+        results = pool.map(_worker_convert_pdb_to_cif, pdb_files)
+
+    errors = [r for r in results if r is not None]
+    if errors:
+        print(f"Finished with {len(errors)} issues/errors. First 5:")
+        for err in errors[:5]:
+            print(err)
+    else:
+        print("All conversions completed successfully.")
+
 
 
 def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_structures, path_output,num_cpu=2, boolean_pse_output=True):
@@ -95,10 +131,14 @@ def execute_zincsight(boolean_his_rot, structure_ids_for_download, path_query_st
 
     if structure_ids_for_download:
         # Processes and downloads structure files based on input identifiers (AlphaFold/PDB/ESM formats)
-        primary_download_structures_list_input(structure_ids_for_download,path_query_structures)
+        primary_download_structures_list_input(structure_ids_for_download,path_query_structures,num_cpu)
 
     # convert PDB formatted query structures to mmCIF format
-    convert_all_pdb_to_cif_in_dir(path_query_structures)
+    convert_all_pdb_to_cif_in_dir(path_query_structures,num_cpu)
+
+    # 5) (Optional) Tar query_structures + copy to Drive (Colab/Linux)
+
+    remove_corrupted_cifs_grep(path_query_structures, required_tag="_atom_site.id", bad_list_name="bad_cif_files.txt")
 
     # List all entries in the directory
     list_query_structures_files_paths = []
@@ -134,10 +174,22 @@ if __name__=="__main__": #Behave like a test
     if d_manual_ids or d_path_file_ids:
         if d_manual_ids:  # Testing - manually written structure ids
              # manually_written_structure_ids_for_download = "8QEP, 2A0S-assembly1, 1KLS, P0A6G5, AF-A0A068N621-F1-v4, MGYP002718891411"
+             # manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
+             # G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
+             # Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
              manually_written_structure_ids_for_download = """A0A068N621, A0A0F6AZI6, A0A292DHH8, A0A2U3D0N8, A0A3F2YM30, A0A5H1ZR49,
              G8ZFK7, P0A6G5, P38164,Q03760, Q08281, Q2K0Z2, Q2UFA9, Q5W0Q7, Q66K64, Q68EN5, Q6CXX6, Q7MVV4,
-             Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7"""
-            # manually_written_structure_ids_for_download = "8SUZ"
+             Q86T03, Q8N8R7, Q8NBJ9, Q9BWG6, Q9D1N4, Q9KP27, Q9M1V3, Q9NUN7, Q9NXF7,
+             AF-A0A3L6ZL83-F1-model_v4_TED01, AF-A0A3L6ZLD7-F1-model_v4_TED02, AF-A0A3L6ZLG0-F1-model_v4_TED02,
+             AF-A0A3L6ZLG1-F1-model_v4_TED01, AF-A0A3L6ZLH8-F1-model_v4_TED01, AF-A0A3L6ZLJ6-F1-model_v4_TED01, 
+             AF-A0A3L6ZLK1-F1-model_v4_TED01, AF-A0A3L6ZLK1-F1-model_v4_TED02, AF-A0A3L6ZLK3-F1-model_v4_TED01,
+             AF-A0A3L6ZLM7-F1-model_v4_TED02, AF-A0A3L6ZLN1-F1-model_v4_TED02, AF-A0A3L6ZLP4-F1-model_v4_TED01,
+             AF-A0A3L6ZLP9-F1-model_v4_TED01, AF-A0A3L6ZLQ2-F1-model_v4_TED01, AF-A0A3L6ZLQ2-F1-model_v4_TED02, 
+             AF-A0A3L6ZLQ9-F1-model_v4_TED01, AF-A0A3L6ZLR0-F1-model_v4_TED01, AF-A0A3L6ZLS8-F1-model_v4_TED01, 
+             AF-A0A3L6ZLS8-F1-model_v4_TED02, AF-A0A3L6ZLU6-F1-model_v4_TED04,
+             AF-A0A3L6ZLU6-F1-model_v4_TED05, AF-A0A3L6ZLV5-F1-model_v4_TED01"""
+
+        # manually_written_structure_ids_for_download = "8SUZ"
         if d_path_file_ids:  # Testing - defined path of txt file include structure ids
             # # Option 1 for input:
             # path_file_with_structure_ids = os.path.join("Query_structures_ids_txt_file","structures_ids_to_download.txt")

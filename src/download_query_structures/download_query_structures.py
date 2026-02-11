@@ -9,7 +9,141 @@ import os
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor
-# from src.settings import QUERY_STRUCTURES_DIR
+import re
+import shutil
+import subprocess
+
+# ----------------------------
+# (B) TED rapid download: aria2 + validate + retry (only used for TED)
+# ----------------------------
+def download_structures_ted_rapid(ted_ids, directory, cores_num,
+                                 base_url="https://ted.cathdb.info/api/v1/files"):
+    os.makedirs(directory, exist_ok=True)
+    if not ted_ids:
+        return
+    ids = ted_ids
+    # Clean + dedupe preserving order
+    seen = set()
+    ids = []
+    for x in ted_ids:
+        x = str(x).rstrip("\r\n")
+        x = re.sub(r"#.*$", "", x).strip()
+        if not x:
+            continue
+        if x not in seen:
+            ids.append(x)
+            seen.add(x)
+    if not ids:
+        return
+
+    if shutil.which("aria2c") is None:
+        # keep AF/ESM unaffected; only TED requires aria2 for rapid mode
+        raise RuntimeError("aria2c not found. Install aria2 (e.g., apt-get install aria2) to enable TED rapid download.")
+
+    parent_dir = os.path.dirname(os.path.abspath(directory))
+    work_dir = os.path.join(parent_dir, "ted_dl_work")  # sibling, not inside query folder
+    os.makedirs(work_dir, exist_ok=True)
+
+    urls_file = os.path.join(work_dir, "ted_urls.txt")
+    retry_urls_file = os.path.join(work_dir, "retry_urls.txt")
+    aria_log = os.path.join(work_dir, "aria2.log")
+    missing_ids_file = os.path.join(work_dir, "missing_ids.txt")
+    bad_files_file = os.path.join(work_dir, "bad_files.txt")
+
+    def looks_bad(fp):
+        if (not os.path.exists(fp)) or os.path.getsize(fp) == 0:
+            return True
+        with open(fp, "rb") as f:
+            head = f.read(512).decode("utf-8", errors="ignore").lower()
+        return any(m in head for m in ("<html", "<!doctype", "error", "not found", "too many requests", "forbidden"))
+
+    # Build URL list
+    with open(urls_file, "w", encoding="utf-8") as f:
+        for tid in ids:
+            f.write(f"{base_url}/{tid}.pdb\n")
+
+    # Pass 1 (fast)
+    jobs = max(8, int(cores_num) * 8)
+    subprocess.run([
+        "aria2c",
+        f"--input-file={urls_file}",
+        f"--dir={directory}",
+        "-j", str(jobs),
+        "--continue=true",
+        "--max-connection-per-server=8",
+        "--split=8",
+        "--min-split-size=1M",
+        "--file-allocation=none",
+        "--retry-wait=3",
+        "--max-tries=20",
+        "--timeout=60",
+        "--connect-timeout=20",
+        "--auto-file-renaming=false",
+        "--allow-overwrite=true",
+        "--summary-interval=10",
+        "--console-log-level=notice",
+        f"--log={aria_log}",
+    ], check=False)
+
+    # Verify missing + bad
+    missing = []
+    bad = []
+    for tid in ids:
+        fp = os.path.join(directory, f"{tid}.pdb")
+        if (not os.path.exists(fp)) or os.path.getsize(fp) == 0:
+            missing.append(tid)
+        elif looks_bad(fp):
+            bad.append(tid)
+
+    with open(missing_ids_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(missing) + ("\n" if missing else ""))
+    with open(bad_files_file, "w", encoding="utf-8") as f:
+        f.write("\n".join([f"{x}.pdb" for x in bad]) + ("\n" if bad else ""))
+
+    # Retry missing+bad only (safer)
+    if missing or bad:
+        retry_urls = []
+        retry_urls += [f"{base_url}/{tid}.pdb" for tid in missing]
+        retry_urls += [f"{base_url}/{tid}.pdb" for tid in bad]
+        retry_urls = list(dict.fromkeys(retry_urls))
+
+        with open(retry_urls_file, "w", encoding="utf-8") as f:
+            f.write("\n".join(retry_urls) + "\n")
+
+        subprocess.run([
+            "aria2c",
+            f"--input-file={retry_urls_file}",
+            f"--dir={directory}",
+            "-j", str(max(4, jobs // 2)),
+            "--continue=true",
+            "--max-connection-per-server=4",
+            "--split=4",
+            "--min-split-size=1M",
+            "--file-allocation=none",
+            "--retry-wait=5",
+            "--max-tries=30",
+            "--timeout=60",
+            "--connect-timeout=20",
+            "--auto-file-renaming=false",
+            "--allow-overwrite=true",
+            "--summary-interval=10",
+            "--console-log-level=notice",
+            f"--log={aria_log}",
+        ], check=False)
+
+    present = sum(
+        1 for tid in ids
+        if os.path.exists(os.path.join(directory, f"{tid}.pdb"))
+        and not looks_bad(os.path.join(directory, f"{tid}.pdb"))
+    )
+    print(f"[TED aria2] present {present}/{len(ids)} | log: {aria_log}")
+
+
+
+
+
+
+
 
 # Generalized download function with file format handling
 def download_files(url_template, ids, directory, file_extension):
@@ -50,18 +184,26 @@ def download_structures_esm(esm_ids, directory):
     url_template = 'https://api.esmatlas.com/fetchPredictedStructure/{}.{}'  # Replace with actual URL for esm PDBs
     download_files(url_template, esm_ids, directory, file_extension="pdb")
 
+def download_structures_ted(ted_ids, directory,cores_num):
+    # url_template='https://ted.cathdb.info/api/v1/files/{}.{}'
+    # download_files(url_template, ted_ids, directory, file_extension="pdb")
+    download_structures_ted_rapid(ted_ids, directory, cores_num)     # ✅ TED only uses rapid aria2 method; AF/ESM/PDB unaffected
 
-def main(uniprot_accessions, pdb_ids, esm_ids, path_query_structures):
+def main(uniprot_accessions, pdb_ids, esm_ids, ted_ids, path_query_structures, cores_num):
     # AlphaFold and PDB downloads use CIF format
     download_structures_af(uniprot_accessions, path_query_structures)
     download_structures_pdb(pdb_ids, path_query_structures)
 
-    # esm downloads use PDB format
+    # esm and ted downloads use PDB format
     download_structures_esm(esm_ids, path_query_structures)
+    download_structures_ted(ted_ids, path_query_structures, cores_num)
+
 
 
 if __name__ == "__main__":
+    cores_num=2
     uniprot_accessions = ['A0A2K5XT84', 'G3QSU8', 'A5Z1T7']
     pdb_ids = ['1CRN', '4HHB', '5XNL']
     esm_ids = ['MGYP002537940442', 'MGYP001215146166', 'MGYP001823580159']
-    main(uniprot_accessions, pdb_ids, esm_ids)
+    ted_ids=['AF-A0A002-F1-model_v4_TED01','AF-A0A003-F1-model_v4_TED01','AF-A0A009EAK7-F1-model_v4_TED01']
+    main(uniprot_accessions, pdb_ids, esm_ids, ted_ids, path_query_structures=".", cores_num=cores_num)

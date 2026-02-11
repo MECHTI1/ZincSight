@@ -253,7 +253,7 @@ def caclulate_dis_CoordinationAngles_HISangles_stats (dict_residues_in_candidate
     if rotation_angle==30:
         upper_threshold_num_rotations=8
     elif rotation_angle==15:
-        upper_threshold_num_rotations=14 # beacaue set until 45... 
+        upper_threshold_num_rotations=12 # beacaue set until 45...
     sum_total_angle_rotation=0
     last_list_all_comb_15degrotated_his=None
     # Convert the numeric data to numpy arrays
@@ -384,7 +384,7 @@ def caclulate_dis_CoordinationAngles_HISangles_stats (dict_residues_in_candidate
             # print ("best_angle_score: ",best_angle_score,"former_whole_list_process_angle_score: ", former_whole_list_process_angle_score)
             former_whole_list_process_angle_score=best_angle_score
             
-        elif  count_rounds_lists_of_his_rotated_comb<=upper_threshold_num_rotations:
+        elif count_rounds_lists_of_his_rotated_comb<=upper_threshold_num_rotations:
             rotation_angle+=15
            # count_rounds_lists_of_his_rotated_comb+=1 # Because scanning space more rapid
             # print (rotation_angle)
