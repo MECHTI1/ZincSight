@@ -19,10 +19,14 @@ ZincSight is a tool for predicting zinc ion binding sites in protein structures.
   - PyMOL sessions for easy visualization
 
 ## Quick Start with Google Colab
-The fastest way to get started with ZincSight is through our interactive Google Colab notebook:
+The fastest way to get started with ZincSight is through our interactive Google Colab notebooks:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb)
+- **ZincSight Colab:** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb)
+- 
+- **ZincSight MaxDrive Colab:** Built for massively scalable screening across **millions of structures**, with **native Google Drive integration** for large input/output workflows:  
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight%20MaxDrive.ipynb)
 
+  
 ## Local Installation
 
 ### Downloading the repository
