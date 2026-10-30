@@ -1,0 +1,60 @@
+name: Prediction stage diagnostics
+on:
+  pull_request:
+    paths:
+      - 'tests/trace_prediction_stages.py'
+      - '.github/workflows/prediction-stage-diagnostics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-stages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CC: gcc
+      PYTHON_DOTENV_DISABLED: '1'
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 967bdf431e3c86f0b390795022638eae32e64482
+          path: original-zincsight
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            integrations/mcp/requirements.txt
+      - name: Install the tested scientific environment
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libgl1 libglu1-mesa
+          python -m pip install -r integrations/mcp/requirements.txt
+      - name: Download the six public notebook structures
+        run: |
+          mkdir -p stage-diagnostics
+          python -m pip freeze > stage-diagnostics/requirements.txt
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'tests')
+          from notebook_regression import download_inputs
+          download_inputs(Path('public-inputs'))
+          PY
+      - name: Trace original, state fix, ordering and combined behavior
+        run: |
+          python tests/trace_prediction_stages.py --original-root original-zincsight --input-dir public-inputs --output-dir stage-diagnostics/rotamers --backend native
+      - name: Verify the rotamers-disabled control
+        run: |
+          python tests/trace_prediction_stages.py --original-root original-zincsight --input-dir public-inputs --output-dir stage-diagnostics/no-rotamers --backend native --variants original current --no-histidine-rotamers
+      - name: Preserve public-input diagnostic traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-prediction-stage-traces
+          path: stage-diagnostics
+          retention-days: 7
