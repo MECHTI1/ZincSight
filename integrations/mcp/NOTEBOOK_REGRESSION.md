@@ -3,6 +3,10 @@
 **Status: development preview. Runtime consistency is tested; scientific release
 review is still required.**
 
+The subsequent [rotamer diagnosis](ROTAMER_DIAGNOSIS.md) confirms that sampling
+was enabled, isolates retained exclusion state using 380 controlled history
+trials, and records native PostgreSQL comparisons with sampling on and off.
+
 ## Public notebook configuration
 
 `ZincSight.ipynb` clones this repository. The tracked `.env` enables
