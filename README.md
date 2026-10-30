@@ -71,3 +71,11 @@ Script execution with the included example input file:
 ```shell
 python ./zincsight.py -f example_input.txt
 ```
+
+## AI assistant integration (development preview)
+
+An optional MCP wrapper for ChatGPT, Claude and other compatible clients is
+available in [integrations/mcp](integrations/mcp/README.md). It includes isolated
+request processing and structured prediction results. It is not yet a hosted
+service or a published plugin; see the integration guide for validation status
+and public-launch requirements.
