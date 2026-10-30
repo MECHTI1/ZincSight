@@ -15,13 +15,44 @@ import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-MAX_BYTES = 2_000_000
+MAX_BYTES = 5_000_000
+MAX_RESIDUES = 4000
 TIMEOUT = 180
 LIMITATIONS = (
     "Computational predictions, not experimental confirmation of metal binding. "
     "Scores do not establish metal selectivity, occupancy, or catalytic activity. "
     "No predicted sites does not rule out binding."
 )
+
+
+def download_structure(url: str) -> str:
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            content = response.read(MAX_BYTES + 1)
+    except Exception as exc:
+        raise ValueError('Could not retrieve the structure from its public database.') from exc
+    if len(content) > MAX_BYTES:
+        raise ValueError('Structure exceeds the 5 MB limit.')
+    return content.decode('utf-8')
+
+
+def resolve_query_id(query_id: str) -> tuple[str, str, str]:
+    """Resolve notebook identifiers through fixed public providers only."""
+    accession = query_id.strip()
+    if re.fullmatch(r'[0-9][A-Za-z0-9]{3}(?:-assembly[1-9][0-9]{0,2})?', accession):
+        accession = accession[:4].upper() + accession[4:]
+        url, file_format = f'https://files.rcsb.org/download/{accession}.cif', 'cif'
+    elif re.fullmatch(r'MGYP[0-9]{12}', accession):
+        url, file_format = f'https://api.esmatlas.com/fetchPredictedStructure/{accession}.pdb', 'pdb'
+    else:
+        uniprot = r'(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})'
+        if re.fullmatch(uniprot, accession):
+            # Match the notebook's explicit v6 default, not a moving "latest".
+            accession = f'AF-{accession}-F1-model_v6'
+        if not re.fullmatch(rf'AF-{uniprot}-F[1-9][0-9]*-model_v[1-9][0-9]*', accession):
+            raise ValueError('Use a PDB ID/assembly, UniProt accession, full AlphaFold model ID or MGYP ID.')
+        url, file_format = f'https://alphafold.ebi.ac.uk/files/{accession}.cif', 'cif'
+    return download_structure(url), file_format, accession
 
 
 def get_structure(pdb_id: str | None, structure_text: str | None, file_format: str) -> str:
@@ -36,16 +67,9 @@ def get_structure(pdb_id: str | None, structure_text: str | None, file_format: s
             raise ValueError("Use file_format=pdb when supplying pdb_id.")
         # Fixed provider; callers cannot supply arbitrary URLs or local paths.
         url = f"https://files.rcsb.org/download/{pdb_id.upper()}.pdb"
-        try:
-            with urllib.request.urlopen(url, timeout=20) as response:
-                content = response.read(MAX_BYTES + 1)
-        except Exception as exc:
-            raise ValueError("Could not retrieve this PDB structure from RCSB.") from exc
-        if len(content) > MAX_BYTES:
-            raise ValueError("Structure exceeds the 2 MB limit.")
-        structure_text = content.decode("utf-8")
+        structure_text = download_structure(url)
     if len(structure_text.encode("utf-8")) > MAX_BYTES:
-        raise ValueError("Structure exceeds the 2 MB limit.")
+        raise ValueError("Structure exceeds the 5 MB limit.")
     if "\x00" in structure_text:
         raise ValueError("Structure must be a text PDB or mmCIF file.")
     if file_format == "pdb" and not any(line.startswith("ATOM  ") for line in structure_text.splitlines()):
@@ -80,7 +104,7 @@ def parse_sites(path: Path, minimum_probability: float) -> list[dict]:
 def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = None,
                    file_format: str = "pdb", histidine_rotamers: bool = False,
                    minimum_probability: float = 0.0, max_sites: int = 50,
-                   database_backend: str | None = None) -> dict:
+                   database_backend: str | None = None, query_id: str | None = None) -> dict:
     backend = database_backend or os.environ.get("ZINCSIGHT_DATABASE_BACKEND", "native")
     if backend not in ("native", "pglite"):
         raise ValueError("database_backend must be native or pglite.")
@@ -88,6 +112,11 @@ def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = No
         raise ValueError("minimum_probability must be between 0 and 1.")
     if isinstance(max_sites, bool) or not isinstance(max_sites, int) or not 1 <= max_sites <= 100:
         raise ValueError("max_sites must be an integer between 1 and 100.")
+    source = pdb_id.upper() if pdb_id else 'provided_structure'
+    if query_id:
+        if pdb_id or structure_text:
+            raise ValueError('Provide exactly one of query_id, pdb_id or structure_text.')
+        structure_text, file_format, source = resolve_query_id(query_id)
     content = get_structure(pdb_id, structure_text, file_format)
     with tempfile.TemporaryDirectory(prefix="zincsight-mcp-") as directory:
         work = Path(directory)
@@ -104,6 +133,7 @@ def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = No
                            EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD="0.0", OMP_NUM_THREADS="1",
                            OPENBLAS_NUM_THREADS="1", MPLBACKEND="Agg")
         environment["ZINCSIGHT_DATABASE_BACKEND"] = backend
+        environment['ZINCSIGHT_MAX_RESIDUES'] = str(MAX_RESIDUES)
         environment["ZINCSIGHT_PGLITE_LAUNCHER"] = str(Path(__file__).with_name("pglite") / "server.mjs")
         with (work / "worker.log").open("w") as log:
             process = subprocess.Popen(
@@ -126,7 +156,7 @@ def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = No
         status = json.loads((work / "status.json").read_text())
         sites = parse_sites(work / "results/table/table_predicted_zn_binding_sites.csv", minimum_probability) if status["has_sites"] else []
         return {
-            "method": "ZincSight", "source": pdb_id.upper() if pdb_id else "provided_structure",
+            "method": "ZincSight", "source": source,
             "histidine_rotamers": histidine_rotamers, "minimum_probability": minimum_probability,
             "site_count": len(sites), "sites": sites[:max_sites], "truncated": len(sites) > max_sites,
             "model_policy": "First structural model only; all protein chains in that model.",

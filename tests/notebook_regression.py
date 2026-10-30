@@ -119,6 +119,27 @@ def predict(source, inputs, names, backend, output, label, cores=2):
         return rows(result)
 
 
+def predict_through_wrapper(name, output):
+    sys.path.insert(0, str(ROOT))
+    from integrations.mcp.runner import run_prediction
+    # Exercise the UniProt shorthand as well as explicit AlphaFold model IDs.
+    query = 'P0A6G5' if name == 'AF-P0A6G5-F1-model_v6' else name
+    result = run_prediction(query_id=query, histidine_rotamers=True,
+                            max_sites=100, database_backend='pglite')
+    assert not result['truncated']
+    (output / f'wrapper-{name}.json').write_text(json.dumps(result, indent=2))
+    actual = []
+    for site in result['sites']:
+        row = {'structure_id': name, 'prob': str(site['probability']),
+               'predicted_ion_pos': json.dumps(site['coordinates_angstrom']),
+               'template_id': site['template_id']}
+        for i in range(1, 5):
+            residues = site['coordinating_residues']
+            row[f'chain_resi_{i}'] = residues[i - 1] if i <= len(residues) else ''
+        actual.append(row)
+    return actual
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--original-root', type=Path)
@@ -150,7 +171,8 @@ def main():
     if 'current-native' in results:
         report['consistency']['native_vs_embedded'] = compare(results['current-native'], results['current-embedded'])
     for name in SOURCES:
-        single = predict(ROOT, inputs, [name], 'pglite', output, f'single-{name}')
+        print(f'RUN wrapper-{name}', flush=True)
+        single = predict_through_wrapper(name, output)
         batch = [r for r in results['current-embedded'] if r['structure_id'] == name]
         report['consistency'][f'batch_vs_single-{name}'] = compare(batch, single)
     (output / 'report.json').write_text(json.dumps(report, indent=2))

@@ -29,6 +29,9 @@ the coordinating residues and site probabilities."
 The `predict_zinc_binding_sites` tool accepts exactly one of:
 
 - `pdb_id`: four-character accession; the server retrieves its PDB file from RCSB.
+- `query_id`: a notebook-style PDB ID/assembly, UniProt accession, full AlphaFold
+  model ID or MGYP identifier. PDB/AlphaFold inputs use mmCIF; ESM uses PDB.
+  A UniProt accession resolves to F1 model v6, matching the notebook default.
 - `structure_text`: actual PDB or mmCIF contents, with `file_format` set to `pdb`
   or `cif`. This can be an AlphaFold model. The assistant/client must have access
   to the actual contents; this preview does not implement a native upload widget.
@@ -36,7 +39,7 @@ The `predict_zinc_binding_sites` tool accepts exactly one of:
 Optional arguments: `histidine_rotamers` (default false, matching the CLI),
 `minimum_probability` (default 0, applied after prediction), `max_sites` (1–100,
 default 50). The first structural model and all its chains are used. Limits:
-2 MB input, 2000 protein residues, 180 seconds per prediction, one concurrent
+5 MB input, 4000 protein residues, 180 seconds per prediction, one concurrent
 prediction per server process. No sequence-to-structure prediction is performed.
 
 Results include probabilities, zinc coordinates (angstrom), coordinating residue
@@ -88,6 +91,8 @@ Install the Python requirements above, then use Node.js 22 or newer:
 ```bash
 npm ci --prefix integrations/mcp/pglite --ignore-scripts --no-audit --no-fund
 python -m integrations.mcp.predict --database pglite --pdb-id 1A1F
+python -m integrations.mcp.predict --database pglite --query-id 2A0S-assembly1 --histidine-rotamers
+python -m integrations.mcp.predict --database pglite --query-id P0A6G5 --histidine-rotamers
 python -m integrations.mcp.predict --database pglite --structure protein.cif --format cif --histidine-rotamers
 ```
 
@@ -97,6 +102,10 @@ start the same server with this environment variable:
 ```bash
 ZINCSIGHT_DATABASE_BACKEND=pglite python -m integrations.mcp.server
 ```
+
+The CLI returns up to 100 sites by default (`--max-sites` can change that). MCP
+keeps its default of 50 and marks truncated output explicitly. mmCIF preparation
+retains the original coordinate precision and selects the first model.
 
 Each prediction creates a separate in-memory database and a loopback-only socket
 on a dynamically allocated port. The worker, database and temporary files are

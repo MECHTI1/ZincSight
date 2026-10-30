@@ -16,14 +16,16 @@ _capacity = threading.BoundedSemaphore(1)
 def predict_zinc_binding_sites(
     pdb_id: str | None = None, structure_text: str | None = None,
     file_format: Literal["pdb", "cif"] = "pdb", histidine_rotamers: bool = False,
-    minimum_probability: float = 0.0, max_sites: int = 50,
+    minimum_probability: float = 0.0, max_sites: int = 50, query_id: str | None = None,
 ) -> dict:
     """Predict possible zinc-binding sites from an existing protein structure using ZincSight.
 
-    Supply exactly one: a four-character PDB ID (retrieved from RCSB), or the actual
-    PDB/mmCIF text (including AlphaFold models). Never invent structure coordinates.
+    Supply exactly one: query_id (PDB/assembly, UniProt, full AlphaFold model or MGYP
+    identifier), a legacy four-character pdb_id, or actual PDB/mmCIF structure_text.
+    UniProt accessions resolve to AlphaFold F1 model v6, as in the notebook.
+    Never invent structure coordinates.
     File paths, upload IDs, sequences and arbitrary URLs are not accepted.
-    Maximum 2 MB / 2000 protein residues. Uses the first model, all chains.
+    Maximum 5 MB / 4000 protein residues. Uses the first model, all chains.
     Optional histidine rotamer sampling; default off matches the existing CLI.
     Returns probabilities, coordinating residues, coordinates in angstrom, template
     references and limitations. minimum_probability filters returned sites only.
@@ -35,7 +37,8 @@ def predict_zinc_binding_sites(
     try:
         return run_prediction(pdb_id=pdb_id, structure_text=structure_text,
                               file_format=file_format, histidine_rotamers=histidine_rotamers,
-                              minimum_probability=minimum_probability, max_sites=max_sites)
+                              minimum_probability=minimum_probability, max_sites=max_sites,
+                              query_id=query_id)
     finally:
         _capacity.release()
 
