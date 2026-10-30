@@ -175,11 +175,13 @@ References:
 
 ## Validation status (2026-10-30)
 
-**21 tests passed on Ubuntu 24.04 / Python 3.12 in GitHub Actions:**
-https://github.com/MECHTI1/ZincSight/actions/runs/41026045083
+**31 tests passed on Ubuntu 24.04 / Python 3.12 / Node.js 22 in GitHub Actions:**
+https://github.com/MECHTI1/ZincSight/actions/runs/41029887247
 
-- Direct ZincSight and MCP-wrapper predictions agree on PDB 1A1F, with histidine
-  rotamer sampling both disabled and enabled.
+- The standard entry point and both wrapper backends agree on PDB 1A1F, with
+  histidine rotamer sampling both disabled and enabled.
+- Native PostgreSQL and PGlite return identical site dictionaries for 1A1F,
+  2CBA and 1UBQ in both rotamer modes, using this revision's explicit ordering.
 - PDB and mmCIF representations return identical predictions for this control.
 - An artificial negative control (all atom coordinates scaled tenfold) returns
   zero sites without crashing. This is a geometry control, not an experimentally
@@ -188,15 +190,24 @@ https://github.com/MECHTI1/ZincSight/actions/runs/41026045083
   failure raises an error rather than reporting absence of binding.
 - Wrapper checks cover input validation, parsing existing result CSVs, cleanup,
   timeouts, MCP metadata and an actual stdio MCP handshake/tool call.
+- Embedded tests also cover simultaneous isolated positive/negative jobs and
+  a real successful prediction through the MCP protocol.
+
+Embedded predictions also completed in the ChatGPT cloud development runtime,
+where native pgserver could not create a Linux user. Python 3.12 and Node.js 24
+were used there; both rotamer modes and PDB/mmCIF input were exercised.
 
 These checks establish integration behavior on the tested cases, not new accuracy
-benchmarks. A hosted HTTP endpoint, real ChatGPT/Claude sessions, production memory
-limits and broader structures still need validation before public launch.
+benchmarks or equivalence to all older ZincSight outputs. The explicit-ordering
+change above requires broader scientific regression review before merge. An
+installed ChatGPT/Claude plugin, public distribution, production memory limits
+and broader structures still need validation before public launch. Persistent
+HTTPS hosting is necessary only if choosing the remote MCP deployment route.
 
 Dependencies installed successfully with `CC=gcc` for legacy Biopython 1.78.
 scikit-learn is pinned to 1.5.2 to match the bundled probability model. Run the
 full suite on a non-root Linux host with RCSB access:
 
 ```bash
-ZINCSIGHT_RUN_INTEGRATION=1 python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
+ZINCSIGHT_RUN_INTEGRATION=1 ZINCSIGHT_RUN_PGLITE=1 python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
 ```
