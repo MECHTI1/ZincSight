@@ -5,7 +5,7 @@ from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-from integrations.mcp.runner import run_prediction
+from integrations.mcp.runner import DEFAULT_MINIMUM_PROBABILITY, run_prediction
 
 mcp = FastMCP("ZincSight", host="127.0.0.1", port=8000, stateless_http=True, json_response=True)
 _capacity = threading.BoundedSemaphore(1)
@@ -16,7 +16,7 @@ _capacity = threading.BoundedSemaphore(1)
 def predict_zinc_binding_sites(
     pdb_id: str | None = None, structure_text: str | None = None,
     file_format: Literal["pdb", "cif"] = "pdb", histidine_rotamers: bool = False,
-    minimum_probability: float = 0.0, max_sites: int = 50, query_id: str | None = None,
+    minimum_probability: float = DEFAULT_MINIMUM_PROBABILITY, max_sites: int = 50, query_id: str | None = None,
 ) -> dict:
     """Predict possible zinc-binding sites from an existing protein structure using ZincSight.
 
@@ -29,6 +29,7 @@ def predict_zinc_binding_sites(
     Optional histidine rotamer sampling; default off matches the existing CLI.
     Returns probabilities, coordinating residues, coordinates in angstrom, template
     references and limitations. minimum_probability filters returned sites only.
+    Default cutoff 0.0001 matches the public notebook; 0 returns all predictions.
     This does not establish binding experimentally, metal specificity or catalysis.
     Inputs are processed in temporary server files, deleted after each call.
     """

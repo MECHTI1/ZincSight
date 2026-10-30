@@ -15,6 +15,9 @@ jobs:
       MPLBACKEND: Agg
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      # Explicit settings from the public notebook's tracked .env.
+      FILTER_PROB_AFTER_COMPRESSION: 'true'
+      EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD: '0.0001'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -76,6 +79,12 @@ jobs:
           sys.path.insert(0, str(original))
           os.chdir(original)
           from main_execute import execute_zincsight
+          from src.settings import FILTER_PROB_AFTER_COMPRESSION, MIN_THRESHOLD_PROB
+          assert FILTER_PROB_AFTER_COMPRESSION and MIN_THRESHOLD_PROB == 0.0001
+          (output / 'settings.json').write_text(json.dumps({
+              'histidine_rotamers': True, 'minimum_probability': MIN_THRESHOLD_PROB,
+              'filter_after_compression': FILTER_PROB_AFTER_COMPRESSION,
+              'source_revision': '967bdf431e3c86f0b390795022638eae32e64482'}))
           execute_zincsight(True, '', str(inputs), str(output), 2, False)
           with (output / 'table/table_predicted_zn_binding_sites.csv').open() as stream:
               data = list(csv.DictReader(stream))

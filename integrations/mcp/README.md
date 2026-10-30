@@ -40,7 +40,7 @@ The `predict_zinc_binding_sites` tool accepts exactly one of:
   to the actual contents; this preview does not implement a native upload widget.
 
 Optional arguments: `histidine_rotamers` (default false, matching the CLI),
-`minimum_probability` (default 0, applied after prediction), `max_sites` (1–100,
+`minimum_probability` (default 0.0001, matching the public notebook and applied after prediction), `max_sites` (1–100,
 default 50). The first structural model and all its chains are used. Limits:
 5 MB input, 4000 protein residues, 180 seconds per prediction, one concurrent
 prediction per server process. No sequence-to-structure prediction is performed.
@@ -48,7 +48,9 @@ prediction per server process. No sequence-to-structure prediction is performed.
 Results include probabilities, zinc coordinates (angstrom), coordinating residue
 identifiers, template IDs/RMSD, and a link to the software. Predictions do not
 establish metal specificity, occupancy, catalytic function or experimental binding.
-There is no universally selected probability cutoff in this wrapper.
+The default cutoff is the notebook's output filter, not a biological validation
+threshold. Set `minimum_probability=0` (CLI: `--minimum-probability 0`) to inspect
+all computed sites; the effective value is included in each result.
 
 ## Ubuntu setup in your own virtual environment
 
@@ -106,7 +108,7 @@ start the same server with this environment variable:
 ZINCSIGHT_DATABASE_BACKEND=pglite python -m integrations.mcp.server
 ```
 
-The CLI returns up to 100 sites by default (`--max-sites` can change that). MCP
+The CLI accepts `--minimum-probability` and returns up to 100 sites by default (`--max-sites` can change that). MCP
 keeps its default of 50 and marks truncated output explicitly. mmCIF preparation
 retains the original coordinate precision and selects the first model.
 
@@ -195,7 +197,10 @@ References:
 The [notebook-default comparison](NOTEBOOK_REGRESSION.md) now passes consistency
 checks across backends and single/batch execution, but **not** equivalence to
 the saved historical notebook outputs. Original-code reproductions also differ
-from that archive; its exact generating environment/source needs identification.
+from that reference. A configuration correction now applies the public
+notebook's tracked 0.0001 probability cutoff. The earlier 137/138 totals were
+unfiltered engine output; the corresponding public-input runs contain 73/70
+sites after filtering. See the report for details.
 
 **45 tests passed on Ubuntu 24.04 / Python 3.12 / Node.js 22 in GitHub Actions:**
 https://github.com/MECHTI1/ZincSight/actions/runs/41036947949
@@ -247,6 +252,8 @@ Run the notebook consistency checks with fresh public structures:
 python tests/notebook_regression.py --input-dir /tmp/zincsight-inputs --output-dir /tmp/zincsight-validation
 ```
 
-Use `--embedded-only` when native PostgreSQL is unavailable. An optional
+The workflow retains unfiltered engine outputs for backend consistency checks,
+but reference and default-wrapper comparisons apply the public notebook's
+0.0001 cutoff. Use `--embedded-only` when native PostgreSQL is unavailable. An optional
 `--expected /path/to/reference.csv` compares a local reference without uploading
 it. CI publishes only newly computed results from public structure downloads.

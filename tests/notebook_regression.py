@@ -18,6 +18,7 @@ import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+NOTEBOOK_MINIMUM_PROBABILITY = 0.0001
 SOURCES = {
     '1KLS': 'https://files.rcsb.org/download/1KLS.cif',
     '2A0S-assembly1': 'https://files.rcsb.org/download/2A0S-assembly1.cif',
@@ -53,6 +54,10 @@ def download_inputs(directory):
 def rows(path):
     with path.open() as stream:
         return list(csv.DictReader(stream))
+
+
+def notebook_rows(data):
+    return [row for row in data if float(row['prob']) >= NOTEBOOK_MINIMUM_PROBABILITY]
 
 
 def site_key(row):
@@ -126,6 +131,7 @@ def predict_through_wrapper(name, output):
     query = 'P0A6G5' if name == 'AF-P0A6G5-F1-model_v6' else name
     result = run_prediction(query_id=query, histidine_rotamers=True,
                             max_sites=100, database_backend='pglite')
+    assert result['minimum_probability'] == NOTEBOOK_MINIMUM_PROBABILITY
     assert not result['truncated']
     (output / f'wrapper-{name}.json').write_text(json.dumps(result, indent=2))
     actual = []
@@ -160,12 +166,15 @@ def main():
     results['current-embedded'] = predict(ROOT, inputs, SOURCES, 'pglite', output, 'current-embedded')
     expected = rows(args.expected) if args.expected else results.get('original-native')
     report = {'reference': 'local_csv' if args.expected else 'original_native_fresh_run',
+              'reference_minimum_probability': NOTEBOOK_MINIMUM_PROBABILITY,
+              'raw_engine_counts': {label: len(actual) for label, actual in results.items()},
+              'notebook_counts': {label: len(notebook_rows(actual)) for label, actual in results.items()},
               'reference_comparisons': {}, 'consistency': {}}
     if expected is not None:
         for label, actual in results.items():
             report['reference_comparisons'][label] = {
-                name: compare([r for r in expected if r['structure_id'] == name],
-                              [r for r in actual if r['structure_id'] == name]) for name in SOURCES
+                name: compare([r for r in notebook_rows(expected) if r['structure_id'] == name],
+                              [r for r in notebook_rows(actual) if r['structure_id'] == name]) for name in SOURCES
             }
             print(label, json.dumps(report['reference_comparisons'][label]), flush=True)
     if 'current-native' in results:
@@ -173,7 +182,7 @@ def main():
     for name in SOURCES:
         print(f'RUN wrapper-{name}', flush=True)
         single = predict_through_wrapper(name, output)
-        batch = [r for r in results['current-embedded'] if r['structure_id'] == name]
+        batch = [r for r in notebook_rows(results['current-embedded']) if r['structure_id'] == name]
         report['consistency'][f'batch_vs_single-{name}'] = compare(batch, single)
     (output / 'report.json').write_text(json.dumps(report, indent=2))
     print('CONSISTENCY', json.dumps(report['consistency']), flush=True)

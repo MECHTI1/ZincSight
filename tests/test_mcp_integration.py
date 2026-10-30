@@ -72,7 +72,7 @@ def test_matches_direct_predictor(tmp_path, structure_text, rotamers, backend):
     expected = direct_prediction(tmp_path, structure_text, rotamers)
     assert expected, 'Positive control 1A1F should have predicted zinc sites.'
     result = run_prediction(structure_text=structure_text, histidine_rotamers=rotamers,
-                            max_sites=100, database_backend=backend)
+                            minimum_probability=0, max_sites=100, database_backend=backend)
     assert not result['truncated']
     assert comparable(result['sites']) == comparable(expected)
 

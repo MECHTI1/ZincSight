@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 MAX_BYTES = 5_000_000
 MAX_RESIDUES = 4000
 TIMEOUT = 180
+# Public notebook configuration in the repository's .env. Keep this explicit
+# so isolated jobs do not inherit unrelated caller environment settings.
+DEFAULT_MINIMUM_PROBABILITY = 0.0001
 LIMITATIONS = (
     "Computational predictions, not experimental confirmation of metal binding. "
     "Scores do not establish metal selectivity, occupancy, or catalytic activity. "
@@ -103,7 +106,7 @@ def parse_sites(path: Path, minimum_probability: float) -> list[dict]:
 
 def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = None,
                    file_format: str = "pdb", histidine_rotamers: bool = False,
-                   minimum_probability: float = 0.0, max_sites: int = 50,
+                   minimum_probability: float = DEFAULT_MINIMUM_PROBABILITY, max_sites: int = 50,
                    database_backend: str | None = None, query_id: str | None = None) -> dict:
     backend = database_backend or os.environ.get("ZINCSIGHT_DATABASE_BACKEND", "native")
     if backend not in ("native", "pglite"):

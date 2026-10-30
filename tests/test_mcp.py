@@ -129,6 +129,35 @@ def test_mcp_tool_metadata():
     assert tool.name == 'predict_zinc_binding_sites'
     assert tool.annotations.readOnlyHint is True
     assert 'pdb_id' in tool.inputSchema['properties']
+    assert tool.inputSchema['properties']['minimum_probability']['default'] == 0.0001
+
+
+@pytest.mark.parametrize('cutoff,expected_count', [(None, 2), (0, 3), (0.9, 1)])
+def test_notebook_cutoff_and_explicit_override(cutoff, expected_count):
+    def start(*args, **kwargs):
+        directory = Path(kwargs['cwd'])
+        table = directory / 'results/table/table_predicted_zn_binding_sites.csv'
+        table.parent.mkdir(parents=True)
+        with table.open('w', newline='') as stream:
+            writer = csv.DictWriter(stream, fieldnames=['prob', 'predicted_ion_pos',
+                'chain_resi_1', 'chain_resi_2', 'chain_resi_3', 'chain_resi_4',
+                'resi_comb_ordered', 'template_id', 'template_rmsd'])
+            writer.writeheader()
+            for probability in [0.000099, 0.0001, 0.99]:
+                writer.writerow(dict(prob=probability, predicted_ion_pos='[1,2,3]',
+                    chain_resi_1='A_1', chain_resi_2='A_2', chain_resi_3='A_3',
+                    chain_resi_4='', resi_comb_ordered='{C,C,C}', template_id=14,
+                    template_rmsd=0.1))
+        (directory / 'status.json').write_text(json.dumps({'has_sites': True}))
+        from unittest.mock import Mock
+        return Mock(wait=lambda **kw: 0, pid=123456)
+    options = {} if cutoff is None else {'minimum_probability': cutoff}
+    with patch.object(runner.subprocess, 'Popen', side_effect=start), patch.object(runner.os, 'killpg'):
+        result = runner.run_prediction(structure_text='ATOM  placeholder', max_sites=1, **options)
+    assert result['minimum_probability'] == (0.0001 if cutoff is None else cutoff)
+    assert result['site_count'] == expected_count
+    assert result['truncated'] == (expected_count > 1)
+    assert [site['probability'] for site in result['sites']] == [0.99]
 
 
 def test_stdio_protocol_and_invalid_tool_call():
