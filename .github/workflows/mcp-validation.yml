@@ -36,4 +36,4 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r integrations/mcp/requirements.txt pytest
       - name: Validate wrapper and real predictions
-        run: python -m pytest tests/test_mcp.py tests/test_mcp_integration.py -v
+        run: python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
