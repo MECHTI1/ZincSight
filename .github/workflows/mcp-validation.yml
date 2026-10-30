@@ -42,4 +42,17 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r integrations/mcp/requirements.txt pytest
       - name: Validate wrapper and real predictions
-        run: python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
+        run: python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py tests/test_histidine_rotamer_state.py -v
+      - name: Check out original scientific pipeline for comparison
+        uses: actions/checkout@v4
+        with:
+          ref: 967bdf431e3c86f0b390795022638eae32e64482
+          path: original-zincsight
+      - name: Compare notebook defaults and single versus batch predictions
+        run: python tests/notebook_regression.py --original-root original-zincsight --input-dir /tmp/zincsight-notebook-inputs --output-dir notebook-regression-results
+      - name: Preserve notebook regression results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notebook-regression-results
+          path: notebook-regression-results

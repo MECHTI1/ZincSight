@@ -17,11 +17,12 @@ def is_close(coord1, coord2, threshold=2):
 
 start=time.time()
 
-processed_indices_to_move_out_dict_1 = set()
-
 filtered_list_to_out = []
 
 def main(list_all_comb_15degrotated_his,last_list_all_comb_15degrotated_his):
+    # Indices belong to this candidate list only. A module-level set leaks
+    # exclusions between candidates processed by the same multiprocessing worker.
+    processed_indices_to_move_out_dict_1 = set()
     for dict2 in last_list_all_comb_15degrotated_his:
         for i, dict1 in enumerate(list_all_comb_15degrotated_his):
             if i in processed_indices_to_move_out_dict_1:
