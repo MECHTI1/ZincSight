@@ -63,7 +63,7 @@ def main(list_query_structures_files_paths, boolean_rotamer_examination, path_ou
     print ("mile 1")
 
     # Execute a SELECT statement to get all the site_id values
-    cur.execute("SELECT site_id FROM minimized_training_cluster_information;")
+    cur.execute("SELECT site_id FROM minimized_training_cluster_information ORDER BY site_id;")
     results = cur.fetchall() # Fetch all the results
     # Extract the site_id values into a list
     site_ids = [result[0] for result in results]

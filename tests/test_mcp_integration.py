@@ -38,7 +38,7 @@ def cif_text(pdb_text, scale=1):
 
 
 def direct_prediction(tmp_path, text, rotamers):
-    """Call the original entry point directly, without the MCP runner/worker."""
+    """Call this checkout's standard entry point without the MCP runner/worker."""
     shutil.copytree(ROOT / 'src', tmp_path / 'src', ignore=shutil.ignore_patterns('__pycache__'))
     shutil.copy2(ROOT / 'main_execute.py', tmp_path / 'main_execute.py')
     (tmp_path / 'query').mkdir()

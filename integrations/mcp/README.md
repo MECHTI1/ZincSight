@@ -2,12 +2,20 @@
 
 This optional MCP server exposes the existing ZincSight predictor to compatible
 clients, including ChatGPT and Claude. It is **not yet a hosted service or a
-published directory listing**. Geometry and scoring are unchanged. The probability
+published directory listing**. Geometry/scoring formulas and model weights are unchanged. The probability
 step now returns cleanly for empty predictions and raises an explicit error for
 scoring failures instead of continuing into invalid operations.
 An optional embedded PostgreSQL backend supports task runtimes that cannot create
 the operating-system user needed by pgserver. The standard backend remains the
 default; two temporary-table helpers now explicitly drop their intermediate table.
+
+**Reproducibility change:** motif IDs, coordinate/residue reads, template traversal
+and greedy proximity grouping now use explicit SQL ordering. The previous queries
+relied on unspecified database row order. A cross-backend test on 2CBA exposed
+different candidates/probabilities, so this draft stabilizes that ordering in both
+backends. It can change predictions compared with older versions; it needs broader
+scientific regression review before merging. Backend comparisons below compare
+the two modes of this revised pipeline, not all historical ZincSight outputs.
 
 ## Supported workflow
 
@@ -69,7 +77,8 @@ by the predictor itself.
 The experimental `pglite` backend uses PostgreSQL compiled to WebAssembly,
 running inside the task via Node.js. It requires neither a Linux database user
 nor a hosted database account. It does not bypass runtime permissions. The same
-ZincSight SQL, reference data, geometry calculations and probability model are used.
+reference data, geometry formulas and probability model are used, with the explicit
+ordering changes described above.
 Install the Python requirements above, then use Node.js 22 or newer:
 
 ```bash

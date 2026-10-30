@@ -269,7 +269,7 @@ def create_FINAL_MOTIF_SEARCH_TABLE(conn,ii_order_id):
         FROM AF_DATASET_MOTIF_SEARCH_TABLE_TEMP_{last_table_version}
         WHERE ROW_ID > 1)
     ) AS alias_subquery
-    ORDER BY sort_order, pdbid_alphafoldmodel;
+    ORDER BY sort_order, {string_for_insert_command};
    ;
 """.format(string_for_insert_command=string_for_insert_command, last_table_version= ii_order_id)
 
