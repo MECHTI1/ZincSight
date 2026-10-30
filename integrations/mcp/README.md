@@ -2,7 +2,9 @@
 
 This optional MCP server exposes the existing ZincSight predictor to compatible
 clients, including ChatGPT and Claude. It is **not yet a hosted service or a
-published directory listing**. The scientific predictor is unchanged.
+published directory listing**. Geometry and scoring are unchanged. The probability
+step now returns cleanly for empty predictions and raises an explicit error for
+scoring failures instead of continuing into invalid operations.
 
 ## Supported workflow
 
@@ -85,8 +87,8 @@ privacy policy. Hard crashes may leave temporary files, so configure host cleanu
 
 ### Public submission checklist
 
-- Validate real positive, negative, rotamer and mmCIF cases against the original
-  predictor; confirm output equivalence and measure cold/warm request latency.
+- Extend the passing 1A1F/negative-control checks to diverse proteins and
+  AlphaFold models; measure production memory use and cold/warm request latency.
 - Deploy and test the persistent HTTPS endpoint, concurrency and failure behavior.
 - Confirm code, model and template redistribution/service rights with the owners;
   no license is selected by this integration.
@@ -112,14 +114,28 @@ References:
 
 ## Validation status (2026-10-30)
 
-The wrapper tests cover validation, parsing the repository's existing prediction
-CSV, failure-versus-no-sites handling, temporary-directory cleanup, timeout cleanup,
-tool metadata, and an actual stdio MCP client handshake/tool call. These are not
-scientific accuracy or end-to-end prediction tests.
+**21 tests passed on Ubuntu 24.04 / Python 3.12 in GitHub Actions:**
+https://github.com/MECHTI1/ZincSight/actions/runs/41026045083
 
-Installation succeeded with Python 3.12 using `CC=gcc` to build the legacy
-Biopython dependency. The integration pins scikit-learn 1.5.2 to match the version
-recorded in the bundled probability model. Importing the prediction pipeline
-succeeded. A real 1A1F prediction could not complete in the development environment:
-pgserver attempted `useradd ... pgserver` under root and the environment rejected
-that operation. Validate on a normal non-root Linux host before launch.
+- Direct ZincSight and MCP-wrapper predictions agree on PDB 1A1F, with histidine
+  rotamer sampling both disabled and enabled.
+- PDB and mmCIF representations return identical predictions for this control.
+- An artificial negative control (all atom coordinates scaled tenfold) returns
+  zero sites without crashing. This is a geometry control, not an experimentally
+  established biological nonbinder.
+- Unit tests cover empty-result handling and ensure a probability-calculation
+  failure raises an error rather than reporting absence of binding.
+- Wrapper checks cover input validation, parsing existing result CSVs, cleanup,
+  timeouts, MCP metadata and an actual stdio MCP handshake/tool call.
+
+These checks establish integration behavior on the tested cases, not new accuracy
+benchmarks. A hosted HTTP endpoint, real ChatGPT/Claude sessions, production memory
+limits and broader structures still need validation before public launch.
+
+Dependencies installed successfully with `CC=gcc` for legacy Biopython 1.78.
+scikit-learn is pinned to 1.5.2 to match the bundled probability model. Run the
+full suite on a non-root Linux host with RCSB access:
+
+```bash
+ZINCSIGHT_RUN_INTEGRATION=1 python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
+```
