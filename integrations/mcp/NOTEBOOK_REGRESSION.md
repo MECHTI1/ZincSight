@@ -3,6 +3,12 @@
 **Status: historical-output equivalence has not passed. Keep this integration a
 development preview until the differences are explained and resolved.**
 
+**Follow-up:** the rotamer-state bug described below has now been fixed. All six
+public examples agree across native PostgreSQL, PGlite and individual wrapper
+calls. The wrapper also supports the notebook identifiers and 8QEP's size, and
+preserves mmCIF coordinate precision. These fixes do not establish agreement with
+the historical archive. See the follow-up results at the end of this report.
+
 The notebook's six default query IDs are a useful existing reference set. The
 maintainer supplied `ZincSight_sample_id_r-sampled_2026-10-14_08-54-27.tar.gz`,
 containing 72 prediction rows, six PyMOL sessions and a template-reference CSV.
@@ -28,7 +34,8 @@ Five inputs ran through the actual embedded wrapper. 8QEP has 3,177 protein
 residues and exceeds its 2,000-residue cap, so it was tested through the embedded
 engine separately, with the same 180-second timeout. That engine test completed
 in approximately 26 seconds; it does not establish wrapper support for 8QEP.
-The input limit remains unchanged.
+This describes the initial check; the limit has since been increased and 8QEP
+validated through the wrapper as detailed below.
 
 ## Results
 
@@ -76,9 +83,9 @@ confirmed that marking index zero as redundant in one call causes a distinct
 conformer at index zero in the next call to be removed too; clearing the state
 before that second call preserves it. This code predates the integration.
 Its contribution to the full prediction discrepancies has not yet been isolated,
-and the helper was not changed during this check.
+and the helper was not changed during that initial check.
 
-Before release:
+The initial follow-up plan was:
 
 1. Reproduce the reference run with original native PostgreSQL code and pinned
    inputs/settings, checking reconstructed coordinates against original downloads.
@@ -87,10 +94,68 @@ Before release:
 3. Add regression coverage for the resolved behavior, including single versus
    batch execution and repeated rotamer calculations.
 4. Validate support for large notebook examples and the additional identifier
-   sources. The current tool directly resolves only four-character PDB IDs;
-   assemblies, AlphaFold and ESM structures currently need file contents.
+   sources. At that point, the tool directly resolved only four-character PDB
+   IDs; other identifiers required file contents.
 
 The earlier 31 passing integration tests remain useful but compare the revised
 backends on other controls. They do not supersede these historical-output
 differences or establish scientific equivalence. Neither counts nor agreement
 with this archive alone establish biological prediction accuracy.
+
+## Follow-up: consistent execution and original-notebook reproduction
+
+The code tested at `b9f1b72a2a40cb6ac9c90aef6bf9ae6293c1c3da`:
+
+- Keeps the rotamer exclusion set local to each call. Three targeted tests fail
+  before the fix and pass afterward, including a previously possible IndexError.
+- Preserves original mmCIF coordinate text while selecting the first model.
+  This avoids rounding high-precision inputs to three decimal places.
+- Resolves all notebook identifier types and accepts 5 MB / 4,000 residues, with
+  the 180-second prediction timeout unchanged. 8QEP now passes through the actual
+  wrapper, and the UniProt shorthand is exercised end to end.
+
+GitHub Actions run [41036947949](https://github.com/MECHTI1/ZincSight/actions/runs/41036947949)
+passed 45 tests plus the six-example workflow. Native and embedded databases
+return identical sites/probabilities/coordinates across all 137 current
+predictions. Each individual wrapper call also matches its full-batch result.
+These comparisons use fresh public downloads, not a published copy of the
+maintainer's archive. The archived CSV remains a local reference.
+
+Two original-code reproductions were also performed on the untouched scientific
+source at `967bdf431e3c86f0b390795022638eae32e64482`:
+
+1. Python 3.12 with the integration's dependency set and native pgserver.
+2. Python 3.13 with the notebook's dependency specification and its pgserver/QCP
+   compatibility shims. This resolved to pixeltable-pgserver 0.7.1, Biopython 1.88,
+   scikit-learn 1.9.1 and SciPy 1.18.1. The complete installed package list and
+   predictions are preserved in the workflow artifact for
+   [run 41038575388](https://github.com/MECHTI1/ZincSight/actions/runs/41038575388).
+
+Both original-code runs produced these counts:
+
+| Public input | Original code (both environments) | Current corrected integration |
+| --- | ---: | ---: |
+| 1KLS | 1 | 1 |
+| 2A0S-assembly1 | 59 | 60 |
+| 8QEP | 56 | 55 |
+| AF-P0A6G5-F1-model_v6 | 3 | 3 |
+| AF-A0A068N621-F1-model_v6 | 15 | 14 |
+| MGYP002718891411 | 4 | 4 |
+
+Thus the October archive mismatch cannot be attributed solely to the integration.
+The current notebook setup does not reconstruct the exact historical run, and
+identical counts do not imply identical site details. The integration also has
+real changes relative to freshly run original code, consistent with its state
+and ordering fixes. Do not claim historical equivalence or unchanged published
+benchmark accuracy.
+
+Fresh-download protein atom identities and coordinates match the recovered
+session structures for five examples. 8QEP's session export introduced rounding
+of up to approximately 0.00085 angstrom. Replacing the QCP calculation with the
+notebook's SciPy compatibility implementation in an isolated diagnostic run did
+not explain the major discrepancies.
+
+Remaining scientific work is to identify the exact code/setup that generated the
+October archive and agree on the intended regression behavior before public
+release. The reproducibility fixes and runtime consistency checks are complete
+on this six-example set; they are not a new biological accuracy benchmark.

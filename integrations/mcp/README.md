@@ -1,8 +1,9 @@
 # ZincSight for AI assistants (development preview)
 
-**Notebook regression is unresolved:** the maintainer's six default-example
-results expose changes in site counts and some probabilities, including batch
-dependence. See [the comparison and release blockers](NOTEBOOK_REGRESSION.md).
+**Historical-output equivalence is unresolved.** A rotamer-state fix now makes
+all six notebook examples agree across native/embedded and single/batch runs.
+Both the untouched original code and this revision still differ from the saved
+October reference. See [the comparison and release blockers](NOTEBOOK_REGRESSION.md).
 
 This optional MCP server exposes the existing ZincSight predictor to compatible
 clients, including ChatGPT and Claude. It is **not yet a hosted service or a
@@ -20,6 +21,8 @@ different candidates/probabilities, so this draft stabilizes that ordering in bo
 backends. It can change predictions compared with older versions; it needs broader
 scientific regression review before merging. Backend comparisons below compare
 the two modes of this revised pipeline, not all historical ZincSight outputs.
+The histidine-rotamer helper also now keeps excluded indices local to each call;
+previously one candidate could incorrectly remove conformers from a later one.
 
 ## Supported workflow
 
@@ -161,9 +164,10 @@ privacy policy. Hard crashes may leave temporary files, so configure host cleanu
 
 ### Public submission checklist
 
-- Extend the passing 1A1F/negative-control checks to diverse proteins and
-  AlphaFold models; measure production memory use and cold/warm request latency.
-- Deploy and test the persistent HTTPS endpoint, concurrency and failure behavior.
+- Resolve historical scientific differences and extend validation beyond the
+  six notebook examples; measure production memory use and request latency.
+- For on-demand execution, package and fresh-install-test a skill and its isolated
+  runtime. Deploy a persistent HTTPS endpoint only for the remote MCP route.
 - Confirm code, model and template redistribution/service rights with the owners;
   no license is selected by this integration.
 - Publish accurate support, privacy and terms pages with actual operator details.
@@ -188,12 +192,13 @@ References:
 
 ## Validation status (2026-10-30)
 
-The later [notebook-default comparison](NOTEBOOK_REGRESSION.md) does **not** pass
-historical-output equivalence. The passing tests below cover different controls
-and do not resolve those discrepancies.
+The [notebook-default comparison](NOTEBOOK_REGRESSION.md) now passes consistency
+checks across backends and single/batch execution, but **not** equivalence to
+the saved historical notebook outputs. Original-code reproductions also differ
+from that archive; its exact generating environment/source needs identification.
 
-**31 tests passed on Ubuntu 24.04 / Python 3.12 / Node.js 22 in GitHub Actions:**
-https://github.com/MECHTI1/ZincSight/actions/runs/41029887247
+**45 tests passed on Ubuntu 24.04 / Python 3.12 / Node.js 22 in GitHub Actions:**
+https://github.com/MECHTI1/ZincSight/actions/runs/41036947949
 
 - The standard entry point and both wrapper backends agree on PDB 1A1F, with
   histidine rotamer sampling both disabled and enabled.
@@ -209,6 +214,13 @@ https://github.com/MECHTI1/ZincSight/actions/runs/41029887247
   timeouts, MCP metadata and an actual stdio MCP handshake/tool call.
 - Embedded tests also cover simultaneous isolated positive/negative jobs and
   a real successful prediction through the MCP protocol.
+- New regression tests cover rotamer exclusions leaking between calculations,
+  notebook identifier resolution and preservation of mmCIF coordinate precision.
+- An additional end-to-end workflow compares all six notebook examples using
+  fresh public inputs. Native and embedded batches agree on all 137 returned
+  sites, probabilities and positions. Calling the wrapper separately for each
+  identifier, with rotamers enabled and no probability cutoff, gives the same
+  results, including 8QEP and the UniProt-to-AlphaFold shorthand.
 
 Embedded predictions also completed in the ChatGPT cloud development runtime,
 where native pgserver could not create a Linux user. Python 3.12 and Node.js 24
@@ -226,5 +238,15 @@ scikit-learn is pinned to 1.5.2 to match the bundled probability model. Run the
 full suite on a non-root Linux host with RCSB access:
 
 ```bash
-ZINCSIGHT_RUN_INTEGRATION=1 ZINCSIGHT_RUN_PGLITE=1 python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
+ZINCSIGHT_RUN_INTEGRATION=1 ZINCSIGHT_RUN_PGLITE=1 python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py tests/test_histidine_rotamer_state.py -v
 ```
+
+Run the notebook consistency checks with fresh public structures:
+
+```bash
+python tests/notebook_regression.py --input-dir /tmp/zincsight-inputs --output-dir /tmp/zincsight-validation
+```
+
+Use `--embedded-only` when native PostgreSQL is unavailable. An optional
+`--expected /path/to/reference.csv` compares a local reference without uploading
+it. CI publishes only newly computed results from public structure downloads.
