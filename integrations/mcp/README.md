@@ -1,5 +1,9 @@
 # ZincSight for AI assistants (development preview)
 
+**Notebook regression is unresolved:** the maintainer's six default-example
+results expose changes in site counts and some probabilities, including batch
+dependence. See [the comparison and release blockers](NOTEBOOK_REGRESSION.md).
+
 This optional MCP server exposes the existing ZincSight predictor to compatible
 clients, including ChatGPT and Claude. It is **not yet a hosted service or a
 published directory listing**. Geometry/scoring formulas and model weights are unchanged. The probability
@@ -174,6 +178,10 @@ References:
 - https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp
 
 ## Validation status (2026-10-30)
+
+The later [notebook-default comparison](NOTEBOOK_REGRESSION.md) does **not** pass
+historical-output equivalence. The passing tests below cover different controls
+and do not resolve those discrepancies.
 
 **31 tests passed on Ubuntu 24.04 / Python 3.12 / Node.js 22 in GitHub Actions:**
 https://github.com/MECHTI1/ZincSight/actions/runs/41029887247
