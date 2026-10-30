@@ -22,6 +22,7 @@ jobs:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       ZINCSIGHT_RUN_INTEGRATION: '1'
+      ZINCSIGHT_RUN_PGLITE: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,6 +34,11 @@ jobs:
             integrations/mcp/requirements.txt
       - name: Install runtime libraries
         run: sudo apt-get update -qq && sudo apt-get install -y libgl1 libglu1-mesa
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install optional embedded PostgreSQL
+        run: npm ci --prefix integrations/mcp/pglite --ignore-scripts --no-audit --no-fund
       - name: Install Python dependencies
         run: python -m pip install -r integrations/mcp/requirements.txt pytest
       - name: Validate wrapper and real predictions

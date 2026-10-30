@@ -67,6 +67,8 @@ def create_detailed_coordinates_of_matches_table(conn):
             AF_DATASET_detailed_coordinates_table_v2 a ON t.pdbid_alphafoldmodel = a.pdbid_alphafoldmodel AND t.chain_resi = a.chain_resi
     """)
     
+    # This helper is no longer needed; release it explicitly for embedded PG.
+    cur.execute("DROP TABLE temp_final_motif")
     # Commit changes
     conn.commit()
 

@@ -79,3 +79,5 @@ available in [integrations/mcp](integrations/mcp/README.md). It includes isolate
 request processing and structured prediction results. It is not yet a hosted
 service or a published plugin; see the integration guide for validation status
 and public-launch requirements.
+The optional embedded PostgreSQL mode also supports direct predictions inside
+a cloud task, without permanent hosting; see the guide for setup and limitations.

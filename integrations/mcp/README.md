@@ -5,6 +5,9 @@ clients, including ChatGPT and Claude. It is **not yet a hosted service or a
 published directory listing**. Geometry and scoring are unchanged. The probability
 step now returns cleanly for empty predictions and raises an explicit error for
 scoring failures instead of continuing into invalid operations.
+An optional embedded PostgreSQL backend supports task runtimes that cannot create
+the operating-system user needed by pgserver. The standard backend remains the
+default; two temporary-table helpers now explicitly drop their intermediate table.
 
 ## Supported workflow
 
@@ -60,6 +63,55 @@ claude mcp add zincsight -- /absolute/path/ZincSight/.venv-mcp/bin/python -m int
 Run this from the repository root; clients started elsewhere should use a launcher
 that changes into the repository first. No OpenAI or Anthropic API key is needed
 by the predictor itself.
+
+## Run inside a cloud task without permanent hosting
+
+The experimental `pglite` backend uses PostgreSQL compiled to WebAssembly,
+running inside the task via Node.js. It requires neither a Linux database user
+nor a hosted database account. It does not bypass runtime permissions. The same
+ZincSight SQL, reference data, geometry calculations and probability model are used.
+Install the Python requirements above, then use Node.js 22 or newer:
+
+```bash
+npm ci --prefix integrations/mcp/pglite --ignore-scripts --no-audit --no-fund
+python -m integrations.mcp.predict --database pglite --pdb-id 1A1F
+python -m integrations.mcp.predict --database pglite --structure protein.cif --format cif --histidine-rotamers
+```
+
+These commands print JSON and exit; no MCP client is needed. For an MCP client,
+start the same server with this environment variable:
+
+```bash
+ZINCSIGHT_DATABASE_BACKEND=pglite python -m integrations.mcp.server
+```
+
+Each prediction creates a separate in-memory database and a loopback-only socket
+on a dynamically allocated port. The worker, database and temporary files are
+removed after the task, including the process group on timeout. Both Python and
+Node must run in the same task environment.
+
+PGlite has a single underlying PostgreSQL session. This adapter deliberately uses
+autocommit for its disposable, one-structure job so nested connections cannot
+hold each other waiting for a transaction. It explicitly releases the pipeline's
+temporary motif table and loads the four bundled COPY blocks through PGlite's
+blob API. It is not a general PostgreSQL server replacement or a shared batch
+database. A failed prediction is discarded rather than returned as a valid result.
+
+This enables local task execution; it does not install a ChatGPT plugin, publish
+a listing, or guarantee availability on every ChatGPT plan/runtime. A reusable
+skill/plugin and its distribution still require separate packaging and testing.
+
+Embedded runtime tests (can run without a non-root OS account):
+
+```bash
+ZINCSIGHT_RUN_PGLITE=1 python -m pytest tests/test_mcp.py tests/test_mcp_integration.py tests/test_probability_empty_results.py -v
+```
+
+Enable `ZINCSIGHT_RUN_INTEGRATION=1` as well on a non-root Linux host to compare
+native and embedded outputs on 1A1F, 2CBA and 1UBQ, with rotamers on and off.
+
+PGlite documentation: https://pglite.dev/docs/about and
+https://pglite.dev/docs/pglite-socket
 
 ## HTTP development and public launch
 

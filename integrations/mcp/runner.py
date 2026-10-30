@@ -79,7 +79,11 @@ def parse_sites(path: Path, minimum_probability: float) -> list[dict]:
 
 def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = None,
                    file_format: str = "pdb", histidine_rotamers: bool = False,
-                   minimum_probability: float = 0.0, max_sites: int = 50) -> dict:
+                   minimum_probability: float = 0.0, max_sites: int = 50,
+                   database_backend: str | None = None) -> dict:
+    backend = database_backend or os.environ.get("ZINCSIGHT_DATABASE_BACKEND", "native")
+    if backend not in ("native", "pglite"):
+        raise ValueError("database_backend must be native or pglite.")
     if not math.isfinite(minimum_probability) or not 0 <= minimum_probability <= 1:
         raise ValueError("minimum_probability must be between 0 and 1.")
     if isinstance(max_sites, bool) or not isinstance(max_sites, int) or not 1 <= max_sites <= 100:
@@ -91,12 +95,16 @@ def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = No
         shutil.copytree(ROOT / "src", work / "src", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copy2(ROOT / "main_execute.py", work / "main_execute.py")
         shutil.copy2(Path(__file__).with_name("worker.py"), work / "worker.py")
+        if backend == "pglite":
+            shutil.copy2(Path(__file__).with_name("embedded_database.py"), work / "embedded_database.py")
         (work / f"input.{file_format}").write_text(content, encoding="utf-8")
         environment = os.environ.copy()
         environment.update(PYTHON_DOTENV_DISABLED="1", DEBUGGING_TEMP="false",
                            KEEP_TEMP_TABLES_TEMP="false", FILTER_PROB_AFTER_COMPRESSION="false",
                            EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD="0.0", OMP_NUM_THREADS="1",
                            OPENBLAS_NUM_THREADS="1", MPLBACKEND="Agg")
+        environment["ZINCSIGHT_DATABASE_BACKEND"] = backend
+        environment["ZINCSIGHT_PGLITE_LAUNCHER"] = str(Path(__file__).with_name("pglite") / "server.mjs")
         with (work / "worker.log").open("w") as log:
             process = subprocess.Popen(
                 [sys.executable, str(work / "worker.py"), file_format, str(int(histidine_rotamers))],
@@ -122,5 +130,6 @@ def run_prediction(*, pdb_id: str | None = None, structure_text: str | None = No
             "histidine_rotamers": histidine_rotamers, "minimum_probability": minimum_probability,
             "site_count": len(sites), "sites": sites[:max_sites], "truncated": len(sites) > max_sites,
             "model_policy": "First structural model only; all protein chains in that model.",
+            "database_backend": backend,
             "limitations": LIMITATIONS, "software_url": "https://github.com/MECHTI1/ZincSight",
         }
