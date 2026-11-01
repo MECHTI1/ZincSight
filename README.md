@@ -76,6 +76,24 @@ Script execution with the included example input file:
 python ./zincsight.py -f example_input.txt
 ```
 
+## Published benchmark (zinc-binding sites)
+
+Results reported for the original ZincSight method and comparison tools on 27 non-redundant AlphaFold2 models with 44 experimentally verified zinc-binding sites ([Mechtinger et al., *Protein Science*, 2025, Table 1](https://doi.org/10.1002/pro.70350)). Reference zinc positions were mapped from the corresponding experimental structures; predictions were evaluated at 2 Å and 5 Å distance thresholds.
+
+| Method | PR-AUC (2 Å) | PR-AUC (5 Å) |
+|---|---:|---:|
+| **ZincSight (with histidine rotamer sampling)** | **0.85** | **0.98** |
+| ZincSight (without histidine rotamer sampling) | 0.83 | 0.90 |
+| Metal3D (3+) | 0.82 | 0.93 |
+| Master of Metals | 0.68 | 0.85 |
+| PinMyMetal | 0.68 | 0.75 |
+| AlphaFold 3 (1 Zn) | 0.39 | 0.77 |
+| AlphaFold 3 (2 Zn) | 0.58 | 0.76 |
+| AlphaFold 3 (3 Zn) | 0.59 | 0.72 |
+| AlphaFold 3 (4 Zn) | 0.64 | 0.69 |
+
+On this dataset (mean protein length: 485 amino acids), the study reported mean runtimes of 0.87 s per structure for ZincSight with histidine rotamer sampling, 0.47 s without, 2.56 s for Master of Metals, 17.4 s for PinMyMetal and 39.8 s for Metal3D (Section 2.7).
+
 ## Use with Codex, ChatGPT and Claude
 
 For assistant-based predictions, see the optional **[ZincSight Preview installation guide](https://github.com/MECHTI1/ZincSight/blob/feature/mcp-integration/integrations/mcp/DISTRIBUTION.md)** for supported environments. After installation, try:
