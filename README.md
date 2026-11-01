@@ -74,6 +74,12 @@ python ./zincsight.py -f example_input.txt
 
 ## AI assistant integration (development preview)
 
+**ZincSight Preview** now has a one-skill package for on-demand predictions in a
+supported cloud task, with embedded PostgreSQL and no separate API key or hosted
+database. See [installation and sharing](integrations/mcp/DISTRIBUTION.md) for the
+repository marketplace, tested package and example prompts. This experimental
+package is not yet listed in the public ChatGPT directory.
+
 An optional MCP wrapper for ChatGPT, Claude and other compatible clients is
 available in [integrations/mcp](integrations/mcp/README.md). It includes isolated
 request processing and structured prediction results. It is not yet a hosted

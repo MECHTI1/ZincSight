@@ -1,0 +1,14 @@
+interface:
+  display_name: ZincSight Preview
+  short_description: Test zinc-binding predictions from protein structures
+  default_prompt: Use $zincsight-preview to predict zinc-binding sites in PDB 1KLS
+    with histidine rotamer sampling.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  allow_implicit_invocation: false
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas

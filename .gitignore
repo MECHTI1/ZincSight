@@ -26,3 +26,4 @@ __pycache__/
 .pytest_cache/
 .venv-mcp/
 integrations/mcp/pglite/node_modules/
+dist/

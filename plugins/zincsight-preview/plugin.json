@@ -1,0 +1,40 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "zincsight-preview",
+  "version": "0.1.0-preview.1",
+  "description": "Experimental zinc-binding-site predictions from protein structures, with coordinating residues, zinc coordinates and probability scores. Runs on demand with embedded PostgreSQL.",
+  "author": {
+    "name": "Gilad Mechtinger",
+    "url": "https://github.com/MECHTI1"
+  },
+  "homepage": "https://github.com/MECHTI1/ZincSight",
+  "repository": "https://github.com/MECHTI1/ZincSight",
+  "keywords": [
+    "zinc",
+    "protein structure",
+    "structural biology",
+    "bioinformatics",
+    "metal-binding sites"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "ZincSight Preview",
+        "shortDescription": "Explore zinc-binding sites in protein structures",
+        "longDescription": "Run experimental ZincSight predictions from PDB IDs and assemblies, UniProt accessions, AlphaFold model IDs, MGYP IDs or PDB/mmCIF files. Inspect coordinating residues, zinc positions and model probability scores. Runs in a supported task environment with embedded PostgreSQL, without a separate database account or API key. This preview contains reproducibility fixes and can differ from historical ZincSight outputs; it is not the published scientific release.",
+        "developerName": "Gilad Mechtinger",
+        "category": "Productivity",
+        "capabilities": [],
+        "websiteURL": "https://github.com/MECHTI1/ZincSight",
+        "supportURL": "https://github.com/MECHTI1/ZincSight/issues",
+        "defaultPrompt": [
+          "Use ZincSight Preview on PDB 1KLS and report coordinating residues and zinc positions.",
+          "Use ZincSight Preview on UniProt P0A6G5 with histidine rotamer sampling.",
+          "Use ZincSight Preview to analyze my uploaded protein structure and save the full prediction JSON."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg"
+      }
+    }
+  }
+}
