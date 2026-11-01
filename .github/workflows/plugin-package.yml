@@ -32,7 +32,7 @@ jobs:
       - name: Build the skills-only package
         run: python tools/build_plugin.py
       - name: Test the extracted package with a fresh environment
-        run: python tools/check_plugin_install.py dist/zincsight-preview-0.1.0-preview.1.zip --output dist/package-validation.json
+        run: python tools/check_plugin_install.py dist/zincsight-preview-0.1.0-preview.2.zip --output dist/package-validation.json
       - name: Preserve the package and validation result
         if: always()
         uses: actions/upload-artifact@v4

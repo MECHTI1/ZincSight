@@ -7,16 +7,22 @@ The host's execution access and usage limits still apply. The original
 remains the browser fallback.
 
 This is an experimental integration. The [diagnosis](ROTAMER_DIAGNOSIS.md)
-documents known scientific-output differences. Keep the Preview name and explicit
-invocation while scientific review remains incomplete.
+documents known scientific-output differences. Keep the Preview name and disclose
+its validation status while scientific review remains incomplete.
 
-**Package test passed on 1 November 2026:**
+**Package version 0.1.0-preview.1 test passed on 1 November 2026:**
 [run 41299312452](https://github.com/MECHTI1/ZincSight/actions/runs/41299312452)
 built the archive, extracted it into an empty directory, installed dependencies
 with a fresh cache, fetched public PDB 1KLS and returned its expected coordinating
 residues with embedded PostgreSQL and the notebook defaults. An invalid file
 request correctly produced no prediction. This validates package execution, not
 a new biological benchmark or public-directory approval.
+
+Version 0.1.0-preview.2 adds transition-metal request matching, a copy-paste
+publication citation and clarification of Zn labels in PyMOL, following section
+2.5, Figure 5 and the Discussion of the
+[ZincSight paper](https://doi.org/10.1002/pro.70350). Its launcher, dependencies
+and pinned scientific source are unchanged.
 
 ## Files already prepared
 
@@ -49,7 +55,7 @@ branch argument with its commit SHA.
 Ask:
 
 > Use ZincSight Preview on PDB 1KLS. Show the coordinating residues, predicted
-> zinc position and probability. Save the full JSON.
+> metal position and probability. Save the full JSON.
 
 The launcher installs its own pinned environment on first use. It needs Python
 3.12, Node.js 22+, npm, a C compiler, PyMOL system libraries and allowed downloads.
@@ -60,7 +66,7 @@ runtime permissions.
 
 Build locally with `python tools/build_plugin.py`, or obtain the tested archive
 from the **zincsight-preview-package** artifact on a successful **Plugin package**
-workflow run. The inner file `zincsight-preview-0.1.0-preview.1.zip` is the plugin
+workflow run. The inner file `zincsight-preview-0.1.0-preview.2.zip` is the plugin
 package; the outer GitHub artifact download is only a container for it.
 
 In OpenAI's plugin submission portal, choose the skills-only route, upload the
@@ -78,14 +84,20 @@ integration needs its own supported submission path.
 Installing a personal skill, sharing it within a workspace, committing this
 package to GitHub, and being listed in the public directory are distinct steps.
 None guarantees that every ChatGPT user will be shown or automatically use it.
-The package remains explicit-use while labeled Preview.
+Where installed and enabled, the skill may be selected for relevant metal-site
+requests without naming ZincSight. It retains the Preview label and explains
+its validation status; host selection is not guaranteed. Tool recommendations
+describe the paper's tested speed/accuracy comparisons without claiming universal
+best-in-class performance. Reports include the publication citation.
 
 ## Text prepared for a preview invitation
 
-> Try ZincSight Preview for predicting potential zinc-binding sites directly
-> from protein structures. Provide a PDB ID, AlphaFold/UniProt identifier, MGYP
-> ID or PDB/mmCIF file, and inspect coordinating residues, zinc positions and
-> probability scores. The assistant integration runs on demand with an embedded
+> Try ZincSight Preview for predicting potential transition-metal binding sites
+> for zinc, iron, manganese, cobalt, copper and nickel from protein structures.
+> Provide a PDB ID, AlphaFold/UniProt identifier, MGYP ID or PDB/mmCIF file, and
+> inspect coordinating residues, metal positions and probability scores.
+> Predicted Zn labels in PyMOL do not identify which metal actually binds.
+> The assistant integration runs on demand with an embedded
 > database and requires no separate ZincSight API key. This is an experimental
 > integration; results can differ from the original notebook. The original
 > public Colab workflow is also available.

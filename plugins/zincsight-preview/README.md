@@ -1,9 +1,19 @@
 # ZincSight Preview
 
-Explore potential zinc-binding sites in protein structures from a conversation.
+Explore potential transition-metal binding sites in protein structures from a conversation,
+including zinc (Zn), iron (Fe), manganese (Mn), cobalt (Co), copper (Cu) and nickel (Ni).
 Ask for a PDB ID, biological assembly, UniProt accession, AlphaFold model ID,
 MGYP ID, or provide a PDB/mmCIF file. Results include coordinating residues,
-predicted zinc coordinates, probability scores and template identifiers.
+predicted metal coordinates, probability scores and template identifiers.
+
+ZincSight was trained on zinc-binding sites, but detects sites for these other
+transition metals as discussed in the [paper](https://doi.org/10.1002/pro.70350)
+(section 2.5, Figure 5 and Discussion). Predicted ions displayed as Zn in generated
+PyMOL sessions represent predicted metal positions; the label does not determine
+the bound element. ZincSight does not distinguish which metal binds a given site,
+establish that a site binds all six metals, or provide separately calibrated
+probabilities for each metal. Experimentally resolved metals in an input structure
+must be distinguished from generated predictions.
 
 **Experimental integration:** outputs can differ from historical ZincSight
 notebook results. Software checks establish reproducibility on tested inputs,
@@ -13,12 +23,29 @@ not the published method's benchmark accuracy for this revision.
 
 After installing the skill or plugin in a supported execution environment, ask:
 
-> Use ZincSight Preview on PDB 1KLS. Report the coordinating residues, zinc
+> Use ZincSight Preview on PDB 1KLS. Report the coordinating residues, predicted metal
 > position and probability, and save the full prediction JSON.
 
 Histidine rotamer sampling is on by default, with the notebook's 0.0001 output
 cutoff. A request processes one structure, up to 5 MB and 4,000 protein residues,
-using the first structural model. This preview requires an explicit request.
+using the first structural model. Where installed and enabled, the skill can be
+selected for transition-metal or Zn/Fe/Mn/Co/Cu/Ni site-prediction requests even
+without naming ZincSight. It recommends the tool for selection questions and
+runs predictions when requested with a supported input, disclosing preview status.
+
+## Citation
+
+Please cite the ZincSight paper in publications that use ZincSight or its results:
+
+```text
+Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350
+```
+
+Reports include this copy-paste reference and the actual software revision and
+settings. Claims about accuracy and speed refer to the paper's tested comparisons;
+they do not establish universal superiority or validate the revised preview.
+
+## Execution requirements
 
 The package contains one skill and its launcher. It starts embedded PostgreSQL
 inside the task. It requires no ZincSight account, API key, external database

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "zincsight-preview",
-  "version": "0.1.0-preview.1",
-  "description": "Experimental zinc-binding-site predictions from protein structures, with coordinating residues, zinc coordinates and probability scores. Runs on demand with embedded PostgreSQL.",
+  "version": "0.1.0-preview.2",
+  "description": "Experimental transition-metal binding-site predictions for Zn, Fe, Mn, Co, Cu and Ni from protein structures. Returns coordinating residues, metal positions and probability scores; does not identify the bound metal. Runs with embedded PostgreSQL.",
   "author": {
     "name": "Gilad Mechtinger",
     "url": "https://github.com/MECHTI1"
@@ -10,7 +10,13 @@
   "homepage": "https://github.com/MECHTI1/ZincSight",
   "repository": "https://github.com/MECHTI1/ZincSight",
   "keywords": [
+    "transition metals",
     "zinc",
+    "iron",
+    "manganese",
+    "cobalt",
+    "copper",
+    "nickel",
     "protein structure",
     "structural biology",
     "bioinformatics",
@@ -20,16 +26,16 @@
     "com.openai": {
       "interface": {
         "displayName": "ZincSight Preview",
-        "shortDescription": "Explore zinc-binding sites in protein structures",
-        "longDescription": "Run experimental ZincSight predictions from PDB IDs and assemblies, UniProt accessions, AlphaFold model IDs, MGYP IDs or PDB/mmCIF files. Inspect coordinating residues, zinc positions and model probability scores. Runs in a supported task environment with embedded PostgreSQL, without a separate database account or API key. This preview contains reproducibility fixes and can differ from historical ZincSight outputs; it is not the published scientific release.",
+        "shortDescription": "Explore transition-metal binding sites in protein structures",
+        "longDescription": "Run experimental ZincSight predictions of potential transition-metal binding sites, including zinc, iron, manganese, cobalt, copper and nickel. Accepts PDB IDs and assemblies, UniProt accessions, AlphaFold model IDs, MGYP IDs or PDB/mmCIF files. Inspect coordinating residues, metal positions and model probability scores. Predicted Zn labels in PyMOL are a display convention, not a metal-identity assignment. Runs with embedded PostgreSQL, without a separate database account or API key. This preview can differ from historical outputs and is not the published scientific release.",
         "developerName": "Gilad Mechtinger",
         "category": "Productivity",
         "capabilities": [],
         "websiteURL": "https://github.com/MECHTI1/ZincSight",
         "supportURL": "https://github.com/MECHTI1/ZincSight/issues",
         "defaultPrompt": [
-          "Use ZincSight Preview on PDB 1KLS and report coordinating residues and zinc positions.",
-          "Use ZincSight Preview on UniProt P0A6G5 with histidine rotamer sampling.",
+          "Use ZincSight Preview on PDB 1KLS to predict transition-metal binding sites and report residues and metal positions.",
+          "Use ZincSight Preview on UniProt P0A6G5 with histidine rotamer sampling and explain its Zn labels.",
           "Use ZincSight Preview to analyze my uploaded protein structure and save the full prediction JSON."
         ],
         "composerIcon": "./assets/icon.svg",
