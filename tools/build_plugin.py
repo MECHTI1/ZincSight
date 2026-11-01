@@ -1,4 +1,4 @@
-"""Build the reviewable skills-only ZincSight plugin from an explicit file list."""
+"""Build the reviewable skills-only ZincSight plugin (Agent Plugins and Claude manifests) from an explicit file list."""
 import argparse
 import hashlib
 import json
@@ -9,7 +9,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / 'plugins/zincsight-preview'
 FILES = (
-    'plugin.json', 'README.md', 'assets/icon.svg',
+    'plugin.json', '.claude-plugin/plugin.json', 'README.md', 'assets/icon.svg',
     'skills/zincsight-preview/SKILL.md',
     'skills/zincsight-preview/agents/openai.yaml',
     'skills/zincsight-preview/scripts/predict.py',
@@ -57,6 +57,10 @@ def main():
     manifest = json.loads((PLUGIN / 'plugin.json').read_text())
     assert manifest['name'] == 'zincsight-preview'
     assert manifest['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
+    claude = json.loads((PLUGIN / '.claude-plugin/plugin.json').read_text())
+    # Claude reads its own manifest; keep the shared identity fields in step.
+    for field in ('name', 'version', 'description', 'author', 'homepage', 'repository', 'keywords'):
+        assert claude.get(field) == manifest.get(field), f'.claude-plugin/plugin.json {field} differs from plugin.json'
     interface = manifest['extensions']['com.openai']['interface']
     validate_listing(interface)
     actual = {p.relative_to(PLUGIN).as_posix() for p in PLUGIN.rglob('*') if p.is_file()}

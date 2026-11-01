@@ -18,6 +18,12 @@ residues with embedded PostgreSQL and the notebook defaults. An invalid file
 request correctly produced no prediction. This validates package execution, not
 a new biological benchmark or public-directory approval.
 
+Version 0.1.0-preview.5 adds a Claude manifest (`.claude-plugin/plugin.json`) to the
+same plugin folder and a Claude marketplace (`.claude-plugin/marketplace.json`), so one
+package serves both clients. The skill now mentions that ZincSight is free with a
+no-install Colab, and its listing caveat names the ChatGPT and Claude directories.
+The launcher, dependencies and pinned scientific source are unchanged from preview.4.
+
 Version 0.1.0-preview.4 corrects the public-listing subtitle to the 30-character
 limit and declares a 128-pixel square listing icon. The builder checks listing
 text limits, unique starter prompts and icon dimensions before creating a ZIP.
@@ -72,11 +78,35 @@ The launcher installs its own pinned environment on first use. It needs Python
 If those are blocked, use Colab; changing the database does not grant network or
 runtime permissions.
 
+## Use in Claude
+
+Claude Code reads the same plugin folder through `.claude-plugin/plugin.json`. Add the
+preview branch as a marketplace and install the plugin:
+
+```sh
+claude plugin marketplace add MECHTI1/ZincSight#feature/mcp-integration
+claude plugin install zincsight-preview@zincsight-preview
+```
+
+Replace the branch with a commit SHA for an immutable snapshot. Inside a session,
+`/plugin install zincsight-preview --marketplace MECHTI1/ZincSight#feature/mcp-integration`
+does both steps. Once installed, Claude can select the skill for transition-metal
+site requests without the user naming ZincSight. The launcher requirements above
+apply; Claude's permission prompts cover each setup and prediction command.
+
+For Claude users outside Claude Code (claude.ai, Cowork), the plugin must be listed
+in Anthropic's directory: submit the `plugins/zincsight-preview` folder of this
+repository from the developer portal at <https://claude.ai/directory/manage> with
+a paid claude.ai account. That directory requires a `LICENSE` file or a `license`
+field, which this repository does not yet have; choosing one is the owner's
+decision. Check locally first with
+`claude plugin validate --profile directory plugins/zincsight-preview`.
+
 ## Prepare the public directory submission
 
 Build locally with `python tools/build_plugin.py`, or obtain the tested archive
 from the **zincsight-preview-package** artifact on a successful **Plugin package**
-workflow run. The inner file `zincsight-preview-0.1.0-preview.4.zip` is the plugin
+workflow run. The inner file `zincsight-preview-0.1.0-preview.5.zip` is the plugin
 package; the outer GitHub artifact download is only a container for it.
 
 In OpenAI's plugin submission portal, choose the skills-only route, upload the
@@ -130,5 +160,6 @@ Checked 1 November 2026:
 Keep the exported `SKILL.md`, `agents/openai.yaml`, launcher, dependency lock and
 icon identical to the tested installed skill. For changes, first update and test
 that skill, export only those five files, bump the plugin version, and rerun the
-package check. The engine source remains pinned by revision and archive hash;
+package check. Keep `.claude-plugin/plugin.json` in step with `plugin.json`; the
+builder checks their shared fields. The engine source remains pinned by revision and archive hash;
 editing other branch files does not silently change what the plugin executes.
