@@ -1,8 +1,12 @@
 ZincSight
 =========
-**Interpretable prediction of zinc ion locations in proteins**
+**Interpretable prediction of transition-metal binding sites in proteins**
 
-ZincSight is a tool for predicting zinc ion binding sites in protein structures. It is designed for **high-throughput analysis**, while keeping predictions **accurate** and **interpretable**.  
+ZincSight predicts potential **transition-metal binding sites** in protein structures, including sites for **zinc (Zn), iron (Fe), manganese (Mn), cobalt (Co), copper (Cu), and nickel (Ni)**. Trained on zinc-binding sites, it is designed for **high-throughput analysis**, while keeping predictions **accurate** and **interpretable**.
+
+Predicted ions are labelled **Zn** in PyMOL; this label does not identify which metal binds to the predicted site.
+
+[Run in Google Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb) · [Read the paper](https://doi.org/10.1002/pro.70350)
 
 ## Features
 
@@ -70,4 +74,12 @@ At least one of `IDENTIFIERS` or `FILE` is required.
 Script execution with the included example input file:
 ```shell
 python ./zincsight.py -f example_input.txt
+```
+
+## Citation
+
+Please cite the following paper when using ZincSight or its results in a publication:
+
+```text
+Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350
 ```
