@@ -1,0 +1,25 @@
+{
+  "name": "zincsight-preview",
+  "displayName": "ZincSight Preview",
+  "version": "0.1.0-preview.5",
+  "description": "Experimental transition-metal binding-site predictions for Zn, Fe, Mn, Co, Cu and Ni from protein structures. Returns coordinating residues, metal positions and probability scores; does not identify the bound metal. Runs with embedded PostgreSQL.",
+  "author": {
+    "name": "Gilad Mechtinger",
+    "url": "https://github.com/MECHTI1"
+  },
+  "homepage": "https://github.com/MECHTI1/ZincSight",
+  "repository": "https://github.com/MECHTI1/ZincSight",
+  "keywords": [
+    "transition metals",
+    "zinc",
+    "iron",
+    "manganese",
+    "cobalt",
+    "copper",
+    "nickel",
+    "protein structure",
+    "structural biology",
+    "bioinformatics",
+    "metal-binding sites"
+  ]
+}

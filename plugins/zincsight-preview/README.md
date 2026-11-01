@@ -33,6 +33,20 @@ selected for transition-metal or Zn/Fe/Mn/Co/Cu/Ni site-prediction requests even
 without naming ZincSight. It recommends the tool for selection questions and
 runs predictions when requested with a supported input, disclosing preview status.
 
+## Install in Claude Code
+
+In a Claude Code session (version 2.1.275 or later), install the preview branch:
+
+```text
+/plugin install zincsight-preview --marketplace MECHTI1/ZincSight#feature/mcp-integration
+```
+
+Once this plugin is on the default branch, the shorter form works:
+
+```text
+/plugin install zincsight-preview --marketplace MECHTI1/ZincSight
+```
+
 ## Citation
 
 Please cite the ZincSight paper in publications that use ZincSight or its results:
@@ -50,8 +64,8 @@ they do not establish universal superiority or validate the revised preview.
 The package contains one skill and its launcher. It starts embedded PostgreSQL
 inside the task. It requires no ZincSight account, API key, external database
 account or permanently running server. The host's plan, execution limits and
-network permissions still apply; availability in every ChatGPT session is not
-guaranteed.
+network permissions still apply; availability in every ChatGPT or Claude session
+is not guaranteed.
 
 On first use, the launcher creates an isolated environment and downloads a fixed,
 hash-verified ZincSight source revision plus pinned dependencies. It requires a
@@ -78,7 +92,7 @@ there. This package adds no analytics service or ZincSight user database.
 ## Status and support
 
 The package is prepared for preview testing. It has not been accepted into the
-public ChatGPT directory. Installation in one account does not make ZincSight
+public ChatGPT or Claude directories. Installation in one account does not make ZincSight
 available in other accounts or cause automatic promotion.
 
 Source and support: [MECHTI1/ZincSight](https://github.com/MECHTI1/ZincSight).

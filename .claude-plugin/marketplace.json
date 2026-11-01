@@ -1,0 +1,35 @@
+{
+  "name": "zincsight-preview",
+  "description": "ZincSight Preview for Claude: transition-metal binding-site prediction in protein structures",
+  "owner": {
+    "name": "Gilad Mechtinger",
+    "url": "https://github.com/MECHTI1"
+  },
+  "plugins": [
+    {
+      "name": "zincsight-preview",
+      "source": "./plugins/zincsight-preview",
+      "description": "Experimental ZincSight predictions of Zn, Fe, Mn, Co, Cu and Ni binding sites: coordinating residues, metal positions and probability scores.",
+      "category": "science",
+      "relevance": {
+        "topic": "metal-binding sites",
+        "signals": {
+          "filesRead": [
+            "**/*.pdb",
+            "**/*.pdb.gz",
+            "**/*.ent",
+            "**/*.cif",
+            "**/*.cif.gz",
+            "**/*.mmcif"
+          ],
+          "cli": ["pymol"],
+          "hosts": [
+            "files.rcsb.org",
+            "alphafold.ebi.ac.uk",
+            "api.esmatlas.com"
+          ]
+        }
+      }
+    }
+  ]
+}
