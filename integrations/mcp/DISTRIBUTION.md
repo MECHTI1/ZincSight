@@ -10,6 +10,14 @@ This is an experimental integration. The [diagnosis](ROTAMER_DIAGNOSIS.md)
 documents known scientific-output differences. Keep the Preview name and explicit
 invocation while scientific review remains incomplete.
 
+**Package test passed on 1 November 2026:**
+[run 41299312452](https://github.com/MECHTI1/ZincSight/actions/runs/41299312452)
+built the archive, extracted it into an empty directory, installed dependencies
+with a fresh cache, fetched public PDB 1KLS and returned its expected coordinating
+residues with embedded PostgreSQL and the notebook defaults. An invalid file
+request correctly produced no prediction. This validates package execution, not
+a new biological benchmark or public-directory approval.
+
 ## Files already prepared
 
 - `plugins/zincsight-preview/plugin.json`: portable Agent Plugins manifest,

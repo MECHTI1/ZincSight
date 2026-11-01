@@ -124,9 +124,10 @@ temporary motif table and loads the four bundled COPY blocks through PGlite's
 blob API. It is not a general PostgreSQL server replacement or a shared batch
 database. A failed prediction is discarded rather than returned as a valid result.
 
-This enables local task execution; it does not install a ChatGPT plugin, publish
-a listing, or guarantee availability on every ChatGPT plan/runtime. A reusable
-skill/plugin and its distribution still require separate packaging and testing.
+For one-skill installation, use the [prepared plugin package](DISTRIBUTION.md).
+Its exported launcher has passed a fresh-install prediction test. The package
+does not publish a directory listing or guarantee availability on every ChatGPT
+plan/runtime; see the distribution guide for the remaining publication steps.
 
 Embedded runtime tests (can run without a non-root OS account):
 
@@ -234,8 +235,9 @@ were used there; both rotamer modes and PDB/mmCIF input were exercised.
 These checks establish integration behavior on the tested cases, not new accuracy
 benchmarks or equivalence to all older ZincSight outputs. The explicit-ordering
 change above requires broader scientific regression review before merge. An
-installed ChatGPT/Claude plugin, public distribution, production memory limits
-and broader structures still need validation before public launch. Persistent
+assistant skill and its exported plugin package now have runtime checks;
+public-directory distribution, production memory limits and broader scientific
+validation remain separate release work. Persistent
 HTTPS hosting is necessary only if choosing the remote MCP deployment route.
 
 Dependencies installed successfully with `CC=gcc` for legacy Biopython 1.78.
