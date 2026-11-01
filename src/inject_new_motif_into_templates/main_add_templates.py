@@ -12,14 +12,15 @@ Works both as a script (CLI) and importable in notebooks.
 
 Usage (CLI):
     python main_add_templates.py \
-      --sql-dump origin_sql_file.sql \
+      --sql-dump ../setup_pg_db_with_tables/PostgreSQL_4_necessary_tables.sql \
       --cif-dir ../mmcif_with_ZN \
       --pdbid 5ROB \
       --residues B_8,B_9,B_19
 
 Defaults:
   - csv output dir: editable_template_files_sql
-  - schema SQL: origin_sql_file.sql
+  - schema SQL: ../setup_pg_db_with_tables/PostgreSQL_4_necessary_tables.sql (read and rewritten,
+    so templates added earlier are kept)
   - output full dump: dump.sql
 
 Importable:

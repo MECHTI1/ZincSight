@@ -20,6 +20,8 @@ Query_structures_ids_txt_files
 
 .my_data
 postgresql/
+# Local settings (see .env.example)
+.env
 # Python environments and caches
 __pycache__/
 *.py[cod]

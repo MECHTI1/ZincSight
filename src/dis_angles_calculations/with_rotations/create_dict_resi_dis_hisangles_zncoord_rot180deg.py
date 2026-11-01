@@ -7,7 +7,7 @@ Created on Sun Jul 16 10:40:22 2023
 """
 import numpy as np
 import time
-from src.dis_angles_calculations.with_rotations.calculate_angles_between_vectors import compute_angles_between_vectors
+from src.dis_angles_calculations.calculate_angles_between_vectors import compute_angles_between_vectors
 from scipy.optimize import least_squares
 from src.dis_angles_calculations.with_rotations.calculated_his_angle_stats import check_candidate_metal_coord_valid_histidines_angles
 # from src.dis_angles_calculations.with_rotations.return_dicts_comb_each_his_15deg_rotations import generate_rotation_combinations

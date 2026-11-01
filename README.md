@@ -35,9 +35,11 @@ cd ZincSight
 ```
 
 ### Dependencies installation
+Tested with Python 3.12 and 3.13 on Linux:
 ```bash
 pip install -r requirements.txt
 ```
+Downloading AlphaFold or TED models by ID also needs `aria2c` (`apt-get install aria2` or `brew install aria2`).
 
 ### ***Optional***: adding a new zinc-binding motif template to the training set
 
@@ -50,7 +52,7 @@ In order to add a new zinc-binding motif from a PDB structure that was not avail
 
 Example execution:
 ```shell
-python ./add_templates 4f3w B_89,B_56,B_92
+python add_template.py 4f3w B_89,B_56,B_92
 ```
 
 ### ZincSight execution
@@ -59,13 +61,14 @@ After installing the environment, you can run ZincSight using the `zincsight.py`
 
 | Argument                                          | Description                                  |
 |---------------------------------------------------|----------------------------------------------|
-| `-r`, `--rotamers`                                | Include histidine rotamers (default: no)     |
+| `-r`, `--rotamers`                                | Include histidine rotamers (default: no; the Colab notebooks use them) |
 | `-i <IDENTIFIERS>`, `--identifiers <IDENTIFIERS>` | Comma-separated identifiers                  |
 | `-f <FILE>`, `--file <FILE>`                      | Path of a text file with identifier per line |
+| `-s <PATH> ...`, `--structures <PATH> ...`         | Local PDB/mmCIF files, or folders of them    |
 | `-c <NUMBER>`, `--cores <NUMBER>`                 | Number of cores (default: 2)                 |
+| `-p`, `--pse_output`                              | Also write PyMOL `.pse` sessions             |
 
-
-At least one of `IDENTIFIERS` or `FILE` is required.
+At least one of `IDENTIFIERS`, `FILE` or `STRUCTURES` is required. ZincSight predicts on every file in its `Query AlphaFold structures` folder, so empty that folder between unrelated runs. Settings such as the probability cutoff can be overridden through environment variables; see [.env.example](.env.example).
 
 Script execution with the included example input file:
 ```shell

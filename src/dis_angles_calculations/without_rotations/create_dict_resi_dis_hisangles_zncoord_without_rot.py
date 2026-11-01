@@ -9,7 +9,7 @@ import numpy as np
 import time
 from scipy.optimize import least_squares
 from src.dis_angles_calculations.without_rotations.histidines_other_calc_given_point_v5_v2 import check_candidate_metal_coord_valid_histidines_angles
-from src.dis_angles_calculations.without_rotations.calculate_angles_between_vectors import compute_angles_between_vectors
+from src.dis_angles_calculations.calculate_angles_between_vectors import compute_angles_between_vectors
 import traceback
 
 #add- /home/mechti/Documents/PhD project/Create_tables_postgresql/Generate_tables_of_metal_binding_sites/Motif_Search/check_search_motif_algo_results/middle_point_every_shape.py

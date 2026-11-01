@@ -18,7 +18,8 @@ def parse_and_export():
     output_dir= Path(__file__).parent /"editable_template_files_sql"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    sql_path= Path(__file__).parent / "origin_sql_file.sql"
+    # Read the live template database, so templates added earlier are kept.
+    sql_path = Path(__file__).parent.parent / "setup_pg_db_with_tables" / "PostgreSQL_4_necessary_tables.sql"
     copy_re = re.compile(
         r"^COPY\s+([\w\.\"]+)\s*\(([^)]+)\)\s+FROM\s+stdin;", re.IGNORECASE
     )

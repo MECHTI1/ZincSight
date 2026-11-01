@@ -10,6 +10,7 @@ import sys
 import time
 from pathlib import Path
 import multiprocessing
+import src.compat  # noqa: F401  (pgserver / Biopython compatibility)
 import pgserver
 from src.download_query_structures.remove_bad_query_files import remove_corrupted_cifs_grep
 import os

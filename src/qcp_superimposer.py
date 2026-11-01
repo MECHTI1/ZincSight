@@ -6,7 +6,8 @@ Created on Tue May  9 14:35:09 2023
 @author: mechti
 """
 #There us maybe option to wirte the same coordiantion twice but then the superimposition will not be equal to cg and metal binfing atom!!!!!!!!!!!!!!!!!!!!!!!
-from Bio.PDB.QCPSuperimposer import QCPSuperimposer 
+import src.compat  # noqa: F401  (Biopython >= 1.85 compatibility)
+from Bio.PDB.QCPSuperimposer import QCPSuperimposer
 import numpy as np
 import time
 

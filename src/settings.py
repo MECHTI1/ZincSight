@@ -8,6 +8,7 @@ Created on Wed Jul  3 08:46:38 2024
 
 import os
 
+import src.compat  # noqa: F401  (pgserver / Biopython compatibility)
 import pgserver
 import psycopg2
 from dotenv import load_dotenv
@@ -29,7 +30,8 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(TABLES_DIR, exist_ok=True)
 os.makedirs(STRUCTURES_WITH_PREDICTED_ZN, exist_ok=True)
 
-load_dotenv() # Load variables from the .env file into the environment
+# Optional overrides: environment variables, or a local .env file (see .env.example).
+load_dotenv()
 
 def get_env_bool(name, default="false"):
     return os.getenv(name, default).strip().lower() == "true"   # returns True only if the string is exactly "true" (case-insensitive).
@@ -40,8 +42,9 @@ KEEP_TEMP_TABLES = get_env_bool("KEEP_TEMP_TABLES_TEMP")
 """ Filtering out predictions that have prob below threshold val stored in EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD var.       
     If FILTER_PROB_AFTER_COMPRESSION is assigned as true: will executed after compression,
  otherwise nothing in the meanwhile""" #TODO:maybe can add option to remove before gor maybe enhance
-FILTER_PROB_AFTER_COMPRESSION = get_env_bool("FILTER_PROB_AFTER_COMPRESSION")
-MIN_THRESHOLD_PROB = float(os.getenv("EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD") or "0.0")   # Retrieve the threshold value and convert it to a float
+# Defaults match the public notebook: drop sites with probability below 0.0001 after compression.
+FILTER_PROB_AFTER_COMPRESSION = get_env_bool("FILTER_PROB_AFTER_COMPRESSION", "true")
+MIN_THRESHOLD_PROB = float(os.getenv("EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD") or "0.0001")
 
 
 def get_db():
