@@ -1,7 +1,7 @@
 """Reproduce notebook examples on original/native and current/embedded code.
 
 Historical differences are reported, not silently accepted as new goldens.
-Current native/embedded and single/batch differences fail this check.
+Current native/embedded, worker-count and single/batch differences fail this check.
 """
 import argparse
 import csv
@@ -164,6 +164,11 @@ def main():
     if not args.embedded_only:
         results['current-native'] = predict(ROOT, inputs, SOURCES, 'native', output, 'current-native')
     results['current-embedded'] = predict(ROOT, inputs, SOURCES, 'pglite', output, 'current-embedded')
+    # A retained rotamer exclusion set can make results depend on which earlier
+    # candidates shared a worker. Compare a single worker with the normal pair
+    # on the complete public batch, not just a small successful example.
+    results['current-embedded-one-worker'] = predict(
+        ROOT, inputs, SOURCES, 'pglite', output, 'current-embedded-one-worker', cores=1)
     expected = rows(args.expected) if args.expected else results.get('original-native')
     report = {'reference': 'local_csv' if args.expected else 'original_native_fresh_run',
               'reference_minimum_probability': NOTEBOOK_MINIMUM_PROBABILITY,
@@ -179,6 +184,8 @@ def main():
             print(label, json.dumps(report['reference_comparisons'][label]), flush=True)
     if 'current-native' in results:
         report['consistency']['native_vs_embedded'] = compare(results['current-native'], results['current-embedded'])
+    report['consistency']['one_vs_two_workers'] = compare(
+        results['current-embedded'], results['current-embedded-one-worker'])
     for name in SOURCES:
         print(f'RUN wrapper-{name}', flush=True)
         single = predict_through_wrapper(name, output)

@@ -99,3 +99,12 @@ The 5 MB / 4,000-residue wrapper limit includes the 8QEP example, and the
 assemblies, UniProt-to-AlphaFold v6, explicit AlphaFold model versions and MGYP.
 The tested cloud runtime uses embedded PostgreSQL because native pgserver cannot
 create its operating-system user there.
+
+## Worker-count regression
+
+The current embedded batch is also run with one worker. All unfiltered residue
+sets, template IDs, probabilities and coordinates must match the two-worker
+batch under the same comparison tolerances. On 1 November 2026, all 137 matched
+exactly (73 after the notebook cutoff). The diagnostic workflow additionally
+runs the small resolved-metal coordinate check described in
+[the rotamer diagnosis](ROTAMER_DIAGNOSIS.md#additional-checks--2026-11-01).

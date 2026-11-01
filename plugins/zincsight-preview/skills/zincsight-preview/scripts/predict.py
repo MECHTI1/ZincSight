@@ -107,7 +107,7 @@ def main():
             raise RuntimeError('ZincSight prediction failed; no scientific result was produced.')
         result = json.loads(completed.stdout)
         result['software_revision'] = REVISION
-        result['validation_status'] = 'Experimental integration; historical notebook-output differences remain unresolved.'
+        result['validation_status'] = 'Experimental integration with reproducibility fixes; historical outputs can differ. Published accuracy benchmarks have not been re-established for this revision.'
     content = json.dumps(result, indent=2)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

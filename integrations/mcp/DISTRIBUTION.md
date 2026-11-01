@@ -18,7 +18,11 @@ residues with embedded PostgreSQL and the notebook defaults. An invalid file
 request correctly produced no prediction. This validates package execution, not
 a new biological benchmark or public-directory approval.
 
-Version 0.1.0-preview.2 adds transition-metal request matching, a copy-paste
+Version 0.1.0-preview.3 explains the confirmed state/order reproducibility
+defects without claiming historical equivalence or a new accuracy benchmark.
+The scientific source pin and dependencies are unchanged from preview.2.
+
+Version 0.1.0-preview.2 added transition-metal request matching, a copy-paste
 publication citation and clarification of Zn labels in PyMOL, following section
 2.5, Figure 5 and the Discussion of the
 [ZincSight paper](https://doi.org/10.1002/pro.70350). Its launcher, dependencies
@@ -66,7 +70,7 @@ runtime permissions.
 
 Build locally with `python tools/build_plugin.py`, or obtain the tested archive
 from the **zincsight-preview-package** artifact on a successful **Plugin package**
-workflow run. The inner file `zincsight-preview-0.1.0-preview.2.zip` is the plugin
+workflow run. The inner file `zincsight-preview-0.1.0-preview.3.zip` is the plugin
 package; the outer GitHub artifact download is only a container for it.
 
 In OpenAI's plugin submission portal, choose the skills-only route, upload the

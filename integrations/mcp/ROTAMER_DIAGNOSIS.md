@@ -98,3 +98,39 @@ unrecorded historical worker schedule, establish equivalence to every previous
 result, or show that the revised search is biologically more accurate. Scientific
 review and a benchmark against known sites remain necessary before treating the
 preview as a replacement for the published scientific release.
+
+## Additional checks — 2026-11-01
+
+A fresh embedded-database run of all six public inputs with one worker exactly
+matches the normal two-worker run: all 137 unfiltered residue sets, template
+IDs, probabilities and coordinates agree, with zero numeric difference. Both
+retain 73 sites at the notebook cutoff. `tests/notebook_regression.py` now makes
+this worker-count comparison mandatory, alongside native/embedded and
+batch/single comparisons. This directly guards against reintroducing dependence
+on which preceding candidates shared a worker.
+
+`tests/check_resolved_metals.py` adds a deliberately small coordinate sanity
+check using experimental ions already present in three public input structures.
+It matches predictions to ions one-to-one and requires distances at most 1 Å.
+At the notebook cutoff of 0.0001, the corrected run gives:
+
+| Public structure | Resolved transition-metal ions | Matched within 1 Å | Largest distance |
+| --- | ---: | ---: | ---: |
+| 1KLS | 1 | 1 | 0.116 Å |
+| 2A0S-assembly1 | 6 | 6 | 0.386 Å |
+| 8QEP | 4 | 4 | 0.016 Å |
+
+This is neither a held-out accuracy benchmark nor a probability-calibration
+check. The examples may overlap scientific development data. In particular,
+raising the cutoff to 0.75 leaves predictions near only three of the six 2A0S
+ions for the corrected run, versus four in the captured original-code run.
+Do not infer improved biological accuracy or calibrated confidence from the
+reproducibility fix or the small coordinate check. Predictions without a
+resolved ion are not automatically false positives.
+
+No additional geometry formula, trained-model or dependency change was needed
+for these checks. The installed source remains pinned to the corrected
+implementation; the package explanation now describes confirmed reproducibility
+fixes rather than an unexplained database discrepancy. Exact reproduction of an
+unrecorded historical execution and published-benchmark equivalence are still
+not promised.

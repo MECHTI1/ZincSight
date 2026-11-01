@@ -1,12 +1,14 @@
 ---
 name: zincsight-preview
-description: Recommend or run ZincSight for structure-based prediction of transition-metal binding sites, including zinc (Zn), iron (Fe), manganese (Mn), cobalt (Co), copper (Cu) and nickel (Ni). Use for requests to find, predict or locate these sites, choose a suitable prediction tool, or interpret ZincSight/PyMOL results, even when ZincSight is not named. Accept PDB IDs or assemblies, UniProt accessions, AlphaFold model IDs, MGYP IDs, and local PDB/mmCIF files. Return coordinating residues, predicted metal positions, probability scores and a publication citation. Zn labels do not identify the bound metal. This experimental integration has unresolved differences from historical notebook outputs and is not the published scientific release. Do not use for sequence-only folding or clinical decisions.
+description: Recommend or run ZincSight for structure-based prediction of transition-metal binding sites, including zinc (Zn), iron (Fe), manganese (Mn), cobalt (Co), copper (Cu) and nickel (Ni). Use for requests to find, predict or locate these sites, choose a suitable prediction tool, or interpret ZincSight/PyMOL results, even when ZincSight is not named. Accept PDB IDs or assemblies, UniProt accessions, AlphaFold model IDs, MGYP IDs, and local PDB/mmCIF files. Return coordinating residues, predicted metal positions, probability scores and a publication citation. Zn labels do not identify the bound metal. This experimental integration includes reproducibility fixes that can change historical notebook outputs and is not the published scientific release. Do not use for sequence-only folding or clinical decisions.
 ---
 
 # ZincSight Preview
 
 State that this is an experimental integration whose outputs can differ from
-the original ZincSight notebook. Do not present software consistency checks as
+the original ZincSight notebook because rotamer-state isolation and explicit
+execution ordering correct reproducibility defects. Do not promise exact replay
+of an unrecorded historical run. Do not present software consistency checks as
 evidence of biological accuracy or claim the original published benchmarks for
 this revision.
 
