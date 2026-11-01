@@ -63,7 +63,9 @@ def add_column_with_probs(conn):
         );
         """)
     if not cur.fetchone()[0]:
-        print_bold_message_no_predicted_site_and_cleanup_created_tables()
+        cur.close()
+        conn.commit()  # Release read locks before cleanup opens another connection.
+        return print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
     cur.execute("""
         ALTER TABLE final_compressed_table_with_scored_binding_sites 
@@ -74,13 +76,16 @@ def add_column_with_probs(conn):
     rows = cur.fetchall()
 
     if not rows:
-        print_bold_message_no_predicted_site_and_cleanup_created_tables()
+        cur.close()
+        conn.commit()
+        return print_bold_message_no_predicted_site_and_cleanup_created_tables()
 
     ids, scores = zip(*rows)
     probabilities = load_scores_to_prob_model_and_predict(scores)
 
     if probabilities is None:
-        print_bold_message_no_predicted_site_and_cleanup_created_tables()
+        cur.close()
+        raise RuntimeError("ZincSight probability calculation failed.")
 
     updates = [(float(prob), int(id)) for prob, id in zip(probabilities, ids)]
     cur.executemany("UPDATE final_compressed_table_with_scored_binding_sites SET prob = %s WHERE id = %s;", updates)

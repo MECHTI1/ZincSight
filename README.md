@@ -4,6 +4,8 @@ ZincSight
 
 ZincSight is a tool for predicting zinc ion binding sites in protein structures. It is designed for **high-throughput analysis**, while keeping predictions **accurate** and **interpretable**.  
 
+Although trained on zinc-binding sites, ZincSight also detects potential **transition-metal binding sites**, including sites for **iron (Fe), manganese (Mn), cobalt (Co), copper (Cu), and nickel (Ni)**, in experimental structures and predicted models such as AlphaFold (see the [paper](https://doi.org/10.1002/pro.70350)). It does not identify which metal binds a predicted site; Zn labels in PyMOL mark predicted positions.
+
 ## Features
 
 ### Flexible input options
@@ -71,3 +73,36 @@ Script execution with the included example input file:
 ```shell
 python ./zincsight.py -f example_input.txt
 ```
+
+## AI assistant integration (development preview)
+
+**ZincSight Preview** now has a one-skill package for on-demand predictions in a
+supported cloud task, with embedded PostgreSQL and no separate API key or hosted
+database. See [installation and sharing](integrations/mcp/DISTRIBUTION.md) for the
+repository marketplace, tested package and example prompts. The same package
+installs in Codex and Claude. This experimental package is not yet listed in the
+public ChatGPT or Claude directories.
+
+An optional MCP wrapper for ChatGPT, Claude and other compatible clients is
+available in [integrations/mcp](integrations/mcp/README.md). It includes isolated
+request processing and structured prediction results. It is not yet a hosted
+service or a published plugin; see the integration guide for validation status
+and public-launch requirements.
+The optional embedded PostgreSQL mode also supports direct predictions inside
+a cloud task, without permanent hosting; see the guide for setup and limitations.
+
+After installing ZincSight Preview in a supported Codex, ChatGPT or Claude environment, try:
+
+> Use ZincSight Preview on PDB 1KLS to predict potential transition-metal binding sites. Report the coordinating residues, predicted metal coordinates and site probabilities.
+
+Preview results can differ from the original Colab workflow; see the [validation status](integrations/mcp/NOTEBOOK_REGRESSION.md).
+
+## Citation and license
+
+If you use ZincSight or its results, please cite:
+
+> Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. *Protein Science.* 2025;34(11):e70350. https://doi.org/10.1002/pro.70350
+
+GitHub's "Cite this repository" button gives the same reference from [CITATION.cff](CITATION.cff).
+
+ZincSight is free to use under the [Creative Commons Attribution-NoDerivatives 4.0](LICENSE) license (CC BY-ND 4.0). You may use and share it unmodified for any purpose. You may not distribute modified versions.

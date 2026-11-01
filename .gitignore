@@ -20,3 +20,10 @@ Query_structures_ids_txt_files
 
 .my_data
 postgresql/
+# Python environments and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv-mcp/
+integrations/mcp/pglite/node_modules/
+dist/

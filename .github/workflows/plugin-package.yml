@@ -1,0 +1,43 @@
+name: Plugin package
+on:
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - '.agents/plugins/marketplace.json'
+      - '.claude-plugin/marketplace.json'
+      - 'tools/build_plugin.py'
+      - 'tools/check_plugin_install.py'
+      - '.github/workflows/plugin-package.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CC: gcc
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install system libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y libgl1 libglu1-mesa
+      - name: Build the skills-only package
+        run: python tools/build_plugin.py
+      - name: Test the extracted package with a fresh environment
+        run: python tools/check_plugin_install.py dist/zincsight-preview-0.1.0-preview.5.zip --output dist/package-validation.json
+      - name: Preserve the package and validation result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zincsight-preview-package
+          path: dist/
+          retention-days: 30

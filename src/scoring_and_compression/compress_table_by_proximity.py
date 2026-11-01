@@ -60,7 +60,15 @@ def table_compression(conn):
     cur = conn.cursor()
     
     # Step 1: Fetching Data from Database
-    cur.execute("SELECT pdbid_alphafoldmodel, metalcoord, score, id FROM scored_af_dataset_with_aggregated_final_tables;")
+    # Greedy proximity grouping depends on traversal order. Use scientific
+    # candidate identifiers, not unspecified heap order or generated row IDs.
+    cur.execute("""
+        SELECT pdbid_alphafoldmodel, metalcoord, score, id
+        FROM scored_af_dataset_with_aggregated_final_tables
+        ORDER BY pdbid_alphafoldmodel, site_id,
+                 chain_resi_1, chain_resi_2, chain_resi_3, chain_resi_4, chain_resi_5,
+                 metalcoord, score
+    """)
     data = cur.fetchall()
     
     # Organizing data by pdbid

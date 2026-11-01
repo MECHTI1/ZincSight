@@ -1,0 +1,101 @@
+name: Original notebook compatibility
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/notebook-compatibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-notebook:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHON_DOTENV_DISABLED: '1'
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      # Explicit settings from the public notebook's tracked .env.
+      FILTER_PROB_AFTER_COMPRESSION: 'true'
+      EXCLUDE_PREDICTIONS_WITH_PROB_THRESHOLD: '0.0001'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 967bdf431e3c86f0b390795022638eae32e64482
+          path: original-zincsight
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install the notebook dependency specification
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libgl1 libglu1-mesa
+          python -m pip install 'pixeltable-pgserver>=0.6.0' 'psycopg2-binary>=2.9.10' 'pymol-open-source>=3.2.0a0' biopython scipy scikit-learn pandas matplotlib loguru aria2p pydash python-dotenv
+      - name: Run original code with notebook compatibility shims
+        run: |
+          mkdir -p notebook-compatibility-results
+          python -m pip freeze > notebook-compatibility-results/requirements.txt
+          python -u - <<'PY' > notebook-compatibility-results/run.log 2>&1
+          import csv, json, os, sys, types
+          from collections import Counter
+          from pathlib import Path
+          root = Path.cwd()
+          sys.path.insert(0, str(root / 'tests'))
+          from notebook_regression import download_inputs
+          inputs = root / 'notebook-public-inputs'
+          output = root / 'notebook-compatibility-results'
+          download_inputs(inputs)
+          # Exactly the import bridges used by ZincSight.ipynb.
+          import pixeltable_pgserver as pgserver
+          original_get_server = pgserver.get_server
+          def compatible_get_server(pgdata, cleanup_mode='stop', *args, **kwargs):
+              return original_get_server(pgdata, cleanup_mode=cleanup_mode, *args, **kwargs)
+          pgserver.get_server = compatible_get_server
+          sys.modules['pgserver'] = pgserver
+          try:
+              from Bio.PDB.QCPSuperimposer import QCPSuperimposer
+          except ImportError:
+              import numpy as np
+              from scipy.spatial.transform import Rotation
+              class QCPSuperimposer:
+                  def set(self, coords1, coords2):
+                      self.coords1, self.coords2 = coords1, coords2
+                  def run(self):
+                      c1 = self.coords1 - self.coords1.mean(axis=0)
+                      c2 = self.coords2 - self.coords2.mean(axis=0)
+                      rot, _ = Rotation.align_vectors(c1, c2)
+                      self.rms = float(np.sqrt(np.mean(np.sum((c1 - rot.apply(c2))**2, axis=-1))))
+                  def get_rms(self):
+                      return self.rms
+              module = types.ModuleType('Bio.PDB.QCPSuperimposer')
+              module.QCPSuperimposer = QCPSuperimposer
+              sys.modules['Bio.PDB.QCPSuperimposer'] = module
+          # The ESM PDB has already been converted using the same Bio.PDB writer.
+          for path in inputs.glob('*.pdb'):
+              path.unlink()
+          (output / 'input-sources.json').write_text((inputs / 'sources.json').read_text())
+          (inputs / 'sources.json').unlink()
+          original = root / 'original-zincsight'
+          sys.path.insert(0, str(original))
+          os.chdir(original)
+          from main_execute import execute_zincsight
+          from src.settings import FILTER_PROB_AFTER_COMPRESSION, MIN_THRESHOLD_PROB
+          assert FILTER_PROB_AFTER_COMPRESSION and MIN_THRESHOLD_PROB == 0.0001
+          (output / 'settings.json').write_text(json.dumps({
+              'histidine_rotamers': True, 'minimum_probability': MIN_THRESHOLD_PROB,
+              'filter_after_compression': FILTER_PROB_AFTER_COMPRESSION,
+              'source_revision': '967bdf431e3c86f0b390795022638eae32e64482'}))
+          execute_zincsight(True, '', str(inputs), str(output), 2, False)
+          with (output / 'table/table_predicted_zn_binding_sites.csv').open() as stream:
+              data = list(csv.DictReader(stream))
+          counts = dict(Counter(row['structure_id'] for row in data))
+          (output / 'counts.json').write_text(json.dumps(counts, indent=2))
+          print('NOTEBOOK_COUNTS', json.dumps(counts), flush=True)
+          PY
+          tail -n 8 notebook-compatibility-results/run.log
+      - name: Preserve original notebook outputs and environment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-notebook-compatibility
+          path: notebook-compatibility-results

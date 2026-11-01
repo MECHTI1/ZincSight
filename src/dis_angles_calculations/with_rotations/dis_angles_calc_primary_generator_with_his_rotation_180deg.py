@@ -67,6 +67,8 @@ def create_detailed_coordinates_of_matches_table(conn):
             AF_DATASET_detailed_coordinates_table_v2 a ON t.pdbid_alphafoldmodel = a.pdbid_alphafoldmodel AND t.chain_resi = a.chain_resi
     """)
     
+    # This helper is no longer needed; release it explicitly for embedded PG.
+    cur.execute("DROP TABLE temp_final_motif")
     # Commit changes
     conn.commit()
 
@@ -136,7 +138,7 @@ def fetch_and_process_data(conn,num_cores):
     start_time = time.time()
 
     # Fetch unique match_ids
-    cur.execute("SELECT DISTINCT match_id FROM AF_DATASET_test_detailed_coordinates_of_matches_table_V2")
+    cur.execute("SELECT DISTINCT match_id FROM AF_DATASET_test_detailed_coordinates_of_matches_table_V2 ORDER BY match_id")
     unique_match_ids = [row[0] for row in cur.fetchall()]
     
     
@@ -157,6 +159,7 @@ def fetch_and_process_data(conn,num_cores):
             SELECT match_id, chain_resi, resi_type, dict_atom_coord
             FROM AF_DATASET_test_detailed_coordinates_of_matches_table_V2
             WHERE match_id IN ({batch_match_ids_str})
+            ORDER BY match_id, chain_resi
         """)
         rows = cur.fetchall()
         

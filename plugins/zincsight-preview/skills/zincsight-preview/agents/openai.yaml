@@ -1,0 +1,14 @@
+interface:
+  display_name: ZincSight Preview
+  short_description: Predict transition-metal binding sites in protein structures
+  default_prompt: Use $zincsight-preview to predict transition-metal binding sites
+    in PDB 1KLS with histidine rotamer sampling.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  allow_implicit_invocation: true
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas

@@ -1,0 +1,20 @@
+{
+  "name": "zincsight-preview",
+  "interface": {
+    "displayName": "ZincSight Preview"
+  },
+  "plugins": [
+    {
+      "name": "zincsight-preview",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zincsight-preview"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

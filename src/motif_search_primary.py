@@ -95,7 +95,7 @@ def Create_RMSD_of_matches_table(conn):
     print (coords_original_metal_binding_site)
     #batch of 1000 matched_ids each time (each match have multiple residues)- means- 1000 matched sites each time.
         # execute your query
-    cur1.execute("SELECT * FROM AF_DATASET_Coordinates_of_Matches_Table_V2")
+    cur1.execute("SELECT * FROM AF_DATASET_Coordinates_of_Matches_Table_V2 ORDER BY match_id, resi_order")
     
     # fetch rows in batches
     batch_size = 1000 *  num_residues_in_metal_binding_site

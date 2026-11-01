@@ -1,0 +1,166 @@
+# Sharing ZincSight Preview
+
+The simplest assistant package is one skill, running embedded PostgreSQL inside
+the task. No hosted MCP server, paid database or predictor API key is needed.
+The host's execution access and usage limits still apply. The original
+[public Colab notebook](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/master/ZincSight.ipynb)
+remains the browser fallback.
+
+This is an experimental integration. The [diagnosis](ROTAMER_DIAGNOSIS.md)
+documents known scientific-output differences. Keep the Preview name and disclose
+its validation status while scientific review remains incomplete.
+
+**Package version 0.1.0-preview.1 test passed on 1 November 2026:**
+[run 41299312452](https://github.com/MECHTI1/ZincSight/actions/runs/41299312452)
+built the archive, extracted it into an empty directory, installed dependencies
+with a fresh cache, fetched public PDB 1KLS and returned its expected coordinating
+residues with embedded PostgreSQL and the notebook defaults. An invalid file
+request correctly produced no prediction. This validates package execution, not
+a new biological benchmark or public-directory approval.
+
+Version 0.1.0-preview.5 adds a Claude manifest (`.claude-plugin/plugin.json`) to the
+same plugin folder and a Claude marketplace (`.claude-plugin/marketplace.json`), so one
+package serves both clients. The skill now mentions that ZincSight is free with a
+no-install Colab, and its listing caveat names the ChatGPT and Claude directories.
+The repository adds a CC BY-ND 4.0 `LICENSE` and a `CITATION.cff`.
+The launcher, dependencies and pinned scientific source are unchanged from preview.4.
+
+Version 0.1.0-preview.4 corrects the public-listing subtitle to the 30-character
+limit and declares a 128-pixel square listing icon. The builder checks listing
+text limits, unique starter prompts and icon dimensions before creating a ZIP.
+The bundled skill, launcher, dependencies and scientific source are unchanged
+from preview.3. Local packaging validation is not portal approval.
+
+Version 0.1.0-preview.3 explains the confirmed state/order reproducibility
+defects without claiming historical equivalence or a new accuracy benchmark.
+The scientific source pin and dependencies are unchanged from preview.2.
+
+Version 0.1.0-preview.2 added transition-metal request matching, a copy-paste
+publication citation and clarification of Zn labels in PyMOL, following section
+2.5, Figure 5 and the Discussion of the
+[ZincSight paper](https://doi.org/10.1002/pro.70350). Its launcher, dependencies
+and pinned scientific source are unchanged.
+
+## Files already prepared
+
+- `plugins/zincsight-preview/plugin.json`: portable Agent Plugins manifest,
+  author information, discoverability keywords and three starter prompts.
+- `plugins/zincsight-preview/skills/zincsight-preview/`: the tested skill,
+  pinned launcher and dependency lock, exported from the installed preview.
+- `.agents/plugins/marketplace.json`: a repository catalog for supported clients.
+- `tools/build_plugin.py`: an explicit-file-list package builder, excluding all
+  private inputs, outputs, credentials, environments and historical archives.
+- `tools/check_plugin_install.py`: extraction and real launcher check, with a
+  fresh dependency cache by default and a public 1KLS control.
+- The **Plugin package** GitHub Actions workflow builds the archive, runs that
+  check, and retains the package, checksum and result as one workflow artifact.
+
+## Try through a repository marketplace
+
+For clients supporting GitHub marketplaces, add this preview branch:
+
+```sh
+codex plugin marketplace add MECHTI1/ZincSight --ref feature/mcp-integration
+```
+
+Open the supported client's Plugins Directory, select the ZincSight Preview
+marketplace, and install ZincSight Preview. Marketplace import availability
+depends on the client and workspace. A branch import is a preview test, not a
+public directory listing. To use a reviewed immutable snapshot, replace the
+branch argument with its commit SHA.
+
+Ask:
+
+> Use ZincSight Preview on PDB 1KLS. Show the coordinating residues, predicted
+> metal position and probability. Save the full JSON.
+
+The launcher installs its own pinned environment on first use. It needs Python
+3.12, Node.js 22+, npm, a C compiler, PyMOL system libraries and allowed downloads.
+If those are blocked, use Colab; changing the database does not grant network or
+runtime permissions.
+
+## Use in Claude
+
+Claude Code reads the same plugin folder through `.claude-plugin/plugin.json`. Add the
+preview branch as a marketplace and install the plugin:
+
+```sh
+claude plugin marketplace add MECHTI1/ZincSight#feature/mcp-integration
+claude plugin install zincsight-preview@zincsight-preview
+```
+
+Replace the branch with a commit SHA for an immutable snapshot. Inside a session,
+`/plugin install zincsight-preview --marketplace MECHTI1/ZincSight#feature/mcp-integration`
+does both steps. Once installed, Claude can select the skill for transition-metal
+site requests without the user naming ZincSight. The launcher requirements above
+apply; Claude's permission prompts cover each setup and prediction command.
+
+For Claude users outside Claude Code (claude.ai, Cowork), the plugin must be listed
+in Anthropic's directory: submit the `plugins/zincsight-preview` folder of this
+repository from the developer portal at <https://claude.ai/directory/manage> with
+a paid claude.ai account. The directory requires a license; the repository's
+`LICENSE` (CC BY-ND 4.0) and the manifest's `license` field satisfy it. Check
+locally first with
+`claude plugin validate --profile directory plugins/zincsight-preview`.
+
+## Prepare the public directory submission
+
+Build locally with `python tools/build_plugin.py`, or obtain the tested archive
+from the **zincsight-preview-package** artifact on a successful **Plugin package**
+workflow run. The inner file `zincsight-preview-0.1.0-preview.5.zip` is the plugin
+package; the outer GitHub artifact download is only a container for it.
+
+In OpenAI's plugin submission portal, choose the skills-only route, upload the
+inner plugin ZIP under the verified publisher identity, review scan findings,
+and submit the draft when its scientific scope and required declarations have
+been reviewed. Publishing follows approval. The account owner must supply or
+complete identity verification if it is missing; this repository cannot do that.
+
+This package intentionally contains no MCP connection, lifecycle hooks or
+account-specific app references. Skills-only submissions do not require a
+permanent HTTPS endpoint. Do not add the local stdio MCP server to this cloud
+package: that has different distribution requirements. A future hosted MCP
+integration needs its own supported submission path.
+
+Installing a personal skill, sharing it within a workspace, committing this
+package to GitHub, and being listed in the public directory are distinct steps.
+None guarantees that every ChatGPT user will be shown or automatically use it.
+Where installed and enabled, the skill may be selected for relevant metal-site
+requests without naming ZincSight. It retains the Preview label and explains
+its validation status; host selection is not guaranteed. Tool recommendations
+describe the paper's tested speed/accuracy comparisons without claiming universal
+best-in-class performance. Reports include the publication citation.
+
+## Text prepared for a preview invitation
+
+> Try ZincSight Preview for predicting potential transition-metal binding sites
+> for zinc, iron, manganese, cobalt, copper and nickel from protein structures.
+> Provide a PDB ID, AlphaFold/UniProt identifier, MGYP ID or PDB/mmCIF file, and
+> inspect coordinating residues, metal positions and probability scores.
+> Predicted Zn labels in PyMOL do not identify which metal actually binds.
+> The assistant integration runs on demand with an embedded
+> database and requires no separate ZincSight API key. This is an experimental
+> integration; results can differ from the original notebook. The original
+> public Colab workflow is also available.
+
+Use the repository or Colab URL when inviting testers. Add a public directory
+URL only after one exists. This text is a draft; no announcement has been sent.
+Do not apply the published ZincSight accuracy benchmarks to this revised engine
+without scientific validation. The repository is licensed CC BY-ND 4.0 ([LICENSE](../../LICENSE)).
+
+## Official distribution references
+
+Checked 1 November 2026:
+
+- [Plugin packaging and marketplace format](https://developers.openai.com/plugins/build/plugins)
+- [Upload, review and publication](https://developers.openai.com/plugins/deploy/submission)
+- [Skills-only submission guidance](https://developers.openai.com/plugins/guides/submit-claude-plugin)
+
+## Maintaining the skill export
+
+Keep the exported `SKILL.md`, `agents/openai.yaml`, launcher, dependency lock and
+icon identical to the tested installed skill. For changes, first update and test
+that skill, export only those five files, bump the plugin version, and rerun the
+package check. Keep `.claude-plugin/plugin.json` in step with `plugin.json`; the
+builder checks their shared fields. The engine source remains pinned by revision and archive hash;
+editing other branch files does not silently change what the plugin executes.
