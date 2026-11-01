@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use ZincSight or its results, please cite the paper below."
+title: ZincSight
+type: software
+license: CC-BY-ND-4.0
+repository-code: "https://github.com/MECHTI1/ZincSight"
+authors:
+  - family-names: Mechtinger
+    given-names: Gilad
+  - family-names: Axel
+    given-names: Gabriel
+  - family-names: Kolodny
+    given-names: Rachel
+  - family-names: Ben-Tal
+    given-names: Nir
+preferred-citation:
+  type: article
+  title: "Interpretable prediction of zinc ion location in proteins with ZincSight"
+  authors:
+    - family-names: Mechtinger
+      given-names: Gilad
+    - family-names: Axel
+      given-names: Gabriel
+    - family-names: Kolodny
+      given-names: Rachel
+    - family-names: Ben-Tal
+      given-names: Nir
+  journal: Protein Science
+  volume: 34
+  issue: 11
+  start: e70350
+  year: 2025
+  doi: 10.1002/pro.70350

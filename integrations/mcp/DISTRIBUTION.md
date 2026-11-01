@@ -22,6 +22,7 @@ Version 0.1.0-preview.5 adds a Claude manifest (`.claude-plugin/plugin.json`) to
 same plugin folder and a Claude marketplace (`.claude-plugin/marketplace.json`), so one
 package serves both clients. The skill now mentions that ZincSight is free with a
 no-install Colab, and its listing caveat names the ChatGPT and Claude directories.
+The repository adds a CC BY-ND 4.0 `LICENSE` and a `CITATION.cff`.
 The launcher, dependencies and pinned scientific source are unchanged from preview.4.
 
 Version 0.1.0-preview.4 corrects the public-listing subtitle to the 30-character
@@ -97,9 +98,9 @@ apply; Claude's permission prompts cover each setup and prediction command.
 For Claude users outside Claude Code (claude.ai, Cowork), the plugin must be listed
 in Anthropic's directory: submit the `plugins/zincsight-preview` folder of this
 repository from the developer portal at <https://claude.ai/directory/manage> with
-a paid claude.ai account. That directory requires a `LICENSE` file or a `license`
-field, which this repository does not yet have; choosing one is the owner's
-decision. Check locally first with
+a paid claude.ai account. The directory requires a license; the repository's
+`LICENSE` (CC BY-ND 4.0) and the manifest's `license` field satisfy it. Check
+locally first with
 `claude plugin validate --profile directory plugins/zincsight-preview`.
 
 ## Prepare the public directory submission
@@ -145,7 +146,7 @@ best-in-class performance. Reports include the publication citation.
 Use the repository or Colab URL when inviting testers. Add a public directory
 URL only after one exists. This text is a draft; no announcement has been sent.
 Do not apply the published ZincSight accuracy benchmarks to this revised engine
-without scientific validation. No software license is selected by this package.
+without scientific validation. The repository is licensed CC BY-ND 4.0 ([LICENSE](../../LICENSE)).
 
 ## Official distribution references
 
