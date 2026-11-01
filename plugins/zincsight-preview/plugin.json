@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "zincsight-preview",
-  "version": "0.1.0-preview.3",
+  "version": "0.1.0-preview.4",
   "description": "Experimental transition-metal binding-site predictions for Zn, Fe, Mn, Co, Cu and Ni from protein structures. Returns coordinating residues, metal positions and probability scores; does not identify the bound metal. Runs with embedded PostgreSQL.",
   "author": {
     "name": "Gilad Mechtinger",
@@ -26,7 +26,7 @@
     "com.openai": {
       "interface": {
         "displayName": "ZincSight Preview",
-        "shortDescription": "Explore transition-metal binding sites in protein structures",
+        "shortDescription": "Predict transition-metal sites",
         "longDescription": "Run experimental ZincSight predictions of potential transition-metal binding sites, including zinc, iron, manganese, cobalt, copper and nickel. Accepts PDB IDs and assemblies, UniProt accessions, AlphaFold model IDs, MGYP IDs or PDB/mmCIF files. Inspect coordinating residues, metal positions and model probability scores. Predicted Zn labels in PyMOL are a display convention, not a metal-identity assignment. Runs with embedded PostgreSQL, without a separate database account or API key. This preview can differ from historical outputs and is not the published scientific release.",
         "developerName": "Gilad Mechtinger",
         "category": "Productivity",

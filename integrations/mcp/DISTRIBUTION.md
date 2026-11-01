@@ -18,6 +18,12 @@ residues with embedded PostgreSQL and the notebook defaults. An invalid file
 request correctly produced no prediction. This validates package execution, not
 a new biological benchmark or public-directory approval.
 
+Version 0.1.0-preview.4 corrects the public-listing subtitle to the 30-character
+limit and declares a 128-pixel square listing icon. The builder checks listing
+text limits, unique starter prompts and icon dimensions before creating a ZIP.
+The bundled skill, launcher, dependencies and scientific source are unchanged
+from preview.3. Local packaging validation is not portal approval.
+
 Version 0.1.0-preview.3 explains the confirmed state/order reproducibility
 defects without claiming historical equivalence or a new accuracy benchmark.
 The scientific source pin and dependencies are unchanged from preview.2.
@@ -70,7 +76,7 @@ runtime permissions.
 
 Build locally with `python tools/build_plugin.py`, or obtain the tested archive
 from the **zincsight-preview-package** artifact on a successful **Plugin package**
-workflow run. The inner file `zincsight-preview-0.1.0-preview.3.zip` is the plugin
+workflow run. The inner file `zincsight-preview-0.1.0-preview.4.zip` is the plugin
 package; the outer GitHub artifact download is only a container for it.
 
 In OpenAI's plugin submission portal, choose the skills-only route, upload the

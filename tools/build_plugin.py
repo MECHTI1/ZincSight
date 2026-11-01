@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import xml.etree.ElementTree as ET
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,38 @@ FILES = (
 )
 
 
+def validate_listing(interface):
+    """Check the fields this skills-only package uses against submission limits."""
+    limits = {
+        'displayName': 30, 'shortDescription': 30,
+        'longDescription': 4000, 'developerName': 80,
+    }
+    for field, limit in limits.items():
+        value = interface.get(field)
+        if not isinstance(value, str) or not 0 < len(value.strip()) <= limit or len(value) > limit:
+            raise ValueError(f'{field} must be nonempty and at most {limit} characters')
+    prompts = interface['defaultPrompt']
+    if not isinstance(prompts, list) or not 1 <= len(prompts) <= 3:
+        raise ValueError('defaultPrompt must contain one to three starter prompts')
+    if any(not isinstance(p, str) or not 0 < len(p.strip()) <= 128 or len(p) > 128 for p in prompts):
+        raise ValueError('Starter prompts must be nonempty and at most 128 characters')
+    if len(set(prompts)) != len(prompts):
+        raise ValueError('Starter prompts must be unique')
+    for field in ('composerIcon', 'logo'):
+        name = interface[field]
+        if not name.startswith('./') or name[2:] not in FILES:
+            raise ValueError(f'{field} must reference a packaged relative path')
+        path = PLUGIN / name[2:]
+        # This package ships SVG artwork. Numeric dimensions must meet the
+        # listing minimum even when the internal viewBox uses smaller units.
+        if path.suffix != '.svg':
+            raise ValueError(f'{field}: this builder currently validates SVG icons only')
+        root = ET.parse(path).getroot()
+        width, height = float(root.get('width', 0)), float(root.get('height', 0))
+        if width != height or width < 48:
+            raise ValueError(f'{field} must have square numeric dimensions of at least 48 pixels')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'dist')
@@ -25,11 +58,7 @@ def main():
     assert manifest['name'] == 'zincsight-preview'
     assert manifest['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
     interface = manifest['extensions']['com.openai']['interface']
-    assert all(0 < len(prompt) <= 128 for prompt in interface['defaultPrompt'])
-    assert len(interface['defaultPrompt']) <= 3
-    for field in ('composerIcon', 'logo'):
-        assert interface[field].startswith('./')
-        assert interface[field][2:] in FILES
+    validate_listing(interface)
     actual = {p.relative_to(PLUGIN).as_posix() for p in PLUGIN.rglob('*') if p.is_file()}
     assert actual == set(FILES), f'Unexpected or missing package files: {actual ^ set(FILES)}'
     for name in FILES:
