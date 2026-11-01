@@ -77,8 +77,9 @@ python ./zincsight.py -f example_input.txt
 **ZincSight Preview** now has a one-skill package for on-demand predictions in a
 supported cloud task, with embedded PostgreSQL and no separate API key or hosted
 database. See [installation and sharing](integrations/mcp/DISTRIBUTION.md) for the
-repository marketplace, tested package and example prompts. This experimental
-package is not yet listed in the public ChatGPT directory.
+repository marketplace, tested package and example prompts. The same package
+installs in Codex and Claude. This experimental package is not yet listed in the
+public ChatGPT or Claude directories.
 
 An optional MCP wrapper for ChatGPT, Claude and other compatible clients is
 available in [integrations/mcp](integrations/mcp/README.md). It includes isolated
@@ -87,3 +88,13 @@ service or a published plugin; see the integration guide for validation status
 and public-launch requirements.
 The optional embedded PostgreSQL mode also supports direct predictions inside
 a cloud task, without permanent hosting; see the guide for setup and limitations.
+
+## Citation and license
+
+If you use ZincSight or its results, please cite:
+
+> Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. *Protein Science.* 2025;34(11):e70350. https://doi.org/10.1002/pro.70350
+
+GitHub's "Cite this repository" button gives the same reference from [CITATION.cff](CITATION.cff).
+
+ZincSight is free to use under the [Creative Commons Attribution-NoDerivatives 4.0](LICENSE) license (CC BY-ND 4.0). You may use and share it unmodified for any purpose. You may not distribute modified versions.

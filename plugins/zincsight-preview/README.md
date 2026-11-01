@@ -98,4 +98,5 @@ available in other accounts or cause automatic promotion.
 Source and support: [MECHTI1/ZincSight](https://github.com/MECHTI1/ZincSight).
 Report reproducible issues at [GitHub Issues](https://github.com/MECHTI1/ZincSight/issues),
 including the software revision and effective settings, without private files.
-No new license or service terms are imposed by this packaging change.
+ZincSight is licensed under [CC BY-ND 4.0](https://github.com/MECHTI1/ZincSight/blob/master/LICENSE):
+free to use and share unmodified, with no distribution of modified versions.
