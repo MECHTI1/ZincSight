@@ -161,24 +161,86 @@ class ResultsPackagerTests(unittest.TestCase):
         self.assertEqual(metadata["structures"][results[0]["key"]]["display_name"], "=SUM(1)")
         self.assertEqual(json.loads((self.output / "prediction.json").read_text())["structures"][0]["source"], "0_=SUM(1).pdb")
 
-    def test_unexpected_detail_files_and_other_zip_are_retained_in_bundle(self):
+    def test_unknown_root_files_directories_and_archives_are_untouched_and_not_archived(self):
         results = self.fixture([{}])
         extra = self.output / "details/nested/engine.log"
         extra.parent.mkdir(parents=True)
         extra.write_bytes(b"diagnostic details\x00\xff")
         (self.output / "other.zip").write_bytes(b"another useful artifact")
+        unknown = {path: (path.stat().st_ino, path.read_bytes() if path.is_file() else None)
+                   for path in (extra, extra.parent, extra.parent.parent, self.output / "other.zip")}
         packager.finalize_outputs(self.output, structures=results)
-        self.assertFalse((self.output / "details").exists())
-        self.assertFalse((self.output / "other.zip").exists())
+        for path, (inode, contents) in unknown.items():
+            self.assertEqual(path.stat().st_ino, inode)
+            if contents is not None:
+                self.assertEqual(path.read_bytes(), contents)
         with zipfile.ZipFile(self.output / "ZincSight_results.zip") as archive:
-            self.assertEqual(archive.read("details/nested/engine.log"), b"diagnostic details\x00\xff")
-            self.assertEqual(archive.read("other.zip"), b"another useful artifact")
+            self.assertNotIn("details/nested/engine.log", archive.namelist())
+            self.assertNotIn("other.zip", archive.namelist())
+
+    def platform_files(self):
+        values = {"output.log": b"before packaging\n", ".exit_code": b"running\n",
+                  "settings.json": b'{"platform":"settings"}', "inputs/upload.pdb": b"platform upload",
+                  ".platform_state/state.json": b'{"platform":"state"}'}
+        for name, value in values.items():
+            path = self.output / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(value)
+        paths = [self.output / name for name in values]
+        paths.extend((self.output / "inputs", self.output / ".platform_state"))
+        return values, {path: path.stat().st_ino for path in paths}
+
+    def test_open_platform_log_and_exit_state_keep_their_inodes_and_paths_on_success(self):
+        results = self.fixture([{}])
+        values, inodes = self.platform_files()
+        with (self.output / "output.log").open("ab") as log:
+            packager.finalize_outputs(self.output, structures=results)
+            log.write(b"after packaging through original open handle\n")
+            log.flush()
+        self.assertEqual((self.output / "output.log").read_bytes(),
+                         values["output.log"] + b"after packaging through original open handle\n")
+        for path, inode in inodes.items():
+            self.assertEqual(path.stat().st_ino, inode, str(path))
+        for name, contents in values.items():
+            if name != "output.log":
+                self.assertEqual((self.output / name).read_bytes(), contents)
+        with zipfile.ZipFile(self.output / "ZincSight_results.zip") as archive:
+            self.assertTrue(set(values).isdisjoint(archive.namelist()))
+            self.assertFalse(any(name.startswith(("inputs/", ".platform_state/")) for name in archive.namelist()))
+
+    def test_open_platform_log_and_service_roots_are_untouched_during_failed_publication(self):
+        results = self.fixture([{}])
+        values, inodes = self.platform_files()
+        original = self.snapshot()
+        replace = os.replace
+        published = []
+        def fail_after_one_public_file(source, destination):
+            if Path(source).parent.name == "public":
+                if published:
+                    raise OSError("publication failure with platform files")
+                published.append(Path(destination).name)
+            return replace(source, destination)
+        with (self.output / "output.log").open("ab") as log:
+            with patch.object(packager.os, "replace", side_effect=fail_after_one_public_file):
+                with self.assertRaisesRegex(OSError, "publication failure with platform files"):
+                    packager.finalize_outputs(self.output, structures=results)
+            self.assert_unchanged(original)
+            log.write(b"after failed packaging through original open handle\n")
+            log.flush()
+        self.assertEqual((self.output / "output.log").read_bytes(),
+                         values["output.log"] + b"after failed packaging through original open handle\n")
+        for path, inode in inodes.items():
+            self.assertEqual(path.stat().st_ino, inode, str(path))
+        for name, contents in values.items():
+            if name != "output.log":
+                self.assertEqual((self.output / name).read_bytes(), contents)
 
     def test_invalid_or_missing_artifacts_leave_original_outputs_unchanged(self):
         cases = [lambda r: r[0]["artifacts"].pop("mmcif"),
                  lambda r: r[0]["artifacts"].update(pdb="../outside.pdb"),
                  lambda r: r[0]["artifacts"].update(pdb="/tmp/outside.pdb"),
                  lambda r: r[0]["artifacts"].update(pdb="structures/missing.pdb"),
+                 lambda r: r[0]["artifacts"].update(pdb="output.log"),
                  lambda r: r[0].update(key="../bad"),
                  lambda r: r[0].update(sites=[{"probability": float("nan"), "coordinating_residues": []}])]
         results = self.fixture([{}])
@@ -206,19 +268,36 @@ class ResultsPackagerTests(unittest.TestCase):
             packager.finalize_outputs(self.output, structures=results)
         self.assert_unchanged(original)
 
-    def test_symlink_output_or_member_cannot_copy_external_files(self):
+    def test_symlink_output_or_app_owned_member_cannot_copy_external_files(self):
         results = self.fixture([{}])
         outside = self.output.parent / "private.txt"
         outside.write_text("private")
-        (self.output / "linked").symlink_to(outside)
+        linked = self.output / results[0]["artifacts"]["pdb"]
+        linked.unlink()
+        linked.symlink_to(outside)
         with self.assertRaises(ValueError):
             packager.finalize_outputs(self.output, structures=results)
-        self.assertTrue((self.output / "linked").is_symlink())
+        self.assertTrue(linked.is_symlink())
         alias = self.output.parent / "alias"
         alias.symlink_to(self.output, target_is_directory=True)
         with self.assertRaises(ValueError):
             packager.finalize_outputs(alias, structures=results)
         self.assertEqual(outside.read_text(), "private")
+
+    def test_unknown_platform_symlink_is_untouched_and_not_followed(self):
+        results = self.fixture([{}])
+        outside = self.output.parent / "platform-data"
+        outside.mkdir()
+        (outside / "private.txt").write_text("private platform data")
+        linked = self.output / "platform-linked"
+        linked.symlink_to(outside, target_is_directory=True)
+        inode = linked.lstat().st_ino
+        packager.finalize_outputs(self.output, structures=results)
+        self.assertTrue(linked.is_symlink())
+        self.assertEqual(linked.lstat().st_ino, inode)
+        with zipfile.ZipFile(self.output / "ZincSight_results.zip") as archive:
+            self.assertFalse(any(name.startswith("platform-linked") for name in archive.namelist()))
+        self.assertEqual((outside / "private.txt").read_text(), "private platform data")
 
     def test_staging_copy_and_zip_failures_leave_original_outputs_unchanged(self):
         results = self.fixture([{}])

@@ -17,6 +17,12 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PARITY_KEYS = ("sites", "site_count", "truncated", "histidine_rotamers",
                "minimum_probability", "model_policy")
+PLATFORM_LOG_PREFIX = "Platform output log opened before the adapter.\n"
+PLATFORM_STATE = '{"job_state":"running","owner":"platform"}\n'
+PLATFORM_WRAPPER = r'''set -e
+trap 'status=$?; printf "%s\n" "$status" > /app/out/.exit_code' EXIT
+bash /app/run.sh >> /app/out/output.log 2>&1
+'''
 
 # The host need not have BioPython or PyMOL; this executes in the image.
 ROUNDTRIP_CHECK = r'''
@@ -200,9 +206,34 @@ def check_csv(rows, results):
         assert row["template_id"] == str(site["template_id"])
 
 
-def check_public_outputs(output, batch, details):
+def prepare_platform_outputs(output):
+    """Create runner-owned output before Docker and emulate service-owned files."""
+    shutil.rmtree(output, ignore_errors=True)
+    output.mkdir()
+    (output / "output.log").write_text(PLATFORM_LOG_PREFIX)
+    (output / ".exit_code").write_text("pending\n")
+    (output / ".platform_state").mkdir()
+    (output / ".platform_state/state.json").write_text(PLATFORM_STATE)
+    return {name: (path.stat().st_dev, path.stat().st_ino)
+            for name in ("output.log", ".exit_code", ".platform_state", ".platform_state/state.json")
+            for path in (output / name,)}
+
+
+def check_platform_outputs(output, canaries, *, exit_code=0):
+    for name, identity in canaries.items():
+        info = (output / name).stat()
+        assert (info.st_dev, info.st_ino) == identity, f"Platform path was moved or replaced: {name}"
+    assert (output / ".platform_state/state.json").read_text() == PLATFORM_STATE
+    assert (output / ".exit_code").read_text() == f"{exit_code}\n"
+    log = (output / "output.log").read_text()
+    assert log.startswith(PLATFORM_LOG_PREFIX), "The open service log was lost or truncated"
+    if exit_code == 0:
+        assert "Processed " in log and "PyMOL sessions are ready." in log, "Final adapter output missed the open service log"
+
+
+def check_public_outputs(output, batch, details, *, service_canaries=None):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.2.2"
+    assert batch["integration_version"] == "0.2.3"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
@@ -247,8 +278,11 @@ def check_public_outputs(output, batch, details):
         assert row["coordinating_residues"] == ", ".join(site["coordinating_residues"])
         assert row["template_id"] == str(site["template_id"])
         assert float(row["template_rmsd_angstrom"]) == site["template_rmsd_angstrom"]
-    assert {path.name for path in output.iterdir()} == expected_files
-    assert all(path.is_file() and path.stat().st_size for path in output.iterdir())
+    service_roots = {name.split("/", 1)[0] for name in service_canaries or ()}
+    assert {path.name for path in output.iterdir()} == expected_files | service_roots
+    assert all((output / name).is_file() and (output / name).stat().st_size for name in expected_files)
+    if service_canaries:
+        check_platform_outputs(output, service_canaries)
     shutil.rmtree(details, ignore_errors=True)
     details.mkdir()
     with zipfile.ZipFile(output / "ZincSight_results.zip") as archive:
@@ -256,6 +290,8 @@ def check_public_outputs(output, batch, details):
         names = {info.filename for info in members}
         assert len(names) == len(members), "Duplicate bundle member names"
         assert not {"zincsight_results.zip", "ZincSight_results.zip"} & names, "Recursive results bundle"
+        assert not any(name == root or name.startswith(root + "/")
+                       for name in names for root in service_roots), "Platform files entered the results bundle"
         assert {"structures.csv", "sites.csv", "prediction.json", "CITATION.txt", "CITATION.bib",
                 "citation.json", "00_Summary.csv", "01_Predicted_sites.csv", "public_manifest.json"} <= names
         for info in members:
@@ -337,22 +373,24 @@ def main():
         def case(label, names, environment, rotamers="true", limit="100"):
             output = args.output / label
             output.mkdir(exist_ok=True)
-            shutil.rmtree(app / "out", ignore_errors=True)
             # A separate output mount cannot be renamed/replaced. Create it as
             # the runner first; Docker would otherwise create a root-owned path.
-            (app / "out").mkdir()
+            canaries = prepare_platform_outputs(app / "out")
             settings = ["-e", f"histidine_rotamers={rotamers}", "-e", f"max_sites={limit}"]
             for key, value in environment.items():
                 settings.extend(["-e", f"{key}={value}"])
-            run_checked(base + resources + settings + [args.image], output / "container.log")
-            # Retain the actual failing outputs even if a parity/roundtrip check raises.
-            shutil.copytree(app / "out", output / "out", dirs_exist_ok=True)
+            try:
+                run_checked(base + resources + settings + ["--entrypoint", "bash", args.image,
+                                                          "-c", PLATFORM_WRAPPER], output / "container.log")
+            finally:
+                # Preserve the service log even when the adapter/container fails.
+                shutil.copytree(app / "out", output / "out", dirs_exist_ok=True)
             batch = json.loads((app / "out/prediction.json").read_text())
             results = batch["structures"]
             assert batch["structure_count"] == len(results) == len(names)
             assert len({result["key"] for result in results}) == len(names)
             assert batch["performance"]["database_instances_per_batch"] == 1
-            bundled = check_public_outputs(app / "out", batch, app / "details_bundle")
+            bundled = check_public_outputs(app / "out", batch, app / "details_bundle", service_canaries=canaries)
             for name, result in zip(names, results):
                 baseline = reference("1KLS.pdb" if name == "duplicate/1KLS.pdb" else name, rotamers, limit)
                 for key in PARITY_KEYS:
@@ -394,12 +432,14 @@ def main():
         for result, entry in zip(batch["structures"], manifest["structures"]):
             assert result["input_provenance"] == entry
 
-        shutil.rmtree(app / "out", ignore_errors=True)
-        (app / "out").mkdir()
-        invalid = subprocess.run(base + resources + ["-e", "structure=/app/inputs/invalid.pdb", args.image],
+        canaries = prepare_platform_outputs(app / "out")
+        invalid = subprocess.run(base + resources + ["-e", "structure=/app/inputs/invalid.pdb",
+                                                    "--entrypoint", "bash", args.image, "-c", PLATFORM_WRAPPER],
                                  text=True, capture_output=True, timeout=60)
         (args.output / "invalid.log").write_text(invalid.stdout + invalid.stderr)
+        shutil.copytree(app / "out", args.output / "invalid-out", dirs_exist_ok=True)
         assert invalid.returncode != 0 and not (app / "out/prediction.json").exists()
+        check_platform_outputs(app / "out", canaries, exit_code=invalid.returncode)
         print("PASS invalid structure: nonzero exit, no prediction JSON", flush=True)
 
 
