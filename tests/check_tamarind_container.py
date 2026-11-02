@@ -18,11 +18,77 @@ PARITY_KEYS = ("sites", "site_count", "truncated", "histidine_rotamers",
 
 # The host need not have BioPython or PyMOL; this executes in the image.
 ROUNDTRIP_CHECK = r'''
-import csv, json
+from collections import Counter, defaultdict
+import csv, hashlib, json
 from pathlib import Path
 from Bio.PDB import PDBParser
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 import pymol2
+
+
+def unpacked_atoms(model):
+    # get_atoms() selects one conformer per DisorderedAtom/DisorderedResidue.
+    # PDBIO exports all conformers, so inspect the same complete atom set here.
+    return [atom for chain in model.get_chains()
+            for residue in chain.get_unpacked_list()
+            for atom in residue.get_unpacked_list()]
+
+
+def clean(value):
+    return '' if value in ('.', '?', ' ') else str(value)
+
+
+def cif_records(data, indexes, annotations=None):
+    records = defaultdict(list)
+    for index in indexes:
+        chain = clean(data['_atom_site.auth_asym_id'][index])
+        number = str(int(data['_atom_site.auth_seq_id'][index]))
+        insertion = clean(data['_atom_site.pdbx_PDB_ins_code'][index])
+        resi = number + insertion
+        if annotations is not None:
+            mapped = annotations['pdb_residue_mapping'].get(f'{chain}_{resi}')
+            if mapped:
+                chain, resi = clean(mapped['chain']), mapped['resi']
+            else:
+                chain = clean(annotations['pdb_chain_mapping'][chain or ' '])
+        key = (chain, resi, data['_atom_site.auth_comp_id'][index].strip(),
+               data['_atom_site.auth_atom_id'][index].strip(),
+               clean(data['_atom_site.label_alt_id'][index]),
+               data['_atom_site.type_symbol'][index].upper(),
+               data['_atom_site.group_PDB'][index] == 'HETATM')
+        records[key].append(tuple(float(data['_atom_site.Cartn_' + axis][index]) for axis in 'xyz'))
+    return records
+
+
+def pdb_records(atoms):
+    records = defaultdict(list)
+    for atom in atoms:
+        residue = atom.get_parent()
+        key = (clean(residue.get_parent().id), str(residue.id[1]) + clean(residue.id[2]),
+               residue.resname.strip(), atom.name.strip(), clean(atom.altloc), atom.element.upper(),
+               residue.id[0] != ' ')
+        records[key].append(tuple(float(value) for value in atom.coord))
+    return records
+
+
+def pymol_records(atoms):
+    records = defaultdict(list)
+    for atom in atoms:
+        key = (clean(atom.chain), atom.resi, atom.resn.strip(), atom.name.strip(), clean(atom.alt),
+               atom.symbol.upper(), bool(atom.hetatm))
+        records[key].append(tuple(atom.coord))
+    return records
+
+
+def assert_records(actual, expected, tolerance):
+    # Matching identities prevents atom losses/replacements or altloc/chain swaps
+    # from hiding behind an equal total atom count.
+    assert Counter({key: len(value) for key, value in actual.items()}) == Counter(
+        {key: len(value) for key, value in expected.items()}), 'Atom identifiers/alternate locations differ'
+    for key in expected:
+        for observed, reference in zip(sorted(actual[key]), sorted(expected[key])):
+            assert all(abs(a - b) <= tolerance for a, b in zip(observed, reference)), (key, observed, reference)
+
 
 out = Path('/app/out')
 batch = json.loads((out / 'prediction.json').read_text())
@@ -44,17 +110,46 @@ for row, result in zip(rows, batch['structures']):
     marker_chain = annotations['predicted_marker_chain']
     marker_indexes = [i for i, chain in enumerate(chains) if chain == marker_chain]
     assert len(marker_indexes) == len(result['sites'])
-    original_atom_count = len(cif['_atom_site.id']) - len(marker_indexes)
+    marker_index_set = set(marker_indexes)
+    original_indexes = [i for i in range(len(cif['_atom_site.id'])) if i not in marker_index_set]
+    original_atom_count = len(original_indexes)
     assert len(set(cif['_atom_site.pdbx_PDB_model_num'])) == 1
+    original_records = cif_records(cif, original_indexes)
+    # These fixture names are also staged directly, including prepared ZIP inputs.
+    source = Path('/app/inputs') / result['source']
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == result['input_sha256']
+    if source.suffix.lower() in ('.cif', '.mmcif'):
+        source_cif = MMCIF2Dict(str(source))
+        models = source_cif.get('_atom_site.pdbx_PDB_model_num', ['1'] * len(source_cif['_atom_site.id']))
+        first_model_indexes = [i for i, model in enumerate(models) if model == models[0]]
+        # Compare original atom identities and coordinate strings, not unrelated
+        # structure metadata copied alongside the atom table.
+        identity_columns = ('group_PDB', 'type_symbol', 'label_atom_id', 'auth_atom_id',
+                            'label_comp_id', 'auth_comp_id', 'label_asym_id', 'auth_asym_id',
+                            'label_seq_id', 'auth_seq_id', 'label_alt_id', 'pdbx_PDB_ins_code',
+                            'Cartn_x', 'Cartn_y', 'Cartn_z')
+        for field in identity_columns:
+            column = '_atom_site.' + field
+            if column in source_cif:
+                values = source_cif[column]
+                assert [cif[column][i] for i in original_indexes] == [values[i] for i in first_model_indexes], column
+    else:
+        source_model = next(PDBParser(QUIET=True).get_structure('source', str(source)).get_models())
+        assert_records(original_records, pdb_records(unpacked_atoms(source_model)), 0.00001)
     for index, site in zip(marker_indexes, result['sites']):
         assert cif['_atom_site.group_PDB'][index] == 'HETATM'
         assert cif['_atom_site.type_symbol'][index].upper() == 'ZN'
         assert [float(cif['_atom_site.Cartn_' + axis][index]) for axis in 'xyz'] == site['coordinates_angstrom']
     pdb = PDBParser(QUIET=True).get_structure('export', str(out / result['artifacts']['pdb']))
     assert len(list(pdb.get_models())) == 1
-    assert len(list(pdb.get_atoms())) == original_atom_count + len(result['sites'])
+    pdb_atoms = unpacked_atoms(pdb[0])
+    assert len(pdb_atoms) == original_atom_count + len(result['sites'])
+    pdb_original_atoms = [atom for atom in pdb_atoms
+                          if atom.get_parent().get_parent().id != annotations['pdb_predicted_marker_chain']]
+    assert_records(pdb_records(pdb_original_atoms), cif_records(cif, original_indexes, annotations), 0.00051)
     if result['sites']:
-        markers = list(pdb[0][annotations['pdb_predicted_marker_chain']].get_atoms())
+        markers = [atom for atom in pdb_atoms
+                   if atom.get_parent().get_parent().id == annotations['pdb_predicted_marker_chain']]
         assert len(markers) == len(result['sites'])
         for atom, site in zip(markers, result['sites']):
             assert all(abs(float(a) - b) <= 0.00051 for a, b in zip(atom.coord, site['coordinates_angstrom']))
@@ -62,14 +157,17 @@ for row, result in zip(rows, batch['structures']):
         cmd = session.cmd
         cmd.load(str(out / row['pymol_session']))
         assert cmd.count_states('original_structure') == 1
-        assert cmd.count_atoms('original_structure') == original_atom_count
+        # mmCIF polymer metadata may add coordinate-less sequence placeholders;
+        # count_atoms(state=0) includes those, unlike the exported coordinate model.
+        assert cmd.count_atoms('original_structure', state=1) == original_atom_count
+        assert_records(pymol_records(cmd.get_model('original_structure').atom), original_records, 0.0001)
         original_metals = sum(symbol.upper() in ('ZN', 'FE', 'MN', 'CO', 'CU', 'NI', 'MG', 'CA')
                               for i, symbol in enumerate(cif['_atom_site.type_symbol'])
                               if i not in marker_indexes)
-        assert cmd.count_atoms('experimental_metals') == original_metals
+        assert cmd.count_atoms('experimental_metals', state=1) == original_metals
         if result['sites']:
-            assert cmd.count_atoms('predicted_sites') == len(result['sites'])
-            assert cmd.count_atoms('coordinating_residues') > 0
+            assert cmd.count_atoms('predicted_sites', state=1) == len(result['sites'])
+            assert cmd.count_atoms('coordinating_residues', state=1) > 0
             for atom, site in zip(cmd.get_model('predicted_sites').atom, result['sites']):
                 assert all(abs(a - b) < 0.0001 for a, b in zip(atom.coord, site['coordinates_angstrom']))
             labels = []
@@ -159,6 +257,8 @@ def main():
             for key, value in environment.items():
                 settings.extend(["-e", f"{key}={value}"])
             run_checked(base + resources + settings + [args.image], output / "container.log")
+            # Retain the actual failing outputs even if a parity/roundtrip check raises.
+            shutil.copytree(app / "out", output / "out", dirs_exist_ok=True)
             batch = json.loads((app / "out/prediction.json").read_text())
             results = batch["structures"]
             assert batch["structure_count"] == len(results) == len(names)
@@ -182,7 +282,6 @@ def main():
                 assert set(archive.namelist()) == expected
                 assert all(archive.read(name) == (app / "out" / name).read_bytes() for name in expected)
             run_checked(base + ["--entrypoint", "python", args.image, "-c", ROUNDTRIP_CHECK], output / "roundtrip.log")
-            shutil.copytree(app / "out", output / "out", dirs_exist_ok=True)
             print(f"PASS {label}: {len(results)} structures, exact wrapper agreement and session roundtrip", flush=True)
             return batch
 
