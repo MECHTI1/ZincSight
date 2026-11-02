@@ -77,7 +77,7 @@ results ZIP and prediction JSON.
 | --- | --- |
 | 00_Summary.csv | Five-column per-input summary, including zero-site structures |
 | sites.csv | Complete site table: structure/source IDs, rank, probability, X/Y/Z coordinates, coordinating residues, residue combination and template matches |
-| NN_label_ZincSight.pdb or .cif | One canonical structure per input, with original atoms/ions and predicted-site markers |
+| NN_label_ZincSight_structure.pdb or .cif | One canonical structure per input, with original atoms/ions and predicted-site markers |
 | NN_label_ZincSight.pse | A ready-to-open PyMOL session per input |
 | prediction.json | Full predictions, settings, provenance, timings and public/bundle artifact mappings |
 | CITATION.txt | ZincSight paper citation |
@@ -91,13 +91,16 @@ inside the bundle. Coordinates stay in the input frame. PDB uses its standard
 full-precision mmCIF remains in the bundle. When PDB cannot represent the input,
 the viewer uses mmCIF.
 
-The declared structure outputs match only the named `*_ZincSight.pdb` and
-`*_ZincSight.cif` files, keeping input copies and PyMOL sessions outside the
-structure output contract.
+The single declared structure output matches `*_ZincSight_structure.*`, covering
+both PDB and mmCIF while keeping input copies and separately named PyMOL sessions
+outside the structure output contract.
 
 PyMOL shows a lavender protein cartoon, purple coordinating side chains with
 element-colored donors, and predicted-site spheres colored by probability with
-rank/probability labels. Original atoms, experimental metals and predictions
+rank/probability labels. The default **Overview** scene shows the highest-scoring
+site's label while retaining every predicted sphere. **All_site_labels** shows
+all stored site labels; switching back to **Overview** restores the compact view.
+Original atoms, experimental metals and predictions
 remain distinguishable. Rotamer sampling explores alternative histidine
 orientations while visualization retains the original input coordinates.
 Zero-site inputs still get a structure/session and no invented markers.
@@ -134,7 +137,7 @@ validated version to the organization. Verify the viewer, sessions and downloade
 bundle on Tamarind itself. Test/production jobs consume account compute.
 See [Custom Tool conventions](https://docs.tamarind.bio/tamarind/custom-tools).
 
-Integration revision 0.3.3 keeps the engine/weights pinned to
+Integration revision 0.3.4 keeps the engine/weights pinned to
 7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03 and its
 source archive SHA-256 is checked during image build. Dependencies live under
 /opt because Tamarind overlays the submitted source at /app. A checked

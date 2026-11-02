@@ -167,6 +167,7 @@ for row, result in zip(rows, batch['structures']):
     with pymol2.PyMOL() as session:
         cmd = session.cmd
         cmd.load(str(out / row['pymol_session']))
+        assert cmd.get_scene_list() == ['Overview', 'All_site_labels']
         assert cmd.count_states('original_structure') == 1
         # mmCIF polymer metadata may add coordinate-less sequence placeholders;
         # count_atoms(state=0) includes those, unlike the exported coordinate model.
@@ -184,8 +185,18 @@ for row, result in zip(rows, batch['structures']):
             labels = []
             cmd.iterate('predicted_sites', 'labels.append(label)', space={'labels': labels})
             assert all('Predicted site' in label and 'p=' in label for label in labels)
+            assert cmd.count_atoms('predicted_sites and rep labels', state=1) == 1
+            cmd.scene('All_site_labels', 'recall', animate=0)
+            assert cmd.count_atoms('predicted_sites and rep labels', state=1) == len(result['sites'])
+            assert cmd.count_atoms('predicted_sites', state=1) == len(result['sites'])
+            cmd.scene('Overview', 'recall', animate=0)
+            assert cmd.count_atoms('predicted_sites and rep labels', state=1) == 1
+            assert cmd.count_atoms('predicted_sites', state=1) == len(result['sites'])
         else:
             assert 'predicted_sites' not in cmd.get_names('objects')
+            for scene in ('All_site_labels', 'Overview'):
+                cmd.scene(scene, 'recall', animate=0)
+                assert cmd.count_atoms('rep labels', state=1) == 0
     print('PASS structure/PyMOL roundtrip:', result['key'], len(result['sites']), 'markers', flush=True)
 '''
 
@@ -241,7 +252,7 @@ def check_platform_outputs(output, canaries, *, exit_code=0):
 
 def check_public_outputs(output, batch, details, *, service_canaries=None):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.3.3"
+    assert batch["integration_version"] == "0.3.4"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
@@ -255,9 +266,12 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
     assert len(summary) == batch["structure_count"] == len(batch["structures"])
     config = json.loads((ROOT / "config.json").read_text())
     structure_outputs = [item for item in config["producedOutputs"] if item["type"] == "pdb"]
-    assert {item["path"] for item in structure_outputs} == {"*_ZincSight.pdb", "*_ZincSight.cif"}
-    scoped_files = {path.name for item in structure_outputs for path in output.glob(item["path"])
-                    if path.is_file()}
+    assert len(structure_outputs) == 1 and structure_outputs[0]["path"] == "*_ZincSight_structure.*"
+    scoped_files = set()
+    for item in structure_outputs:
+        matches = {path.name for path in output.glob(item["path"]) if path.is_file()}
+        assert matches, f"Each declared structure output must match actual files: {item['path']}"
+        scoped_files.update(matches)
     assert scoped_files == {row["structure_file"] for row in summary}, "Structure output scopes must include exactly the annotated viewer files"
     expected_files = {"00_Summary.csv", "sites.csv", "prediction.json",
                       "CITATION.txt", "ZincSight_results.zip"}
@@ -271,8 +285,8 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
         else:
             assert row["top_probability"] == ""
         viewer = row["structure_file"]
-        assert Path(viewer).name == viewer and re.fullmatch(r"\d{2,}_.+_ZincSight\.(pdb|cif)", viewer)
-        session = Path(viewer).with_suffix(".pse").name
+        assert Path(viewer).name == viewer and re.fullmatch(r"\d{2,}_.+_ZincSight_structure\.(pdb|cif)", viewer)
+        session = Path(viewer).stem.removesuffix("_structure") + ".pse"
         assert not {viewer, session} & expected_files, "Public input filenames collide"
         expected_files.update((viewer, session))
         artifacts = result["artifacts"]
