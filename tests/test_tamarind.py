@@ -1,7 +1,9 @@
 """Tamarind adapter contract tests; scientific parity is checked in the container."""
 import copy
+import contextlib
 import csv
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -102,6 +104,29 @@ class AdapterTests(unittest.TestCase):
             adapter.run(self.app, {}, Mock(side_effect=RuntimeError("engine failed")))
         self.assertFalse((self.app / "out/prediction.json").exists())
 
+    def test_failed_worker_logs_are_bounded_and_cleanup_still_runs(self):
+        log = io.StringIO()
+        with contextlib.redirect_stderr(log), self.assertRaisesRegex(RuntimeError, 'worker failed'):
+            with adapter.diagnostic_workdir() as directory:
+                work = Path(directory)
+                (work / 'worker.log').write_text('discard this prefix\n' + 'x' * 40000 + '\nworker detail')
+                (work / 'database.log').write_text('database detail')
+                raise RuntimeError('worker failed')
+        self.assertFalse(work.exists())
+        self.assertIn('worker detail', log.getvalue())
+        self.assertIn('database detail', log.getvalue())
+        self.assertNotIn('discard this prefix', log.getvalue())
+        self.assertLess(len(log.getvalue()), 33000)
+
+    def test_successful_worker_does_not_emit_diagnostics(self):
+        log = io.StringIO()
+        with contextlib.redirect_stderr(log), adapter.diagnostic_workdir() as directory:
+            work = Path(directory)
+            (work / 'worker.log').write_text('successful worker')
+        self.assertFalse(work.exists())
+        self.assertEqual(log.getvalue(), '')
+
 
 if __name__ == "__main__":
     unittest.main()
+

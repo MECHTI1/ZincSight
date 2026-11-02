@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import csv
+from contextlib import contextmanager
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import sys
+import tempfile
+from types import SimpleNamespace
 
 ENGINE_ROOT = Path("/opt/zincsight")
 ENGINE_REVISION = "7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03"
@@ -66,14 +69,30 @@ def find_structure(app: Path, environment) -> Path:
     return path
 
 
+@contextmanager
+def diagnostic_workdir(*args, **kwargs):
+    """Keep job-local worker diagnostics visible before temporary cleanup."""
+    with tempfile.TemporaryDirectory(*args, **kwargs) as directory:
+        try:
+            yield directory
+        except Exception:
+            for name in ("worker.log", "database.log"):
+                path = Path(directory) / name
+                if path.is_file():
+                    print(f"--- ZincSight {name} (last 32 KiB) ---", file=sys.stderr)
+                    print(path.read_text(errors="replace")[-32768:], file=sys.stderr)
+            raise
+
+
 def load_predictor():
     revision_file = ENGINE_ROOT / "SOURCE_REVISION"
     if not revision_file.is_file() or revision_file.read_text().strip() != ENGINE_REVISION:
         raise RuntimeError("The pinned ZincSight engine is missing or mismatched; rebuild the image.")
     # Use the image's pinned scientific source, independently of the mounted repo.
     sys.path.insert(0, str(ENGINE_ROOT))
-    from integrations.mcp.runner import run_prediction
-    return run_prediction
+    from integrations.mcp import runner
+    runner.tempfile = SimpleNamespace(TemporaryDirectory=diagnostic_workdir)
+    return runner.run_prediction
 
 
 def run(app: Path, environment, predictor) -> dict:
@@ -92,7 +111,8 @@ def run(app: Path, environment, predictor) -> dict:
                        database_backend="pglite", **parameters)
     result.update(
         source=structure.name, input_sha256=hashlib.sha256(raw).hexdigest(),
-        software_revision=ENGINE_REVISION, integration="tamarind", integration_version="0.1.0",
+        software_revision=ENGINE_REVISION, integration="tamarind", integration_version="0.1.2",
+        database_transport="unix_socket",
         validation_status=VALIDATION_STATUS, citation=CITATION,
         returned_site_count=len(result["sites"]), max_sites=parameters["max_sites"],
     )

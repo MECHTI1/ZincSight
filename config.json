@@ -21,13 +21,14 @@
       "type": "pdb",
       "extension": ["pdb", "cif", "mmcif"],
       "required": true,
-      "descr": "Upload one structure, at most 5 MB and 4,000 protein residues. Uses the first model and all its protein chains."
+      "descr": "Upload one uncompressed PDB/mmCIF protein structure up to 5 MB and 4,000 residues, with the side-chain coordinates needed for prediction. Uses all chains in the first model."
     },
     {
       "name": "histidine_rotamers",
       "displayName": "Sample histidine rotamers",
       "type": "boolean",
-      "default": true
+      "default": true,
+      "descr": "Enabled by default. Samples alternative histidine side-chain orientations to improve sensitivity, with a possible small increase in false positives. Disable to use the input orientations only."
     },
     {
       "name": "minimum_probability",
