@@ -24,30 +24,21 @@
   "inputs": [
     {
       "name": "structures",
-      "displayName": "Protein structures",
-      "type": "pdb",
+      "displayName": "Protein structures or batch archives",
+      "type": "file",
       "extension": [
         "pdb",
         "cif",
-        "mmcif"
-      ],
-      "list": true,
-      "required": false,
-      "descr": "Upload one or many PDB/mmCIF structures, or use batch archives below. Every protein chain in the first model is analyzed; side-chain coordinates are required. No fixed structure-count or protein-size cap. Each uploaded file must fit the platform transport limit."
-    },
-    {
-      "name": "batch_archive",
-      "displayName": "Batch archives or prepared ID batches",
-      "type": "file",
-      "extension": [
+        "mmcif",
+        "ent",
         "zip",
         "tar",
         "gz",
         "tgz"
       ],
-      "required": false,
-      "descr": "Upload one or more ZIP, TAR, TAR.GZ or TGZ archives containing structures. For IDs, upload every ZIP part produced by Prepare Tamarind Batch. Each upload is limited to 200 MB by Tamarind transport; the number of structures is not capped.",
-      "list": true
+      "list": true,
+      "required": true,
+      "descr": "Upload one or many PDB/mmCIF/ENT structures, ZIP/TAR archives, gzip-compressed structures, or any mixture. For IDs, upload every ZIP part produced by Prepare Tamarind Batch. Every protein chain in the first model is analyzed; side-chain coordinates are required. Each uploaded file must fit Tamarind's 200 MB transport limit; structure count and protein size are not capped."
     },
     {
       "name": "histidine_rotamers",

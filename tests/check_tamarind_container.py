@@ -241,7 +241,7 @@ def check_platform_outputs(output, canaries, *, exit_code=0):
 
 def check_public_outputs(output, batch, details, *, service_canaries=None):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.3.1"
+    assert batch["integration_version"] == "0.3.2"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
@@ -420,7 +420,7 @@ def main():
                 ("cif-no-rotamers", "1KLS.cif", "false"),
                 ("all-sites", "2A0S-assembly1.cif", "true"),
                 ("no-sites", "empty_sites.pdb", "true")]:
-            batch = case(label, [name], {"structure": f"/app/inputs/{name}"}, rotamers)
+            batch = case(label, [name], {"structures": json.dumps([f"/app/inputs/{name}"])}, rotamers)
             result = batch["structures"][0]
             # Preserve the flat single-input JSON compatibility and exact baseline checks.
             assert all(batch[key] == result[key] for key in PARITY_KEYS)
@@ -441,12 +441,18 @@ def main():
         assert batch["structures"][0]["source"] == batch["structures"][1]["source"] == "1KLS.pdb"
         assert batch["structures"][2]["sites"] == []
         batch = case("batch-prepared-archive", ["1KLS.cif", "empty_sites.pdb"],
-                     {"batch_archive": "/app/inputs/prepared.zip"})
+                     {"structures": json.dumps(["/app/inputs/prepared.zip"])})
         for result, entry in zip(batch["structures"], manifest["structures"]):
             assert result["input_provenance"] == entry
 
+        batch = case("batch-mixed-upload", ["1KLS.pdb", "1KLS.cif", "empty_sites.pdb"],
+                     {"structures": json.dumps(["/app/inputs/1KLS.pdb", "/app/inputs/prepared.zip"])})
+        assert batch["structures"][2]["sites"] == []
+        for result, entry in zip(batch["structures"][1:], manifest["structures"]):
+            assert result["input_provenance"] == entry
+
         canaries = prepare_platform_outputs(app / "out")
-        invalid = subprocess.run(base + resources + ["-e", "structure=/app/inputs/invalid.pdb",
+        invalid = subprocess.run(base + resources + ["-e", "structures=/app/inputs/invalid.pdb",
                                                     "--entrypoint", "bash", args.image, "-c", PLATFORM_WRAPPER],
                                  text=True, capture_output=True, timeout=60)
         (args.output / "invalid.log").write_text(invalid.stdout + invalid.stderr)

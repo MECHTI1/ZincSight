@@ -173,16 +173,18 @@ class AdapterTests(unittest.TestCase):
         self.assertFalse((self.app / 'out/CITATION.bib').exists())
         self.assertFalse((self.app / 'out/citation.json').exists())
 
-    def test_batch_keeps_duplicate_basenames_distinct_and_zero_site_inputs_visible(self):
-        second = self.app / 'inputs/nested/sample.pdb'
-        second.parent.mkdir()
-        second.write_text(PDB.replace('0.000', '1.000'))
+    def test_mixed_upload_keeps_duplicate_basenames_distinct_and_zero_site_inputs_visible(self):
+        archive = self.app / 'inputs/nested.zip'
+        second_text = PDB.replace('0.000', '1.000')
+        with zipfile.ZipFile(archive, 'w') as bundle:
+            bundle.writestr('nested/sample.pdb', second_text)
         def mixed(inputs, **settings):
             results = self.predictor(inputs, **settings)
             results[1].update(sites=[], site_count=0)
             return results
-        result = self.run_adapter({'structures': json.dumps(['sample.pdb', 'nested/sample.pdb'])}, mixed)
+        result = self.run_adapter({'structures': json.dumps(['sample.pdb', 'nested.zip'])}, mixed)
         self.assertEqual(result['structure_count'], 2)
+        self.assertEqual(self.inspected_inputs, [[PDB, second_text]])
         self.assertNotIn('sites', result)
         self.assertEqual(result['returned_site_count'], 1)
         self.assertEqual([item['key'] for item in result['structures']], ['s0001_sample', 's0002_sample'])

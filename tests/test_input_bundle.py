@@ -226,7 +226,7 @@ class InputBundleTests(unittest.TestCase):
         first = self.zip('part-1.zip', [('manifest.json', json.dumps(manifest)), ('structures/input.pdb', PDB)])
         second = self.zip('part-2.zip', [('manifest.json', json.dumps(manifest)), ('structures/input.pdb', PDB)])
         items = bundle_reader.collect_structures(
-            self.app, {'batch_archive': json.dumps([str(first), str(second)])},
+            self.app, {'structures': json.dumps([str(first), str(second)])},
             staging_dir=self.app / 'private-staging')
         self.assertEqual(len(items), 2)
         self.assertNotEqual(items[0]['structure_path'], items[1]['structure_path'])
