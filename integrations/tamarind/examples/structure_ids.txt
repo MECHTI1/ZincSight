@@ -1,0 +1,4 @@
+# Mix IDs separated by commas, spaces, tabs or newlines.
+1KLS, P69905, "AF-A0A3W0S055-F1-model_v6.cif"
+# Explicit AlphaFold fragment/model versions are preserved.
+# AF-P12345-F2-model_v4.cif.gz

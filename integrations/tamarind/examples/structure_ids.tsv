@@ -1,0 +1,4 @@
+structure_id	description
+1KLS	PDB entry
+P69905	UniProt accession resolved to an AlphaFold model
+AF-A0A3W0S055-F1-model_v6.cif	Explicit AlphaFold model filename
