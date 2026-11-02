@@ -68,14 +68,15 @@ No account credentials or absolute local paths are included in the archives.
 
 **Summary** has one row per input: structure, qualifying sites, top probability,
 status and a structure link. **Predicted sites** lists all qualifying sites with
-probability, coordinating residues, template ID and template RMSD. The Files panel
+structure/source identity, site rank, probability, full X/Y/Z coordinates in Å,
+coordinating residues, residue combination, template ID and template RMSD. The Files panel
 keeps one friendly-named structure and PyMOL session per input, plus the complete
 results ZIP and prediction JSON.
 
 | Output | Contents |
 | --- | --- |
 | 00_Summary.csv | Five-column per-input summary, including zero-site structures |
-| 01_Predicted_sites.csv | Six-column table of every qualifying site |
+| sites.csv | Complete site table: structure/source IDs, rank, probability, X/Y/Z coordinates, coordinating residues, residue combination and template matches |
 | NN_label_ZincSight.pdb or .cif | One canonical structure per input, with original atoms/ions and predicted-site markers |
 | NN_label_ZincSight.pse | A ready-to-open PyMOL session per input |
 | prediction.json | Full predictions, settings, provenance, timings and public/bundle artifact mappings |
@@ -129,7 +130,7 @@ validated version to the organization. Verify the viewer, sessions and downloade
 bundle on Tamarind itself. Test/production jobs consume account compute.
 See [Custom Tool conventions](https://docs.tamarind.bio/tamarind/custom-tools).
 
-Integration revision 0.3.0 keeps the engine/weights pinned to
+Integration revision 0.3.1 keeps the engine/weights pinned to
 7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03 and its
 source archive SHA-256 is checked during image build. Dependencies live under
 /opt because Tamarind overlays the submitted source at /app. A checked

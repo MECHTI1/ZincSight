@@ -82,7 +82,7 @@ class AdapterTests(unittest.TestCase):
     def assert_clean_public_output(self, result):
         self.assertEqual(result['output_layout'], 'summary_and_bundle')
         self.assertTrue((self.app / 'out' / result['result_bundle']).is_file())
-        expected = {'00_Summary.csv', '01_Predicted_sites.csv', 'CITATION.txt',
+        expected = {'00_Summary.csv', 'sites.csv', 'CITATION.txt',
                     'prediction.json', result['result_bundle']}
         for item in result['structures']:
             self.assertNotIn('prediction_json', item)
@@ -139,9 +139,13 @@ class AdapterTests(unittest.TestCase):
         row = self.bundled_rows('sites.csv')[0]
         self.assertEqual(json.loads(row['coordinating_residues']), SITE['coordinating_residues'])
         self.assertEqual(float(row['z_angstrom']), 3.3)
-        site = self.rows('01_Predicted_sites.csv')[0]
-        self.assertEqual(site['structure'], result['display_name'])
-        self.assertEqual((site['site'], float(site['probability'])), ('1', SITE['probability']))
+        site = self.rows('sites.csv')[0]
+        self.assertEqual(tuple(site), tuple(adapter.SITE_FIELDS))
+        self.assertEqual(site['structure_id'], result['key'])
+        self.assertEqual(site['source'], result['source'])
+        self.assertEqual((site['site_rank'], float(site['probability'])), ('1', SITE['probability']))
+        self.assertEqual([float(site[axis + '_angstrom']) for axis in 'xyz'], SITE['coordinates_angstrom'])
+        self.assertEqual((self.app / 'out/sites.csv').read_bytes(), self.bundled_bytes('sites.csv'))
         for path in result['artifacts'].values():
             self.assertTrue((self.app / 'out' / path).is_file())
         per_input = json.loads(self.bundled_bytes(result['prediction_json_in_bundle']))
@@ -190,7 +194,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(summaries[1]['top_probability'], '')
         self.assertNotEqual(summaries[0]['structure_file'], summaries[1]['structure_file'])
         self.assertTrue((self.app / 'out' / result['structures'][1]['artifacts']['pymol_session']).is_file())
-        self.assertEqual(len(self.rows('01_Predicted_sites.csv')), 1)
+        self.assertEqual(len(self.rows('sites.csv')), 1)
         self.assertEqual(len(self.bundled_rows('sites.csv')), 1)
 
     def test_zero_sites_still_exports_structure_and_session_with_header_only_sites(self):
@@ -202,7 +206,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result['returned_site_count'], 0)
         self.assertFalse(result['truncated'])
         self.assert_clean_public_output(result)
-        self.assertEqual(self.rows('01_Predicted_sites.csv'), [])
+        self.assertEqual(self.rows('sites.csv'), [])
         self.assertEqual(self.bundled_rows('sites.csv'), [])
         self.assertEqual(len(self.rows('00_Summary.csv')), 1)
         self.assertEqual(self.rows('00_Summary.csv')[0]['status'], 'No sites predicted')
@@ -227,7 +231,16 @@ class AdapterTests(unittest.TestCase):
         self.assertTrue(all('max_sites' not in item for item in result['structures']))
         self.assertEqual([int(row['sites']) for row in self.rows('00_Summary.csv')], list(counts))
         self.assertEqual([row['status'] for row in self.rows('00_Summary.csv')], ['Complete', 'Complete'])
-        self.assertEqual(len(self.rows('01_Predicted_sites.csv')), sum(counts))
+        site_rows = self.rows('sites.csv')
+        self.assertEqual(len(site_rows), sum(counts))
+        self.assertEqual(tuple(site_rows[0]), tuple(adapter.SITE_FIELDS))
+        for item in result['structures']:
+            rows = [row for row in site_rows if row['structure_id'] == item['key']]
+            for rank, (row, site) in enumerate(zip(rows, item['sites']), 1):
+                self.assertEqual(int(row['site_rank']), rank)
+                self.assertEqual(float(row['probability']), site['probability'])
+                self.assertEqual([float(row[axis + '_angstrom']) for axis in 'xyz'], site['coordinates_angstrom'])
+                self.assertEqual(json.loads(row['coordinating_residues']), site['coordinating_residues'])
         for item, count in zip(result['structures'], counts):
             self.assertEqual(len(item['sites']), count)
             archived = json.loads(self.bundled_bytes(item['prediction_json_in_bundle']))
@@ -249,8 +262,8 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result['input_provenance']['identifier'], '1KLS')
         self.assertEqual(self.bundled_rows('sites.csv')[0]['source'], "'" + source_name)
         self.assertEqual(self.bundled_rows('structures.csv')[0]['source'], "'" + source_name)
-        for filename in ('00_Summary.csv', '01_Predicted_sites.csv'):
-            self.assertFalse(self.rows(filename)[0]['structure'].startswith(('=', '+', '-', '@')))
+        self.assertFalse(self.rows('00_Summary.csv')[0]['structure'].startswith(('=', '+', '-', '@')))
+        self.assertEqual(self.rows('sites.csv')[0]['source'], "'" + source_name)
 
     def test_engine_and_export_failures_never_write_final_success_bundle(self):
         with self.assertRaisesRegex(RuntimeError, 'engine failed'):
@@ -363,7 +376,7 @@ class AdapterTests(unittest.TestCase):
             log.flush()
         self.assertTrue(export_directories)
         self.assertTrue(all(not path.exists() for path in export_directories))
-        expected = {'00_Summary.csv', '01_Predicted_sites.csv', 'CITATION.txt', 'prediction.json', result['result_bundle']}
+        expected = {'00_Summary.csv', 'sites.csv', 'CITATION.txt', 'prediction.json', result['result_bundle']}
         for item in result['structures']:
             expected.update((item['artifacts']['structure'], item['artifacts']['pymol_session']))
         self.assertEqual(created, expected)

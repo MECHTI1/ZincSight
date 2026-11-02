@@ -118,38 +118,74 @@
     {
       "name": "Predicted sites",
       "type": "csv",
-      "path": "01_Predicted_sites.csv",
-      "descr": "All qualifying sites across the batch with probabilities, coordinating residues and matched templates.",
+      "path": "sites.csv",
+      "descr": "All qualifying sites with input identities, probabilities, full ion coordinates in Å, coordinating residues and template diagnostics. Advanced coordinates remain in the original input frame.",
       "columns": [
         {
-          "name": "structure",
-          "displayName": "Structure",
-          "type": "string"
+          "name": "structure_id",
+          "displayName": "Structure ID",
+          "type": "string",
+          "description": "Stable input identifier linking this site to its summary row and detailed predictions."
         },
         {
-          "name": "site",
+          "name": "source",
+          "displayName": "Input structure",
+          "type": "string",
+          "description": "Original input filename or prepared-batch structure name."
+        },
+        {
+          "name": "site_rank",
           "displayName": "Site",
-          "type": "rank"
+          "type": "rank",
+          "description": "Per-structure rank, ordered by decreasing probability."
         },
         {
           "name": "probability",
           "displayName": "Probability",
-          "type": "number"
+          "type": "number",
+          "description": "ZincSight probability for the predicted binding site."
+        },
+        {
+          "name": "x_angstrom",
+          "displayName": "X (Å)",
+          "type": "number",
+          "description": "Predicted ion X coordinate in the original input coordinate frame."
+        },
+        {
+          "name": "y_angstrom",
+          "displayName": "Y (Å)",
+          "type": "number",
+          "description": "Predicted ion Y coordinate in the original input coordinate frame."
+        },
+        {
+          "name": "z_angstrom",
+          "displayName": "Z (Å)",
+          "type": "number",
+          "description": "Predicted ion Z coordinate in the original input coordinate frame."
         },
         {
           "name": "coordinating_residues",
           "displayName": "Coordinating residues",
-          "type": "string"
+          "type": "string",
+          "description": "JSON list of chain/residue identifiers that define the predicted site."
+        },
+        {
+          "name": "residue_combination",
+          "displayName": "Residue combination",
+          "type": "string",
+          "description": "Coordinating amino-acid combination matched to the ZincSight template."
         },
         {
           "name": "template_id",
           "displayName": "Template ID",
-          "type": "string"
+          "type": "string",
+          "description": "Matched experimental template supporting the prediction."
         },
         {
           "name": "template_rmsd_angstrom",
           "displayName": "Template RMSD (Å)",
-          "type": "number"
+          "type": "number",
+          "description": "Structural deviation between the candidate site and its matched template."
         }
       ]
     },

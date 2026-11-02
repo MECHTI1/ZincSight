@@ -18,10 +18,8 @@ import zipfile
 
 BUNDLE_NAME = "ZincSight_results.zip"
 SUMMARY_NAME = "00_Summary.csv"
-SITES_NAME = "01_Predicted_sites.csv"
+SITES_NAME = "sites.csv"
 SUMMARY_FIELDS = ("structure", "sites", "top_probability", "status", "structure_file")
-SITE_FIELDS = ("structure", "site", "probability", "coordinating_residues",
-               "template_id", "template_rmsd_angstrom")
 _OLD_BUNDLES = {"zincsight_results.zip", BUNDLE_NAME}
 _APP_FILES = {"CITATION.txt", "CITATION.bib", "citation.json", "RESULTS_README.txt",
               "prediction.json", "structures.csv", "sites.csv"}
@@ -115,7 +113,7 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
     for required in ("CITATION.txt", "prediction.json", "structures.csv", "sites.csv"):
         _member(output, required)
 
-    mappings, summary_rows, site_rows, public_sources = {}, [], [], []
+    mappings, summary_rows, public_sources = {}, [], []
     width = max(2, len(str(len(structures))))
     for number, result in enumerate(structures, 1):
         if not isinstance(result, dict):
@@ -161,15 +159,9 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
         summary_rows.append({"structure": display, "sites": site_count,
                              "top_probability": max((site["probability"] for site in sites), default=""),
                              "status": status, "structure_file": viewer})
-        for rank, site in enumerate(sites, 1):
-            site_rows.append({"structure": display, "site": rank, "probability": site["probability"],
-                              "coordinating_residues": ", ".join(site["coordinating_residues"]),
-                              "template_id": site.get("template_id", ""),
-                              "template_rmsd_angstrom": site.get("template_rmsd_angstrom", "")})
-
     metadata = {"bundle_path": BUNDLE_NAME, "structures": mappings,
                 "summary_file": SUMMARY_NAME, "predicted_sites_file": SITES_NAME}
-    new_names = {SUMMARY_NAME, SITES_NAME} | {name for name, _ in public_sources}
+    new_names = {SUMMARY_NAME} | {name for name, _ in public_sources}
     if any((output / name).exists() or (output / name).is_symlink() for name in new_names):
         raise ValueError("The output already contains a reserved public result filename.")
     temporary = Path(tempfile.mkdtemp(prefix=".packaging-", dir=output))
@@ -179,18 +171,19 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
     try:
         staged.mkdir()
         backup.mkdir()
-        for name in ("CITATION.txt", "prediction.json"):
+        for name in ("CITATION.txt", "prediction.json", SITES_NAME):
             shutil.copy2(output / name, staged / name)
         for name, path in public_sources:
             shutil.copy2(path, staged / name)
         _write_csv(staged / SUMMARY_NAME, SUMMARY_FIELDS, summary_rows)
-        _write_csv(staged / SITES_NAME, SITE_FIELDS, site_rows)
         with zipfile.ZipFile(staged / BUNDLE_NAME, "w", zipfile.ZIP_DEFLATED) as archive:
             for name, path in originals:
                 archive.write(path, name)
             # Public tables/files are convenient after downloading the bundle;
             # the original detailed paths above remain valid and unchanged.
-            for name in (SUMMARY_NAME, SITES_NAME, *(name for name, _ in public_sources)):
+            # sites.csv is the unchanged full scientific table already included
+            # with the original files; do not add a duplicate ZIP member.
+            for name in (SUMMARY_NAME, *(name for name, _ in public_sources)):
                 archive.write(staged / name, name)
             archive.writestr("public_manifest.json", json.dumps(metadata, indent=2, allow_nan=False) + "\n")
         # /app/out may be a mount or have a parent owned by another user. Move
