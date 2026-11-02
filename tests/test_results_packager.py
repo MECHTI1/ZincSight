@@ -71,7 +71,7 @@ class ResultsPackagerTests(unittest.TestCase):
 
     def assert_unchanged(self, before):
         self.assertEqual(self.snapshot(), before)
-        self.assertFalse(list(self.output.parent.glob(".out.packaging-*")))
+        self.assertFalse(list(self.output.glob(".packaging-*")))
 
     def test_compact_public_layout_and_complete_original_bundle(self):
         results = self.fixture([{}, {"source": "nested/2A0S-assembly1.cif", "pdb": False,
@@ -232,18 +232,85 @@ class ResultsPackagerTests(unittest.TestCase):
                 packager.finalize_outputs(self.output, structures=results)
         self.assert_unchanged(original)
 
-    def test_publication_failure_restores_original_directory(self):
+    def test_directory_inode_and_permissions_survive_when_directory_rename_is_forbidden(self):
+        results = self.fixture([{}])
+        self.output.chmod(0o750)
+        before = self.output.stat()
+        replace = os.replace
+        moves = []
+        def forbid_output_rename(source, destination):
+            source, destination = Path(source), Path(destination)
+            if source == self.output or destination == self.output:
+                raise PermissionError("mounted output directory cannot be renamed")
+            self.assertTrue(source.is_relative_to(self.output))
+            self.assertTrue(destination.is_relative_to(self.output))
+            moves.append((source, destination))
+            return replace(source, destination)
+        with patch.object(packager.os, "replace", side_effect=forbid_output_rename):
+            packager.finalize_outputs(self.output, structures=results)
+        after = self.output.stat()
+        self.assertEqual((before.st_ino, before.st_dev, before.st_mode, before.st_uid, before.st_gid),
+                         (after.st_ino, after.st_dev, after.st_mode, after.st_uid, after.st_gid))
+        self.assertTrue(moves)
+        self.assertTrue((self.output / "ZincSight_results.zip").is_file())
+        self.assertFalse(list(self.output.glob(".packaging-*")))
+
+    def test_mid_file_publication_failure_restores_all_original_children(self):
         results = self.fixture([{}])
         original = self.snapshot()
+        inode = self.output.stat().st_ino
         replace = os.replace
+        published = []
         def fail_publication(source, destination):
-            if Path(source).name == "public":
-                raise OSError("publication failure")
+            if Path(source).parent.name == "public":
+                if len(published) == 2:
+                    raise OSError("publication failure")
+                published.append(Path(destination).name)
             return replace(source, destination)
         with patch.object(packager.os, "replace", side_effect=fail_publication):
             with self.assertRaisesRegex(OSError, "publication failure"):
                 packager.finalize_outputs(self.output, structures=results)
+        self.assertEqual(len(published), 2)
+        self.assertEqual(self.output.stat().st_ino, inode)
         self.assert_unchanged(original)
+
+    def test_mid_original_backup_failure_restores_previously_moved_children(self):
+        results = self.fixture([{}])
+        original = self.snapshot()
+        replace = os.replace
+        backed_up = []
+        def fail_backup(source, destination):
+            if Path(destination).parent.name == "original":
+                if len(backed_up) == 2:
+                    raise OSError("backup failure")
+                backed_up.append(Path(source).name)
+            return replace(source, destination)
+        with patch.object(packager.os, "replace", side_effect=fail_backup):
+            with self.assertRaisesRegex(OSError, "backup failure"):
+                packager.finalize_outputs(self.output, structures=results)
+        self.assertEqual(len(backed_up), 2)
+        self.assert_unchanged(original)
+
+    def test_failed_rollback_retains_original_files_for_recovery(self):
+        results = self.fixture([{}])
+        original = self.snapshot()
+        replace = os.replace
+        def fail_publication_and_one_restore(source, destination):
+            source = Path(source)
+            if source.parent.name == "public":
+                raise OSError("publication failure")
+            if source.parent.name == "original" and source.name == "CITATION.txt":
+                raise OSError("restore failure")
+            return replace(source, destination)
+        with patch.object(packager.os, "replace", side_effect=fail_publication_and_one_restore):
+            with self.assertRaisesRegex(RuntimeError, "rollback was incomplete"):
+                packager.finalize_outputs(self.output, structures=results)
+        temporary, = self.output.glob(".packaging-*")
+        for name, contents in original.items():
+            public = self.output / name
+            saved = temporary / "original" / name
+            self.assertTrue(public.is_file() or saved.is_file(), name)
+            self.assertEqual((public if public.is_file() else saved).read_bytes(), contents)
 
 
 if __name__ == "__main__":
