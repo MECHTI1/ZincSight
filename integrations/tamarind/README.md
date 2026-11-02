@@ -91,6 +91,10 @@ inside the bundle. Coordinates stay in the input frame. PDB uses its standard
 full-precision mmCIF remains in the bundle. When PDB cannot represent the input,
 the viewer uses mmCIF.
 
+The declared structure outputs match only the named `*_ZincSight.pdb` and
+`*_ZincSight.cif` files, keeping input copies and PyMOL sessions outside the
+structure output contract.
+
 PyMOL shows a lavender protein cartoon, purple coordinating side chains with
 element-colored donors, and predicted-site spheres colored by probability with
 rank/probability labels. Original atoms, experimental metals and predictions
@@ -130,7 +134,7 @@ validated version to the organization. Verify the viewer, sessions and downloade
 bundle on Tamarind itself. Test/production jobs consume account compute.
 See [Custom Tool conventions](https://docs.tamarind.bio/tamarind/custom-tools).
 
-Integration revision 0.3.2 keeps the engine/weights pinned to
+Integration revision 0.3.3 keeps the engine/weights pinned to
 7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03 and its
 source archive SHA-256 is checked during image build. Dependencies live under
 /opt because Tamarind overlays the submitted source at /app. A checked
