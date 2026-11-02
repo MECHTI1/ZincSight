@@ -1,4 +1,4 @@
-"""Stdlib-only batch adapter contract tests; structures are checked in-image."""
+"""Stdlib-only adapter and real result-packaging contracts; structures are checked in-image."""
 import copy
 import csv
 import hashlib
@@ -51,7 +51,7 @@ class AdapterTests(unittest.TestCase):
         for key, suffix in [('pdb', '.pdb'), ('mmcif', '.cif'),
                             ('pymol_session', '.pse'), ('site_annotations', '_sites.json')]:
             path = directory / (stem + suffix)
-            path.write_text('export test artifact\n')
+            path.write_bytes(f'{stem}:{key}:export test artifact\n'.encode())
             paths[key] = path
         return {'artifact_paths': paths, 'warnings': [], 'predicted_marker_chain': 'Z'}
 
@@ -63,6 +63,38 @@ class AdapterTests(unittest.TestCase):
     def rows(self, filename):
         with (self.app / 'out' / filename).open(newline='') as stream:
             return list(csv.DictReader(stream))
+
+    def bundled_bytes(self, filename):
+        bundles = list((self.app / 'out').glob('*.zip'))
+        self.assertEqual(len(bundles), 1)
+        with zipfile.ZipFile(bundles[0]) as archive:
+            return archive.read(filename)
+
+    def bundled_rows(self, filename):
+        return list(csv.DictReader(self.bundled_bytes(filename).decode().splitlines()))
+
+    def assert_clean_public_output(self, result):
+        self.assertEqual(result['output_layout'], 'summary_and_bundle')
+        self.assertTrue((self.app / 'out' / result['result_bundle']).is_file())
+        expected = {'00_Summary.csv', '01_Predicted_sites.csv', 'CITATION.txt',
+                    'prediction.json', result['result_bundle']}
+        for item in result['structures']:
+            self.assertNotIn('prediction_json', item)
+            self.assertIn('prediction_json_in_bundle', item)
+            self.assertIn('bundle_members', item)
+            artifacts = item['artifacts']
+            self.assertEqual(artifacts['details_bundle'], result['result_bundle'])
+            self.assertEqual(artifacts['structure'], artifacts['pdb'] if 'pdb' in artifacts else artifacts['mmcif'])
+            for name in ('structure', 'pymol_session'):
+                path = artifacts[name]
+                self.assertEqual(Path(path).name, path)
+                expected.add(path)
+                self.assertTrue((self.app / 'out' / path).is_file())
+            self.assertEqual((self.app / 'out' / artifacts['structure']).read_bytes(),
+                             self.bundled_bytes(item['bundle_members']['pdb' if 'pdb' in artifacts else 'mmcif']))
+            self.assertEqual((self.app / 'out' / artifacts['pymol_session']).read_bytes(),
+                             self.bundled_bytes(item['bundle_members']['pymol_session']))
+        self.assertEqual({path.name for path in (self.app / 'out').iterdir()}, expected)
 
     def test_single_input_settings_resources_and_download_contract(self):
         result = self.run_adapter({'structure': str(self.structure), 'histidine_rotamers': 'false',
@@ -83,23 +115,35 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result['resources']['cpu_workers'], 2)
         self.assertEqual(result['database_transport'], 'unix_socket')
         self.assertEqual(json.loads((self.app / 'out/prediction.json').read_text()), result)
-        summary = self.rows('structures.csv')[0]
-        self.assertEqual(summary['structure_file'], 'structures/s0001_sample.pdb')
-        self.assertEqual(summary['pymol_session'], 'structures/s0001_sample.pse')
-        self.assertEqual(summary['returned_site_count'], '1')
-        row = self.rows('sites.csv')[0]
+        self.assert_clean_public_output(result)
+        self.assertNotIn('prediction_json', result)
+        summary = self.rows('00_Summary.csv')[0]
+        self.assertEqual(summary['structure'], result['display_name'])
+        self.assertEqual(summary['structure_file'], result['artifacts']['structure'])
+        self.assertEqual(summary['sites'], '1')
+        self.assertEqual(float(summary['top_probability']), SITE['probability'])
+        self.assertEqual(summary['status'], 'Complete')
+        row = self.bundled_rows('sites.csv')[0]
         self.assertEqual(json.loads(row['coordinating_residues']), SITE['coordinating_residues'])
         self.assertEqual(float(row['z_angstrom']), 3.3)
+        site = self.rows('01_Predicted_sites.csv')[0]
+        self.assertEqual(site['structure'], result['display_name'])
+        self.assertEqual((site['site'], float(site['probability'])), ('1', SITE['probability']))
         for path in result['artifacts'].values():
             self.assertTrue((self.app / 'out' / path).is_file())
-        per_input = json.loads((self.app / 'out' / result['prediction_json']).read_text())
+        per_input = json.loads(self.bundled_bytes(result['prediction_json_in_bundle']))
         self.assertEqual(per_input['sites'], [SITE])
-        with zipfile.ZipFile(self.app / 'out/zincsight_results.zip') as archive:
+        self.assertEqual(per_input['artifacts'],
+                         {key: result['bundle_members'][key] for key in per_input['artifacts']})
+        self.assertEqual(result['bundle_members']['prediction_json'], result['prediction_json_in_bundle'])
+        with zipfile.ZipFile(self.app / 'out' / result['result_bundle']) as archive:
             self.assertIsNone(archive.testzip())
-            self.assertIn(summary['pymol_session'], archive.namelist())
-            self.assertIn(summary['structure_file'], archive.namelist())
+            self.assertIn(result['bundle_members']['pymol_session'], archive.namelist())
+            self.assertIn(result['bundle_members']['pdb'], archive.namelist())
             self.assertIn('CITATION.bib', archive.namelist())
-            self.assertNotIn('zincsight_results.zip', archive.namelist())
+            self.assertNotIn(result['result_bundle'], archive.namelist())
+            original = json.loads(archive.read('prediction.json'))
+            self.assertEqual(original['structures'][0]['artifacts'], per_input['artifacts'])
 
     def test_citation_is_zincsight_paper_in_all_machine_and_download_formats(self):
         result = self.run_adapter()
@@ -107,8 +151,10 @@ class AdapterTests(unittest.TestCase):
         self.assertIn('Mechtinger G', result['citation'])
         self.assertIn('Protein Science. 2025;34(11):e70350', result['citation'])
         self.assertIn('10.1002/pro.70350', (self.app / 'out/CITATION.txt').read_text())
-        self.assertIn('doi = {10.1002/pro.70350}', (self.app / 'out/CITATION.bib').read_text())
-        self.assertEqual(json.loads((self.app / 'out/citation.json').read_text()), result['reference'])
+        self.assertIn('doi = {10.1002/pro.70350}', self.bundled_bytes('CITATION.bib').decode())
+        self.assertEqual(json.loads(self.bundled_bytes('citation.json')), result['reference'])
+        self.assertFalse((self.app / 'out/CITATION.bib').exists())
+        self.assertFalse((self.app / 'out/citation.json').exists())
 
     def test_batch_keeps_duplicate_basenames_distinct_and_zero_site_inputs_visible(self):
         second = self.app / 'inputs/nested/sample.pdb'
@@ -123,12 +169,16 @@ class AdapterTests(unittest.TestCase):
         self.assertNotIn('sites', result)
         self.assertEqual(result['returned_site_count'], 1)
         self.assertEqual([item['key'] for item in result['structures']], ['s0001_sample', 's0002_sample'])
-        summaries = self.rows('structures.csv')
+        self.assert_clean_public_output(result)
+        summaries = self.rows('00_Summary.csv')
         self.assertEqual(len(summaries), 2)
-        self.assertEqual(summaries[1]['returned_site_count'], '0')
+        self.assertEqual(summaries[1]['sites'], '0')
+        self.assertEqual(summaries[1]['status'], 'No sites predicted')
+        self.assertEqual(summaries[1]['top_probability'], '')
         self.assertNotEqual(summaries[0]['structure_file'], summaries[1]['structure_file'])
-        self.assertTrue((self.app / 'out' / summaries[1]['pymol_session']).is_file())
-        self.assertEqual(len(self.rows('sites.csv')), 1)
+        self.assertTrue((self.app / 'out' / result['structures'][1]['artifacts']['pymol_session']).is_file())
+        self.assertEqual(len(self.rows('01_Predicted_sites.csv')), 1)
+        self.assertEqual(len(self.bundled_rows('sites.csv')), 1)
 
     def test_zero_sites_still_exports_structure_and_session_with_header_only_sites(self):
         def empty(inputs, **settings):
@@ -138,8 +188,11 @@ class AdapterTests(unittest.TestCase):
         result = self.run_adapter(predictor=empty)
         self.assertEqual(result['returned_site_count'], 0)
         self.assertFalse(result['truncated'])
-        self.assertEqual(self.rows('sites.csv'), [])
-        self.assertEqual(len(self.rows('structures.csv')), 1)
+        self.assert_clean_public_output(result)
+        self.assertEqual(self.rows('01_Predicted_sites.csv'), [])
+        self.assertEqual(self.bundled_rows('sites.csv'), [])
+        self.assertEqual(len(self.rows('00_Summary.csv')), 1)
+        self.assertEqual(self.rows('00_Summary.csv')[0]['status'], 'No sites predicted')
         self.assertTrue((self.app / 'out' / result['artifacts']['pymol_session']).is_file())
 
     def test_site_limits_and_truncation_are_recorded_per_structure(self):
@@ -154,6 +207,9 @@ class AdapterTests(unittest.TestCase):
         self.assertTrue(result['truncated'])
         self.assertEqual(result['max_sites_per_structure'], 1)
         self.assertEqual([item['max_sites'] for item in result['structures']], [1, 1])
+        self.assertEqual([int(row['sites']) for row in self.rows('00_Summary.csv')], [5, 8])
+        self.assertEqual([row['status'] for row in self.rows('00_Summary.csv')], ['Truncated', 'Truncated'])
+        self.assertEqual(len(self.rows('01_Predicted_sites.csv')), 2)
 
     def test_spreadsheet_labels_are_escaped_while_json_keeps_original_source(self):
         raw = PDB.encode()
@@ -167,8 +223,10 @@ class AdapterTests(unittest.TestCase):
         result = self.run_adapter({'batch_archive': 'bundle.zip'})
         self.assertEqual(result['source'], source_name)
         self.assertEqual(result['input_provenance']['identifier'], '1KLS')
-        self.assertEqual(self.rows('sites.csv')[0]['source'], "'" + source_name)
-        self.assertEqual(self.rows('structures.csv')[0]['source'], "'" + source_name)
+        self.assertEqual(self.bundled_rows('sites.csv')[0]['source'], "'" + source_name)
+        self.assertEqual(self.bundled_rows('structures.csv')[0]['source'], "'" + source_name)
+        for filename in ('00_Summary.csv', '01_Predicted_sites.csv'):
+            self.assertFalse(self.rows(filename)[0]['structure'].startswith(('=', '+', '-', '@')))
 
     def test_engine_and_export_failures_never_write_final_success_bundle(self):
         with self.assertRaisesRegex(RuntimeError, 'engine failed'):
@@ -177,7 +235,7 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'export failed'):
             self.run_adapter(exporter=Mock(side_effect=RuntimeError('export failed')))
         self.assertFalse((self.app / 'out/prediction.json').exists())
-        self.assertFalse((self.app / 'out/zincsight_results.zip').exists())
+        self.assertEqual(list((self.app / 'out').glob('*.zip')), [])
 
     def test_missing_or_reordered_engine_identities_are_rejected(self):
         for output in ([], [{'key': 'wrong'}], [{'key': 's0001_sample'}, {'key': 'extra'}]):

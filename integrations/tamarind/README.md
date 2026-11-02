@@ -1,6 +1,6 @@
 # ZincSight on Tamarind
 
-This branch packages **ZincSight Preview v0.2.0** as a Tamarind Custom Tool.
+This branch packages **ZincSight Preview v0.2.1** as a Tamarind Custom Tool.
 Upload multiple protein structures or a structure archive in one job. Each input
 gets a viewable structure, prediction tables, and a downloadable PyMOL session,
 including inputs with no predicted sites.
@@ -9,7 +9,7 @@ Please cite **Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable predicti
 of zinc ion location in proteins with ZincSight. Protein Science.
 2025;34(11):e70350.** [https://doi.org/10.1002/pro.70350](https://doi.org/10.1002/pro.70350).
 The tool's Paper link, result JSON, structure annotations, and downloadable
-CITATION.txt / CITATION.bib point to this paper. Tamarind manages its native
+CITATION.txt and the bundled CITATION.bib point to this paper. Tamarind manages its native
 Citations tab separately; the current Custom Tool schema has no citation override,
 so that tab may continue to show Tamarind's default reference.
 
@@ -30,8 +30,8 @@ so that tab may continue to show Tamarind's default reference.
    Dependencies and the pinned engine are installed under /opt because Tamarind
    mounts the submitted repository over /app at runtime.
 3. Run a test with a small public structure such as
-   [1KLS.cif](https://files.rcsb.org/download/1KLS.cif). Check the Structures
-   preview, the downloaded PDB/mmCIF and .pse files, and the citation files.
+   [1KLS.cif](https://files.rcsb.org/download/1KLS.cif). Check the Summary
+   preview, the downloaded structure and .pse files, and the citation files.
    Also test a batch with a structure that has no predicted sites.
 4. Publish the validated version to the organization and choose its visibility.
    A Tamarind test or production job consumes account compute.
@@ -98,29 +98,47 @@ when intentionally replacing an existing prepared ZIP.
 
 ## Results and visualization
 
-The **Structures** table has one row per input. Its structure link opens the
-first-model structure with predicted-site markers; file links provide the mmCIF,
-PyMOL session, detailed prediction JSON, and marker annotations. Tamarind uses
-its own structure viewer, so the session's PyMOL colors and labels are available
+The **Summary** table has one row per input and five columns: structure, sites,
+top probability, status, and structure file. Sites is the total qualifying count;
+Truncated means the per-input site limit reduced the returned details.
+The structure link opens the
+first-model structure with predicted-site markers. The **Predicted sites** table
+contains the site rank, probability, coordinating residues, template ID, and
+template RMSD. Detailed coordinates and provenance remain available in the JSON
+and complete results ZIP.
+
+The Files panel has one canonical viewable structure and one PyMOL session per
+input, with friendly names such as 01_1KLS_ZincSight.pdb and
+01_1KLS_ZincSight.pse. Full mmCIF copies, per-input tables, and marker metadata
+are collected inside the ZIP to keep the main result list compact. Tamarind uses
+its own structure viewer; the session's PyMOL colors and labels are available
 in the downloaded .pse.
 
 | Output | Contents |
 | --- | --- |
-| structures.csv | Per-input counts, highest probability, truncation, structure links and export warnings |
-| sites.csv and sites/*.csv | Combined and per-input sites: coordinates, probabilities, coordinating residues and templates |
-| structures/*.pdb and structures/*.cif | Original first-model atoms and experimental ions plus predicted-site Zn markers |
-| structures/*.pse | A ready-to-open PyMOL session per input |
-| structures/*_sites.json | Marker identity, full coordinates, coordinating residues, chain/residue mappings and export notes |
-| predictions/*.json and prediction.json | Per-input predictions and batch summary with settings, provenance, resources and timings |
-| CITATION.txt, CITATION.bib, citation.json | The ZincSight paper citation |
-| zincsight_results.zip | All result files together |
+| 00_Summary.csv | Five-column summary with one row and viewable structure per input, including zero-site inputs |
+| 01_Predicted_sites.csv | Six-column combined site table with probabilities, residues, and template matches |
+| NN_label_ZincSight.pdb or .cif | One canonical structure per input: original first-model atoms and ions plus predicted-site markers |
+| NN_label_ZincSight.pse | A ready-to-open PyMOL session per input |
+| prediction.json | Full batch predictions, settings, provenance, resources, timings, and public/bundled artifact mappings |
+| CITATION.txt | The ZincSight paper citation |
+| ZincSight_results.zip | Complete detailed results, including full-precision mmCIF, PDB, PyMOL, per-input CSV/JSON, marker annotations, citation/BibTeX, and a public-to-bundle manifest |
+
+Inside the ZIP, the detailed layout remains structures.csv, sites.csv,
+sites/*.csv, predictions/*.json, and structures/*.{pdb,cif,pse} with matching
+structures/*_sites.json annotations. The bundle also retains the complete
+prediction.json and citation files. Public JSON distinguishes current
+downloadable paths from bundle member paths; files described as bundle members
+are opened after extracting the ZIP.
 
 Coordinates remain in the input frame. The predicted Zn atoms are **location
 markers**, not metal-identity assignments, and use a separate unused chain.
 Original ions remain present. mmCIF and JSON retain full predicted coordinates;
-standard PDB rounds coordinates to 0.001 Å. Long chain IDs or residue numbers may
-need explicit mappings for PDB. If the structure exceeds PDB format limits,
-mmCIF and PyMOL remain available and the result records the reason.
+standard PDB rounds coordinates to 0.001 Å. The public viewer uses PDB when it
+can represent the input, and mmCIF otherwise. Long chain IDs or residue numbers
+may need explicit mappings for PDB. Full mmCIF is always included in the bundle;
+if the input exceeds PDB format limits, the result records the reason and uses
+mmCIF/PyMOL.
 
 PyMOL sessions show the original protein as a lavender cartoon, coordinating
 residues as purple sticks with element-colored donor atoms, and predicted sites
@@ -129,7 +147,7 @@ probability. Original atoms, experimental-metal selections, predicted markers,
 and per-site coordinating selections remain distinguishable. Rotamer sampling
 changes the prediction search; the session retains the original input
 coordinates. A zero-site result still includes its structure and session, with
-no invented markers and a header-only per-input sites CSV.
+no invented markers and a header-only per-input sites CSV inside the bundle.
 
 ## Settings and compute
 
@@ -155,7 +173,7 @@ The scientific engine and weights remain pinned to commit
 7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03, with the source archive SHA-256
 verified during the Docker build. The image applies a checked transport-only
 patch so the job-local database uses a private Unix socket rather than loopback
-TCP. Results record the engine revision, integration version 0.2.0, and
+TCP. Results record the engine revision, integration version 0.2.1, and
 database_transport: unix_socket. To change the scientific revision, update the
 Dockerfile pin/digest and ENGINE_REVISION together and rerun validation.
 
@@ -165,13 +183,14 @@ all Tamarind unit tests inside that image. Its integration check mounts the
 entire integrations/tamarind directory and inputs over /app with networking
 disabled. It retains exact agreement with the pinned wrapper for PDB/mmCIF,
 rotamers on/off, truncation, and zero sites, then checks native file-list and
-prepared-archive batches, duplicate basenames, output ZIP integrity, citations,
-and reopening every PyMOL session. This still requires a separate live test
+prepared-archive batches, duplicate basenames, the compact public file/table
+contract, output ZIP integrity, citations, and reopening every bundled PyMOL
+session. This still requires a separate live test
 on Tamarind to verify the deployed platform's preview and download behavior.
 
 ~~~bash
 # Host tests do not require BioPython or PyMOL.
-for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py; do
+for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_results_packager.py; do
   python3 -m unittest discover -s tests -p "$test_file" -v
 done
 docker build -t zincsight-tamarind:test .

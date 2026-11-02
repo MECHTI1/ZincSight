@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 import sys
 import time
-import zipfile
 
 HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
@@ -17,7 +16,7 @@ from resources import worker_allocation
 
 ENGINE_ROOT = Path('/opt/zincsight')
 ENGINE_REVISION = '7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03'
-INTEGRATION_VERSION = '0.2.0'
+INTEGRATION_VERSION = '0.2.1'
 CITATION = (
     'Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion '
     'location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. '
@@ -197,10 +196,27 @@ def run(app: Path, environment, predictor=None, exporter=None) -> dict:
         'PDB coordinates have 0.001 Angstrom precision; mmCIF and JSON retain higher precision.\n'
         'The first model is analyzed and exported; later models are not analyzed.\n'
         'The site limit applies independently to each input structure.\n\n' + CITATION + '\n', encoding='utf-8')
-    with zipfile.ZipFile(output / 'zincsight_results.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-        for path in sorted(output.rglob('*')):
-            if path.is_file() and path.name != 'zincsight_results.zip':
-                archive.write(path, path.relative_to(output).as_posix())
+    from results_packager import finalize_outputs
+    package = finalize_outputs(output, structures=results)
+    for item in results:
+        public = package['structures'][item['key']]
+        item['bundle_members'] = public['bundle_members']
+        item['prediction_json_in_bundle'] = item.pop('prediction_json')
+        item['display_name'] = public['display_name']
+        viewer = public['viewer_file']
+        item['artifacts'] = {
+            'structure': viewer,
+            'pdb' if viewer.lower().endswith('.pdb') else 'mmcif': viewer,
+            'pymol_session': public['pymol_session'],
+            'details_bundle': package['bundle_path'],
+        }
+    result['result_bundle'] = package['bundle_path']
+    result['output_layout'] = 'summary_and_bundle'
+    result.pop('prediction_json', None)
+    if len(results) == 1:
+        result.update({key: value for key, value in results[0].items()
+                       if key not in ('resources', 'reference')})
+    _write_json(output / 'prediction.json', result)
     print(f"Processed {len(results)} structures with {resources['cpu_workers']} CPU workers; "
           f"returned {result['returned_site_count']} sites. PDB/mmCIF and PyMOL sessions are ready.")
     return result

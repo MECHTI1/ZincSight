@@ -2,9 +2,9 @@ name: Tamarind validation
 on:
   push:
     branches: ['feature/tamarind-integration']
-    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_results_packager.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
   pull_request:
-    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_results_packager.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
           assert notebook['metadata']['zincsight_preparer_sha256'] == hashlib.sha256(helper.encode()).hexdigest()
           print('Colab cells compile and the embedded preparer matches the standalone source.')
           PY
-          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py; do
+          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_results_packager.py; do
             python -m unittest discover -s tests -p "$test_file" -v
           done
   offline-container:
@@ -66,7 +66,7 @@ jobs:
         run: docker build --tag zincsight-tamarind:test .
       - name: Run all Tamarind unit tests in the offline dependency image
         run: |
-          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_batch_engine.py test_structure_outputs.py; do
+          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_results_packager.py test_batch_engine.py test_structure_outputs.py; do
             docker run --rm --network none --cpus 4 --memory 12g \
               --user "$(id -u):$(id -g)" --volume "$PWD:/app" --workdir /app \
               --entrypoint python zincsight-tamarind:test \
