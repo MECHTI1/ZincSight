@@ -15,6 +15,9 @@ MODULE = Path(__file__).resolve().parents[1] / "integrations/tamarind/results_pa
 SPEC = importlib.util.spec_from_file_location("results_packager", MODULE)
 packager = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(packager)
+DETAILED_FIELDS = ("structure_id", "source", "site_rank", "probability", "x_angstrom",
+                   "y_angstrom", "z_angstrom", "coordinating_residues", "residue_combination",
+                   "template_id", "template_rmsd_angstrom")
 
 
 class ResultsPackagerTests(unittest.TestCase):
@@ -58,6 +61,21 @@ class ResultsPackagerTests(unittest.TestCase):
                            "RESULTS_README.txt": "full instructions\n",
                            "prediction.json": json.dumps({"structures": results}, ensure_ascii=False)}.items():
             (self.output / name).write_text(text)
+        with (self.output / "sites.csv").open("w", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=DETAILED_FIELDS)
+            writer.writeheader()
+            for result in results:
+                for rank, site in enumerate(result["sites"], 1):
+                    x, y, z = site["coordinates_angstrom"]
+                    source = result["source"]
+                    writer.writerow({"structure_id": result["key"],
+                                     "source": "'" + source if source.startswith(("=", "+", "-", "@")) else source,
+                                     "site_rank": rank, "probability": site["probability"],
+                                     "x_angstrom": x, "y_angstrom": y, "z_angstrom": z,
+                                     "coordinating_residues": json.dumps(site["coordinating_residues"]),
+                                     "residue_combination": site.get("residue_combination", "{H,H,H,E}"),
+                                     "template_id": site["template_id"],
+                                     "template_rmsd_angstrom": site["template_rmsd_angstrom"]})
         (self.output / "zincsight_results.zip").write_bytes(b"outdated previous bundle")
         return results
 
@@ -84,7 +102,7 @@ class ResultsPackagerTests(unittest.TestCase):
         self.assertEqual(metadata["bundle_path"], "ZincSight_results.zip")
         self.assertEqual(mappings[results[0]["key"]]["viewer_file"], "01_1KLS_ZincSight.pdb")
         self.assertEqual(mappings[results[1]["key"]]["viewer_file"], "02_2A0S-assembly1_ZincSight.cif")
-        expected_public = {"00_Summary.csv", "01_Predicted_sites.csv", "CITATION.txt", "prediction.json",
+        expected_public = {"00_Summary.csv", "sites.csv", "CITATION.txt", "prediction.json",
                            "ZincSight_results.zip"}
         for result in results:
             mapping = mappings[result["key"]]
@@ -98,6 +116,8 @@ class ResultsPackagerTests(unittest.TestCase):
                              "prediction_json": result["prediction_json"], "sites_csv": f"sites/{result['key']}.csv"})
         self.assertEqual(set(self.snapshot()), expected_public)
         self.assertEqual((self.output / "prediction.json").read_bytes(), originals["prediction.json"])
+        self.assertEqual((self.output / "sites.csv").read_bytes(), originals["sites.csv"])
+        self.assertEqual(metadata["predicted_sites_file"], "sites.csv")
         with zipfile.ZipFile(self.output / metadata["bundle_path"]) as archive:
             names = archive.namelist()
             self.assertEqual(len(names), len(set(names)))
@@ -122,10 +142,14 @@ class ResultsPackagerTests(unittest.TestCase):
         self.assertEqual([row["sites"] for row in summary], ["1", "0", "36"])
         self.assertEqual(summary[1]["top_probability"], "")
         self.assertEqual(float(summary[0]["top_probability"]), results[0]["sites"][0]["probability"])
-        sites = self.read_csv("01_Predicted_sites.csv")
-        self.assertEqual(tuple(sites[0]), packager.SITE_FIELDS)
+        sites = self.read_csv("sites.csv")
+        self.assertEqual(tuple(sites[0]), DETAILED_FIELDS)
         self.assertEqual(len(sites), 2)
-        self.assertEqual(sites[0]["coordinating_residues"], "A_48, B-2_36")
+        self.assertEqual(json.loads(sites[0]["coordinating_residues"]), ["A_48", "B-2_36"])
+        self.assertEqual(sites[0]["structure_id"], results[0]["key"])
+        self.assertEqual(sites[0]["site_rank"], "1")
+        self.assertEqual([float(sites[0][axis + "_angstrom"]) for axis in "xyz"],
+                         results[0]["sites"][0]["coordinates_angstrom"])
         self.assertEqual(float(sites[0]["probability"]), results[0]["sites"][0]["probability"])
         self.assertEqual(float(sites[0]["template_rmsd_angstrom"]), results[0]["sites"][0]["template_rmsd_angstrom"])
         self.assertEqual(sites[0]["template_id"], "32")
@@ -136,9 +160,9 @@ class ResultsPackagerTests(unittest.TestCase):
         mapping = metadata["structures"][results[0]["key"]]
         self.assertTrue((self.output / mapping["viewer_file"]).is_file())
         self.assertTrue((self.output / mapping["pymol_session"]).is_file())
-        self.assertEqual(self.read_csv("01_Predicted_sites.csv"), [])
-        with (self.output / "01_Predicted_sites.csv").open() as stream:
-            self.assertEqual(next(csv.reader(stream)), list(packager.SITE_FIELDS))
+        self.assertEqual(self.read_csv("sites.csv"), [])
+        with (self.output / "sites.csv").open() as stream:
+            self.assertEqual(next(csv.reader(stream)), list(DETAILED_FIELDS))
 
     def test_labels_preserve_archive_names_strip_only_one_upload_prefix_and_avoid_collisions(self):
         results = self.fixture([{"source": "01_02_same.pdb"}, {"source": "01_02_same.pdb"},
@@ -157,7 +181,7 @@ class ResultsPackagerTests(unittest.TestCase):
         results = self.fixture([{"source": "0_=SUM(1).pdb"}])
         metadata = packager.finalize_outputs(self.output, structures=results)
         self.assertEqual(self.read_csv("00_Summary.csv")[0]["structure"], "'=SUM(1)")
-        self.assertEqual(self.read_csv("01_Predicted_sites.csv")[0]["structure"], "'=SUM(1)")
+        self.assertEqual(self.read_csv("sites.csv")[0]["source"], "0_=SUM(1).pdb")
         self.assertEqual(metadata["structures"][results[0]["key"]]["display_name"], "=SUM(1)")
         self.assertEqual(json.loads((self.output / "prediction.json").read_text())["structures"][0]["source"], "0_=SUM(1).pdb")
 

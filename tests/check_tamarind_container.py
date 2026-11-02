@@ -17,6 +17,9 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PARITY_KEYS = ("sites", "site_count", "truncated", "histidine_rotamers",
                "minimum_probability", "model_policy")
+SITE_FIELDS = ["structure_id", "source", "site_rank", "probability", "x_angstrom",
+               "y_angstrom", "z_angstrom", "coordinating_residues", "residue_combination",
+               "template_id", "template_rmsd_angstrom"]
 PLATFORM_LOG_PREFIX = "Platform output log opened before the adapter.\n"
 PLATFORM_STATE = '{"job_state":"running","owner":"platform"}\n'
 PLATFORM_WRAPPER = r'''set -e
@@ -196,14 +199,19 @@ def run_checked(command, log, *, timeout=360):
 
 
 def check_csv(rows, results):
-    expected = [(result, site) for result in results for site in result["sites"]]
+    expected = [(result, rank, site) for result in results for rank, site in enumerate(result["sites"], 1)]
     assert len(rows) == len(expected)
-    for row, (result, site) in zip(rows, expected):
+    for row, (result, rank, site) in zip(rows, expected):
         assert row["structure_id"] == result["key"]
+        expected_source = "'" + result["source"] if result["source"].startswith(("=", "+", "-", "@")) else result["source"]
+        assert row["source"] == expected_source
+        assert int(row["site_rank"]) == rank
         assert float(row["probability"]) == site["probability"]
         assert [float(row[k]) for k in ("x_angstrom", "y_angstrom", "z_angstrom")] == site["coordinates_angstrom"]
         assert json.loads(row["coordinating_residues"]) == site["coordinating_residues"]
+        assert row["residue_combination"] == site["residue_combination"]
         assert row["template_id"] == str(site["template_id"])
+        assert float(row["template_rmsd_angstrom"]) == site["template_rmsd_angstrom"]
 
 
 def prepare_platform_outputs(output):
@@ -233,22 +241,20 @@ def check_platform_outputs(output, canaries, *, exit_code=0):
 
 def check_public_outputs(output, batch, details, *, service_canaries=None):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.3.0"
+    assert batch["integration_version"] == "0.3.1"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
         reader = csv.DictReader(stream)
         assert reader.fieldnames == ["structure", "sites", "top_probability", "status", "structure_file"]
         summary = list(reader)
-    with (output / "01_Predicted_sites.csv").open() as stream:
+    with (output / "sites.csv").open() as stream:
         reader = csv.DictReader(stream)
-        assert reader.fieldnames == ["structure", "site", "probability", "coordinating_residues",
-                                     "template_id", "template_rmsd_angstrom"]
+        assert reader.fieldnames == SITE_FIELDS
         site_rows = list(reader)
     assert len(summary) == batch["structure_count"] == len(batch["structures"])
-    expected_files = {"00_Summary.csv", "01_Predicted_sites.csv", "prediction.json",
+    expected_files = {"00_Summary.csv", "sites.csv", "prediction.json",
                       "CITATION.txt", "ZincSight_results.zip"}
-    expected_sites = []
     for row, result in zip(summary, batch["structures"]):
         assert row["structure"] == result["display_name"]
         assert int(row["sites"]) == result["site_count"]
@@ -269,15 +275,7 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
         assert artifacts["details_bundle"] == "ZincSight_results.zip"
         assert artifacts["pdb" if viewer.endswith(".pdb") else "mmcif"] == viewer
         assert set(artifacts.values()) == {viewer, session, "ZincSight_results.zip"}
-        for rank, site in enumerate(result["sites"], 1):
-            expected_sites.append((row["structure"], rank, site))
-    assert len(site_rows) == len(expected_sites)
-    for row, (structure, rank, site) in zip(site_rows, expected_sites):
-        assert row["structure"] == structure and int(row["site"]) == rank
-        assert float(row["probability"]) == site["probability"]
-        assert row["coordinating_residues"] == ", ".join(site["coordinating_residues"])
-        assert row["template_id"] == str(site["template_id"])
-        assert float(row["template_rmsd_angstrom"]) == site["template_rmsd_angstrom"]
+    check_csv(site_rows, batch["structures"])
     service_roots = {name.split("/", 1)[0] for name in service_canaries or ()}
     assert {path.name for path in output.iterdir()} == expected_files | service_roots
     assert all((output / name).is_file() and (output / name).stat().st_size for name in expected_files)
@@ -293,7 +291,7 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
         assert not any(name == root or name.startswith(root + "/")
                        for name in names for root in service_roots), "Platform files entered the results bundle"
         assert {"structures.csv", "sites.csv", "prediction.json", "CITATION.txt", "CITATION.bib",
-                "citation.json", "00_Summary.csv", "01_Predicted_sites.csv", "public_manifest.json"} <= names
+                "citation.json", "00_Summary.csv", "public_manifest.json"} <= names
         for info in members:
             destination = (details / info.filename).resolve()
             assert destination.is_relative_to(details.resolve()) and not stat.S_ISLNK(info.external_attr >> 16)
@@ -302,7 +300,7 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
             else:
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(archive.read(info))  # Also verifies each member's CRC.
-        for filename in ("00_Summary.csv", "01_Predicted_sites.csv", "CITATION.txt"):
+        for filename in ("00_Summary.csv", "sites.csv", "CITATION.txt"):
             assert archive.read(filename) == (output / filename).read_bytes()
         bundled = json.loads(archive.read("prediction.json"))
         assert len(bundled["structures"]) == len(batch["structures"])
