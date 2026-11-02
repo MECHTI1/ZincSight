@@ -2,7 +2,8 @@
 
 This branch packages **ZincSight Preview** as a Tamarind Custom Tool. It accepts
 one uploaded PDB/mmCIF structure per job and writes `sites.csv` and
-`prediction.json`. It runs on two CPU cores with embedded PostgreSQL (PGlite);
+`prediction.json`. It runs on two CPU cores with embedded PostgreSQL (PGlite)
+over a private, job-local Unix socket;
 no GPU or external database is required.
 
 ## Which branch to connect
@@ -24,6 +25,14 @@ The scientific engine in the image is pinned to commit
 during the build. Changing the branch's scientific source alone does not change
 the deployed engine: update the pin and digest in `Dockerfile` and the matching
 `ENGINE_REVISION` in `predict.py`, then rerun validation.
+
+The Docker image applies a checked transport-only patch to the pinned PGlite
+launcher: its database socket lives inside the prediction's temporary directory,
+so the worker does not depend on loopback TCP being reachable in Tamarind's
+isolated runtime. The database fixture, scientific code, and trained weights
+remain pinned. Results record `database_transport: "unix_socket"` and integration
+version `0.1.2`. Failed jobs include bounded worker/database diagnostics in their
+job log before temporary files are removed.
 
 ## Connect, build, test, publish
 
@@ -97,3 +106,4 @@ rule out binding.
 
 Please cite [Mechtinger et al., Protein Science (2025)](https://doi.org/10.1002/pro.70350).
 The existing repository license applies; see [LICENSE](../../LICENSE).
+

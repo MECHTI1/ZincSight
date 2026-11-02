@@ -34,5 +34,26 @@ RUN python -m pip install --no-cache-dir \
     && python -c "import pymol, psycopg2, Bio, scipy, sklearn" \
     && python -m pip check
 
+# Avoid reliance on loopback TCP in Tamarind's isolated runtime. Keep the pinned
+# database and SQL intact; communicate through the job's private Unix socket.
+RUN python - <<'PY'
+from pathlib import Path
+path = Path('/opt/zincsight/integrations/mcp/pglite/server.mjs')
+source = path.read_text()
+changes = {
+    "import { readFile, writeFile, rename } from 'node:fs/promises';":
+        "import { readFile, writeFile, rename } from 'node:fs/promises';\nimport { dirname, join } from 'node:path';",
+    "const server = new PGLiteSocketServer({db, host: '127.0.0.1', port: 0, maxConnections: 64});":
+        "const socketDir = dirname(readyPath);\nconst server = new PGLiteSocketServer({db, path: join(socketDir, '.s.PGSQL.5432'), maxConnections: 64});",
+    "const uri = `postgresql://postgres@${server.getServerConn()}/postgres?sslmode=disable`;":
+        "const uri = `postgresql://postgres@/postgres?host=${encodeURIComponent(socketDir)}&port=5432&sslmode=disable`;",
+}
+for old, new in changes.items():
+    if source.count(old) != 1:
+        raise RuntimeError('The pinned PGlite launcher changed; review the Unix-socket patch.')
+    source = source.replace(old, new)
+path.write_text(source)
+PY
+
 WORKDIR /app
 CMD ["bash", "/app/run.sh"]
