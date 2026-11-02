@@ -23,6 +23,9 @@ SUMMARY_FIELDS = ("structure", "sites", "top_probability", "status", "structure_
 SITE_FIELDS = ("structure", "site", "probability", "coordinating_residues",
                "template_id", "template_rmsd_angstrom")
 _OLD_BUNDLES = {"zincsight_results.zip", BUNDLE_NAME}
+_APP_FILES = {"CITATION.txt", "CITATION.bib", "citation.json", "RESULTS_README.txt",
+              "prediction.json", "structures.csv", "sites.csv"}
+_APP_DIRECTORIES = {"structures", "sites", "predictions"}
 
 
 def _member(output, value):
@@ -31,6 +34,9 @@ def _member(output, value):
     relative = PurePosixPath(value)
     if relative.is_absolute() or ".." in relative.parts or ":" in value:
         raise ValueError("Result artifact paths must remain inside the output directory.")
+    if not ((len(relative.parts) == 1 and relative.name in _APP_FILES)
+            or (len(relative.parts) > 1 and relative.parts[0] in _APP_DIRECTORIES)):
+        raise ValueError("Result artifact paths must name app-owned result files.")
     path = output / relative
     if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(output):
         raise ValueError(f"A required result artifact is missing or unsafe: {value}")
@@ -84,15 +90,28 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
     output = output.resolve()
     if not isinstance(structures, list) or not structures:
         raise ValueError("At least one structure is required to package results.")
-    # Capture the original children before creating any temporary files inside
-    # the mounted output directory. Never rename the directory itself.
-    original_children = sorted(output.iterdir())
-    originals = []
-    for path in sorted(output.rglob("*")):
+    # The platform shares this directory with the app. Logs, exit markers,
+    # settings, uploads, and every other unknown root child must keep their
+    # paths/inodes, including while another process has an open log handle.
+    # Snapshot only explicit app-owned roots before creating temporary files.
+    original_children = []
+    for name in sorted(_APP_FILES | _APP_DIRECTORIES | _OLD_BUNDLES):
+        path = output / name
         if path.is_symlink():
-            raise ValueError("Symbolic links are not accepted in result outputs.")
-        if path.is_file() and path.relative_to(output).as_posix() not in _OLD_BUNDLES:
-            originals.append((path.relative_to(output).as_posix(), path))
+            raise ValueError("Symbolic links are not accepted in app-owned result outputs.")
+        if path.exists():
+            if not (path.is_dir() if name in _APP_DIRECTORIES else path.is_file()):
+                raise ValueError("App-owned result roots have an unexpected file type.")
+            original_children.append(path)
+    originals = []
+    for child in original_children:
+        if child.name in _OLD_BUNDLES:
+            continue
+        for path in ([child] if child.is_file() else sorted(child.rglob("*"))):
+            if path.is_symlink():
+                raise ValueError("Symbolic links are not accepted in app-owned result outputs.")
+            if path.is_file():
+                originals.append((path.relative_to(output).as_posix(), path))
     for required in ("CITATION.txt", "prediction.json", "structures.csv", "sites.csv"):
         _member(output, required)
 
@@ -150,8 +169,8 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
 
     metadata = {"bundle_path": BUNDLE_NAME, "structures": mappings,
                 "summary_file": SUMMARY_NAME, "predicted_sites_file": SITES_NAME}
-    new_names = {SUMMARY_NAME, SITES_NAME, "public_manifest.json"} | {name for name, _ in public_sources}
-    if new_names & {name for name, _ in originals}:
+    new_names = {SUMMARY_NAME, SITES_NAME} | {name for name, _ in public_sources}
+    if any((output / name).exists() or (output / name).is_symlink() for name in new_names):
         raise ValueError("The output already contains a reserved public result filename.")
     temporary = Path(tempfile.mkdtemp(prefix=".packaging-", dir=output))
     staged, backup = temporary / "public", temporary / "original"
@@ -175,8 +194,9 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
                 archive.write(staged / name, name)
             archive.writestr("public_manifest.json", json.dumps(metadata, indent=2, allow_nan=False) + "\n")
         # /app/out may be a mount or have a parent owned by another user. Move
-        # only its children within the same writable volume, retaining every
-        # original until all public files have been published.
+        # only app-owned children within the same writable volume, retaining
+        # every original until all public files have been published. Platform
+        # files are neither archived nor moved, even temporarily.
         try:
             for child in original_children:
                 destination = backup / child.name

@@ -1,6 +1,6 @@
 # ZincSight on Tamarind
 
-This branch packages **ZincSight Preview v0.2.2** as a Tamarind Custom Tool.
+This branch packages **ZincSight Preview v0.2.3** as a Tamarind Custom Tool.
 Upload multiple protein structures or a structure archive in one job. Each input
 gets a viewable structure, prediction tables, and a downloadable PyMOL session,
 including inputs with no predicted sites.
@@ -173,7 +173,7 @@ The scientific engine and weights remain pinned to commit
 7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03, with the source archive SHA-256
 verified during the Docker build. The image applies a checked transport-only
 patch so the job-local database uses a private Unix socket rather than loopback
-TCP. Results record the engine revision, integration version 0.2.2, and
+TCP. Results record the engine revision, integration version 0.2.3, and
 database_transport: unix_socket. To change the scientific revision, update the
 Dockerfile pin/digest and ENGINE_REVISION together and rerun validation.
 
@@ -184,7 +184,10 @@ entire integrations/tamarind directory and inputs over /app with networking
 disabled. It also bind-mounts /app/out separately so the output directory cannot
 be renamed or replaced, matching Tamarind's protected output location. Result
 publication stages files within that directory and commits individual files;
-the output-directory inode stays in place. It retains exact agreement with the
+the output-directory inode stays in place. The check opens a platform-style log
+throughout prediction and tracks service log, exit-code, and state-file inodes.
+Packaging preserves these service paths and excludes them from the results ZIP.
+It retains exact agreement with the
 pinned wrapper for PDB/mmCIF,
 rotamers on/off, truncation, and zero sites, then checks native file-list and
 prepared-archive batches, duplicate basenames, the compact public file/table
