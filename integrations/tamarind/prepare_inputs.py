@@ -37,40 +37,79 @@ PROVIDER_PREFIXES = {
 UNIPROT = r"(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})"
 AF_MODEL = rf"AF-({UNIPROT})-F([1-9][0-9]*)-model_v([1-9][0-9]*)"
 ID_HEADERS = {"id", "ids", "identifier", "identifiers", "structure_id", "structure_ids",
-              "query_id", "pdb", "pdb_id", "uniprot", "uniprot_id", "accession"}
+              "query_id", "pdb", "pdb_id", "uniprot", "uniprot_id", "accession",
+              "entry", "uniprot_accession", "model_id", "alphafold_model_id"}
+
+
+def _id_text(text: str) -> str:
+    if not isinstance(text, str) or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
+        raise ValueError("ID lists must contain text without binary control characters.")
+    return text.strip().lstrip("\ufeff").strip()
+
+
+def _unquote_id(value: str) -> str:
+    value = _id_text(value)
+    if value.startswith(('"', "'")):
+        if len(value) < 2 or value[-1] != value[0]:
+            raise ValueError("An identifier has unmatched quotes.")
+        value = value[1:-1].strip().lstrip("\ufeff").strip()
+    if '"' in value or "'" in value:
+        raise ValueError("An identifier has malformed quoting.")
+    return value
 
 
 def parse_ids(text: str) -> list[str]:
-    """Accept comma/whitespace-separated identifiers and optional # comments."""
-    clean = "\n".join(line.split("#", 1)[0] for line in text.splitlines())
-    return list(dict.fromkeys(part for part in re.split(r"[\s,]+", clean.strip()) if part))
+    """Accept quoted/BOM-prefixed comma/whitespace IDs and optional # comments."""
+    clean = "\n".join(line.split("#", 1)[0] for line in _id_text(text).splitlines())
+    tokens, previous_end = [], None
+    for match in re.finditer(r'''(?:"[^"]*"|'[^']*'|[^\s,]+)''', clean):
+        if previous_end is not None and not clean[previous_end:match.start()]:
+            raise ValueError("Quoted identifiers must be separated by commas or whitespace.")
+        value = _unquote_id(match.group())
+        tokens.extend(part for part in re.split(r"[\s,]+", value) if part)
+        previous_end = match.end()
+    return list(dict.fromkeys(tokens))
 
 
 def read_id_list(data: bytes, suffix: str = ".txt", *, max_bytes=None) -> list[str]:
     if not data or (max_bytes is not None and len(data) > max_bytes):
         raise ValueError("ID-list files must be nonempty and respect any configured byte guard.")
-    text = data.decode("utf-8-sig")
-    if "\x00" in text:
-        raise ValueError("An ID list must be a UTF-8 text file.")
-    if suffix.lower() == ".txt":
-        return parse_ids(text)
-    rows = list(csv.reader(io.StringIO(text), delimiter="\t" if suffix.lower() == ".tsv" else ","))
-    rows = [row for row in rows if row and any(value.strip() for value in row)
-            and not row[0].lstrip().startswith("#")]
-    if not rows:
-        return []
-    header = [value.strip().lower().replace(" ", "_") for value in rows[0]]
-    index = next((i for i, value in enumerate(header) if value in ID_HEADERS), None)
-    if index is not None:
-        values = [row[index] for row in rows[1:] if len(row) > index]
-    else:
-        values = [value for row in rows for value in row]
-    return parse_ids("\n".join(values))
+    text = _id_text(data.decode("utf-8-sig"))
+    # Detect the table from its header, not only its filename: spreadsheets are
+    # often saved as .txt or given the wrong .csv/.tsv extension. Keep the first
+    # recognized ID column; metadata columns never become extra identifiers.
+    delimiters = ("\t", ",") if suffix.lower() == ".tsv" else (",", "\t")
+    for delimiter in delimiters:
+        rows = (row for row in csv.reader(io.StringIO(text), delimiter=delimiter,
+                                           skipinitialspace=True, strict=True)
+                if row and any(value.strip() for value in row)
+                and not row[0].lstrip().startswith("#"))
+        try:
+            first = next(rows, None)
+        except csv.Error:
+            continue
+        if first is None:
+            continue
+        header = [re.sub(r"\s+", "_", value.strip().lower()) for value in first]
+        index = next((i for i, value in enumerate(header) if value in ID_HEADERS), None)
+        if index is not None:
+            try:
+                values = []
+                for row in rows:
+                    selected = parse_ids(row[index]) if len(row) > index else []
+                    if not selected:
+                        raise ValueError(f"A table row is missing a value for the selected ID column: {header[index]}.")
+                    values.extend(selected)
+            except csv.Error as exc:
+                raise ValueError("The ID-list table has malformed quoting.") from exc
+            return list(dict.fromkeys(values))
+    return parse_ids(text)
 
 
 def resolve_identifier(identifier: str) -> dict:
     """Resolve identifiers only through fixed public-provider URL templates."""
-    value = identifier.strip()
+    value = _unquote_id(identifier)
+    value = re.sub(r"\.(?:pdb|cif|mmcif|ent)(?:\.gz)?$", "", value, flags=re.I)
     pdb = re.fullmatch(r"([0-9][A-Z0-9]{3})(?:-assembly([1-9][0-9]{0,2}))?", value, re.I)
     if pdb:
         canonical = pdb[1].upper() + (f"-assembly{pdb[2]}" if pdb[2] else "")

@@ -69,6 +69,110 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual(prepare.read_id_list(b"accession\tnote\nP12345\tignore this\n", ".tsv"), ["P12345"])
         self.assertEqual(prepare.read_id_list(b'"1KLS","P12345"\n', ".csv"), ["1KLS", "P12345"])
 
+    def test_quoted_bom_freeform_ids_keep_mixed_separators_comments_and_order(self):
+        text = ('\ufeff"1KLS", \'P12345\'\n"AF-P12345-F3-model_v4.cif.gz"\t'
+                '"MGYP002537940442" # comment\n"1KLS P12345"\n')
+        expected = ["1KLS", "P12345", "AF-P12345-F3-model_v4.cif.gz", "MGYP002537940442"]
+        self.assertEqual(prepare.parse_ids(text), expected)
+        for suffix in (".txt", ".csv", ".tsv"):
+            with self.subTest(suffix=suffix):
+                self.assertEqual(prepare.read_id_list(text.encode(), suffix), expected)
+
+    def test_content_aware_headers_keep_only_the_first_recognized_id_column(self):
+        cases = [
+            (b'\xef\xbb\xbfEntry\tEntry Name\nP12345\tEXAMPLE_HUMAN\n', ".tsv", ["P12345"]),
+            (b'uniprot_accession\tnote\nP12345\tignore this metadata\n', ".csv", ["P12345"]),
+            (b'model_id,note\nAF-P12345-F3-model_v4.cif,"not an ID, ignore it"\n', ".tsv",
+             ["AF-P12345-F3-model_v4.cif"]),
+            (b'alphafold_model_id\tnote\nAF-P12345-F2-model_v4\tignore\n', ".txt",
+             ["AF-P12345-F2-model_v4"]),
+            (b'# comment\nstructure_id\n1KLS\nP12345\n', ".txt", ["1KLS", "P12345"]),
+            (b'structure_id,model_id\n1KLS,AF-P12345-F1-model_v6\n', ".csv", ["1KLS"]),
+            (b'Entry\tuniprot_accession\nP12345\tQ8WZ42\n', ".tsv", ["P12345"]),
+            (b'ids,note\n"1KLS, P12345\tAF-P12345-F2-model_v4",ignore\n', ".txt",
+             ["1KLS", "P12345", "AF-P12345-F2-model_v4"]),
+        ]
+        for raw, suffix, expected in cases:
+            with self.subTest(raw=raw, suffix=suffix):
+                self.assertEqual(prepare.read_id_list(raw, suffix), expected)
+
+    def test_nonblank_table_rows_cannot_silently_omit_the_selected_id(self):
+        downloader = Mock()
+        cases = (b'note,id\nx,1KLS\nP12345\n', b'id,note\n1KLS,valid\n,missing\n',
+                 b'Entry\tEntry Name\nP12345\tVALID_HUMAN\n""\tMISSING_HUMAN\n',
+                 b'note,id\nvalid,1KLS\nmissing,# no identifier\n')
+        for index, raw in enumerate(cases):
+            path = self.write(f"missing-{index}.txt", raw)
+            with self.subTest(raw=raw), self.assertRaisesRegex(ValueError, "selected ID column"):
+                prepare.prepare_inputs(self.root / f"missing-{index}.zip", id_files=[path], downloader=downloader)
+            self.assertFalse((self.root / f"missing-{index}.zip").exists())
+        downloader.assert_not_called()
+
+    def test_known_structure_filename_suffixes_preserve_provider_ids_and_exact_models(self):
+        identifiers = ["1KLS", "2A0S-assembly1", "AF-P12345-F3-model_v4",
+                       "MGYP002537940442", "AF-A0A287EUI1-F2-model_v4_TED01"]
+        for identifier in identifiers:
+            expected = prepare.resolve_identifier(identifier)
+            for extension in (".pdb", ".cif", ".mmcif", ".ent"):
+                for compression in ("", ".gz"):
+                    value = identifier + extension + compression
+                    with self.subTest(value=value):
+                        self.assertEqual(prepare.resolve_identifier(value), expected)
+                        self.assertEqual(prepare.resolve_identifier('\ufeff"' + value + '"'), expected)
+                        prepare.validate_provider_url(expected["source_url"])
+
+    def test_malformed_binary_and_unsafe_id_text_is_rejected_before_download(self):
+        for text in ('"1KLS', "'P12345", '"1KLS""P12345"', '"1KLS"junk',
+                     '1KLS\x00P12345', '1KLS\x01P12345'):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                prepare.parse_ids(text)
+        for raw in (b'\xff1KLS', b'1KLS\x00', b'1KLS\x1f', b'id,note\n"1KLS"broken,text\n'):
+            with self.subTest(raw=raw), self.assertRaises((ValueError, UnicodeError)):
+                prepare.read_id_list(raw, ".csv")
+        unsafe = ("../1KLS.pdb", "/1KLS.cif", r"C:\1KLS.pdb", "https://files.rcsb.org/download/1KLS.cif",
+                  "AF-P12345-F0-model_v4.cif", "AF-P12345-F1-model_v0.pdb.gz",
+                  "AF-P12345-F1-model_v4_TED00.ent", "1KLS-assembly0.mmcif", "1KLS.pdb.exe")
+        downloader = Mock()
+        for index, value in enumerate(unsafe):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                prepare.prepare_inputs(self.root / f"rejected-{index}.zip", ids=value, downloader=downloader)
+        downloader.assert_not_called()
+
+    def test_mixed_id_lists_deduplicate_canonical_filename_and_model_aliases(self):
+        txt = self.write("ids.txt", b'structure_id\n1KLS.cif\nAF-P12345-F3-model_v4.mmcif.gz\n'
+                         b'AF-A0A287EUI1-F2-model_v4_TED01.pdb.gz\n')
+        tsv = self.write("uniprot.tsv", b'Entry\tEntry Name\nP12345\tIGNORE_HUMAN\n')
+        csv_file = self.write("models.csv", b'alphafold_model_id,note\nAF-P12345-F3-model_v4,ignore\n')
+        downloader = Mock(side_effect=lambda url, **kwargs: PDB if url.endswith(".pdb") else CIF)
+        output = self.root / "mixed.zip"
+        manifest = prepare.prepare_inputs(
+            output, ids='\ufeff"1kls.pdb", P12345.ent, AF-P12345-F1-model_v6.cif.gz, MGYP002537940442.pdb',
+            id_files=[txt, tsv], sources=[csv_file], downloader=downloader)
+        canonical = [entry["canonical_id"] for entry in manifest["structures"]]
+        self.assertEqual(canonical, ["1KLS", "AF-P12345-F1-model_v6", "MGYP002537940442",
+                                     "AF-P12345-F3-model_v4", "AF-A0A287EUI1-F2-model_v4_TED01"])
+        self.assertEqual(manifest["structure_count"], 5)
+        self.assertEqual(downloader.call_count, 5)
+        self.assertEqual([call.args[0] for call in downloader.call_args_list],
+                         [prepare.resolve_identifier(identifier)["source_url"] for identifier in canonical])
+        with zipfile.ZipFile(output) as archive:
+            for entry in manifest["structures"]:
+                self.assertEqual(entry["sha256"], hashlib.sha256(archive.read(entry["path"])).hexdigest())
+        self.assertFalse(manifest["requires_network_at_runtime"])
+
+    def test_documented_id_list_examples_parse_without_metadata_or_network(self):
+        examples = ROOT / "integrations/tamarind/examples"
+        expected = ["1KLS", "AF-P69905-F1-model_v6", "AF-A0A3W0S055-F1-model_v6"]
+        for filename in ("structure_ids.txt", "structure_ids.csv", "structure_ids.tsv", "uniprot_export.tsv"):
+            path = examples / filename
+            with self.subTest(filename=filename):
+                ids = prepare.read_id_list(path.read_bytes(), path.suffix)
+                resolved = [prepare.resolve_identifier(identifier) for identifier in ids]
+                self.assertEqual([item["canonical_id"] for item in resolved],
+                                 ["AF-P69905-F1-model_v6"] if filename == "uniprot_export.tsv" else expected)
+                for item in resolved:
+                    prepare.validate_provider_url(item["source_url"])
+
     def test_downloaded_aliases_are_deduplicated_and_manifest_hashes_cover_archived_bytes(self):
         ids_file = self.write("ids.csv", b"id,note\nP12345,one\nAF-P12345-F1-model_v6,same model\n")
         downloader = Mock(return_value=CIF)

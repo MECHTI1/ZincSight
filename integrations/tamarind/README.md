@@ -18,13 +18,12 @@ analyzes all protein chains in each input's first model and returns **every site
 meeting the selected probability threshold**. There is no fixed structure-count,
 per-structure byte, total-byte, protein-residue or returned-site cap.
 
-For ID entry and file preparation, open
-[Prepare Tamarind Batch in Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/feature/tamarind-integration/integrations/tamarind/Prepare_Tamarind_Batch.ipynb).
-Paste comma/space/newline-separated IDs, optionally upload ID lists or structures,
-then prepare and download the input archives. Upload **all generated ZIP parts**
-together under **Protein structures or batch archives**. The notebook only
-prepares inputs; predictions run on Tamarind. It embeds the preparer source and
-needs no API key or GPU.
+**TXT, CSV and TSV structure-ID lists are supported by the input preparer.**
+It downloads the requested structures before the offline Tamarind prediction job.
+Run the standard-library Python helper below on a computer with internet access;
+Colab is optional. Upload **all generated ZIP parts** together under **Protein
+structures or batch archives**. An ID-only text file does not contain the
+coordinates required by the Tamarind runtime and is not a direct prediction input.
 
 | Input | Accepted content |
 | --- | --- |
@@ -44,7 +43,35 @@ AlphaFold F1 model v6; explicit fragment/version IDs are preserved. Examples:
 AF-A0A287EUI1-F1-model_v4_TED01. ID availability depends on the public provider.
 Tamarind jobs are offline, so download/ID resolution happens in the preparer.
 
-The same standard-library helper works locally:
+Run an ID list locally, without Colab or an API key:
+
+~~~bash
+python3 integrations/tamarind/prepare_inputs.py \
+  --ids-file my_structures.tsv --output zincsight_inputs.zip
+~~~
+
+Plain TXT lists may contain commas, spaces, tabs or newlines, including quoted
+IDs. For example:
+
+~~~text
+1KLS, P69905, "AF-A0A3W0S055-F1-model_v6.cif"
+2A0S-assembly1
+~~~
+
+CSV/TSV tables may use an ID column such as `structure_id`, `model_id`,
+`alphafold_model_id`, `uniprot_accession` or UniProt's `Entry`; descriptive columns
+are ignored. The first recognized ID column is used. Without a recognized header,
+every nonempty cell is treated as ID text. Separators are detected from the content,
+so a comma-separated list saved as `.tsv` also works. `#` introduces a comment.
+See the small [example lists](examples/) for ready-to-edit TXT, CSV and TSV files.
+
+Known structure filename suffixes (`.pdb`, `.cif`, `.mmcif`, `.ent`, optionally
+followed by `.gz`) are accepted as ID spellings. For example,
+`AF-P12345-F2-model_v4.cif.gz` still requests fragment **F2**, version **v4**;
+the reader does not replace an explicitly requested model with F1/v6. URLs and
+filesystem paths are not structure IDs; pass local files separately.
+
+The helper also accepts pasted IDs and mixtures of ID lists and local structures:
 
 ~~~bash
 python3 integrations/tamarind/prepare_inputs.py \
@@ -63,6 +90,11 @@ count, file-byte, total-byte, ID-list and archive/folder-entry guards are availa
 through --help and are **disabled by default**. --upload-max-bytes can choose a
 smaller upload part size; --force replaces an existing prepared output family.
 No account credentials or absolute local paths are included in the archives.
+
+For an optional browser notebook, use
+[Prepare Tamarind Batch in Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/feature/tamarind-integration/integrations/tamarind/Prepare_Tamarind_Batch.ipynb).
+It embeds the same helper and accepts the same ID lists, structures and archives.
+It only prepares inputs; predictions run on Tamarind. No API key or GPU is needed.
 
 ## Results
 
