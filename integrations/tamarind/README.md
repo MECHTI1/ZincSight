@@ -1,109 +1,189 @@
 # ZincSight on Tamarind
 
-This branch packages **ZincSight Preview** as a Tamarind Custom Tool. It accepts
-one uploaded PDB/mmCIF structure per job and writes `sites.csv` and
-`prediction.json`. It runs on two CPU cores with embedded PostgreSQL (PGlite)
-over a private, job-local Unix socket;
-no GPU or external database is required.
+This branch packages **ZincSight Preview v0.2.0** as a Tamarind Custom Tool.
+Upload multiple protein structures or a structure archive in one job. Each input
+gets a viewable structure, prediction tables, and a downloadable PyMOL session,
+including inputs with no predicted sites.
 
-## Which branch to connect
+Please cite **Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction
+of zinc ion location in proteins with ZincSight. Protein Science.
+2025;34(11):e70350.** [https://doi.org/10.1002/pro.70350](https://doi.org/10.1002/pro.70350).
+The tool's Paper link, result JSON, structure annotations, and downloadable
+CITATION.txt / CITATION.bib point to this paper. Tamarind manages its native
+Citations tab separately; the current Custom Tool schema has no citation override,
+so that tab may continue to show Tamarind's default reference.
+
+## Connect and deploy
 
 | Tamarind setting | Value |
 | --- | --- |
-| Repository | `MECHTI1/ZincSight` |
-| Branch | `feature/tamarind-integration` |
+| Repository | MECHTI1/ZincSight |
+| Branch | feature/tamarind-integration |
 | Source directory | Repository root |
-| Suggested tool ID | `zincsight-preview` |
-| Display name | `ZincSight Preview` |
-| Automatic publishing | Off during initial validation |
+| Suggested tool ID | zincsight-preview |
+| Display name | ZincSight Preview |
 
-The branch is based on `feature/mcp-integration`. It adds Tamarind's root-level
-`Dockerfile`, `config.json`, and `run.sh`, plus this adapter and tests. The existing
-`master`, `sqlite`, and MCP branches do not require edits to use this branch.
-The scientific engine in the image is pinned to commit
-`7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03`, with its source archive SHA-256 verified
-during the build. Changing the branch's scientific source alone does not change
-the deployed engine: update the pin and digest in `Dockerfile` and the matching
-`ENGINE_REVISION` in `predict.py`, then rerun validation.
+1. Open [Tamarind Custom Tools](https://app.tamarind.bio/app/custom-tools).
+   Link this repository and branch to the organization's existing tool, or create
+   a tool if needed. Tamarind's GitHub App must have repository access.
+2. Build/deploy the source with automatic publishing off during validation.
+   Dependencies and the pinned engine are installed under /opt because Tamarind
+   mounts the submitted repository over /app at runtime.
+3. Run a test with a small public structure such as
+   [1KLS.cif](https://files.rcsb.org/download/1KLS.cif). Check the Structures
+   preview, the downloaded PDB/mmCIF and .pse files, and the citation files.
+   Also test a batch with a structure that has no predicted sites.
+4. Publish the validated version to the organization and choose its visibility.
+   A Tamarind test or production job consumes account compute.
 
-The Docker image applies a checked transport-only patch to the pinned PGlite
-launcher: its database socket lives inside the prediction's temporary directory,
-so the worker does not depend on loopback TCP being reachable in Tamarind's
-isolated runtime. The database fixture, scientific code, and trained weights
-remain pinned. Results record `database_transport: "unix_socket"` and integration
-version `0.1.2`. Failed jobs include bounded worker/database diagnostics in their
-job log before temporary files are removed.
+See [Tamarind's Custom Tool documentation](https://docs.tamarind.bio/tamarind/custom-tools).
+Custom tools are organization tools; public catalog inclusion is a separate
+arrangement with Tamarind. The master, sqlite, and MCP branches do not require
+edits to use this integration branch.
 
-## Connect, build, test, publish
+## Uploads and ID preparation
 
-1. Open [Tamarind Custom Tools](https://app.tamarind.bio/app/custom-tools) in your
-   account and create a tool with the suggested ID above (or another available ID).
-2. In its **Settings** tab, link this repository and branch. An organization
-   administrator may need to install Tamarind's GitHub App and grant access to
-   this repository. Keep automatic publishing off for the first build.
-3. Build/deploy the source. The root `config.json` defines the inputs and CPU
-   resources. Dependencies and the pinned engine are installed under `/opt`,
-   because Tamarind mounts submitted source over `/app` at runtime.
-4. In **Test**, upload a small public structure such as
-   [1KLS.cif](https://files.rcsb.org/download/1KLS.cif), enable histidine rotamers,
-   and use the default cutoff `0.0001`. Confirm the build's test job finishes and
-   its CSV/JSON files are available. A Tamarind test job uses account compute.
-5. After reviewing that test, publish the completed version to your organization.
-   Use **Manage Visibility** to choose which organization members can run it.
+The tool page accepts either or both of these inputs:
 
-These are the current [Tamarind Custom Tool conventions](https://docs.tamarind.bio/tamarind/custom-tools).
-Creating a GitHub branch does not itself create or publish a Tamarind tool.
-An account with Custom Tools access is required. Custom tools are private to the
-organization by default; public catalog inclusion requires a separate arrangement
-with Tamarind. They can be used through Tamarind's UI, API, and MCP once deployed
-and available to the caller.
+| Input | Accepted content |
+| --- | --- |
+| structures | One or more uploaded .pdb, .cif, or .mmcif files |
+| batch_archive | A ZIP, TAR, TAR.GZ, or TGZ containing PDB/mmCIF/ENT files, optionally gzip compressed; or a prepared ID ZIP |
 
-## Inputs and results
+The combined batch limit is **100 structures**, **5 MB per uncompressed
+structure**, and **100 MB total uncompressed structure data**. Each first model
+must contain 3–4,000 standard protein residues with the side-chain coordinates
+needed for prediction. All protein chains in that model are analyzed. Later
+models are not analyzed or exported. Archives are read without extracting their
+paths; unsafe paths, links, duplicate archive member names, and oversized content
+are rejected. Separate input files with the same basename retain distinct output
+IDs.
 
-- `structure`: one `.pdb`, `.cif`, or `.mmcif` upload. Maximum 5 MB and 4,000
-  protein residues; the first structural model and all its protein chains are used.
-- `histidine_rotamers`: defaults to `true`.
-- `minimum_probability`: defaults to the notebook output cutoff, `0.0001`.
-  This is an output filter, not a biological confidence threshold.
-- `max_sites`: integer from 1 to 100, default 100. The highest-probability sites
-  are returned. JSON includes `site_count` (total passing the cutoff),
-  `returned_site_count`, and `truncated`; the CSV contains only returned sites.
+Tamarind prediction jobs have no internet access. For a browser form with
+comma/newline ID entry and optional file uploads, open
+[Prepare a Tamarind batch in Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/feature/tamarind-integration/integrations/tamarind/Prepare_Tamarind_Batch.ipynb).
+Run its input form, prepare the ZIP, download it, and upload it in batch_archive.
+The notebook embeds the preparer source and requires no API key or GPU;
+predictions still run on Tamarind.
 
-Tamarind jobs have no internet access. Download structures before uploading;
-PDB/UniProt IDs and external URLs are not accepted by this adapter. Results record
-the input SHA-256, source revision, settings, model policy, limitations, and paper
-citation. Empty results produce valid JSON and a header-only CSV. Invalid inputs
-or engine failures produce a failed job rather than a successful empty prediction.
+Alternatively, run the same bundled helper on a networked computer:
 
-This adapter exports tabular and structured results; it does not export the
-original notebook's PyMOL sessions. Coordinates are in the input structure's frame.
+~~~bash
+# Run from the repository root; Python's standard library is sufficient.
+python3 integrations/tamarind/prepare_inputs.py \
+  --ids "1KLS, 2A0S-assembly1, P12345" \
+  --output zincsight_inputs.zip
+
+# ID lists and local files/folders can be combined in one batch.
+python3 integrations/tamarind/prepare_inputs.py \
+  --ids-file ids.csv structures/ another_structure.pdb.gz \
+  --output zincsight_inputs.zip
+~~~
+
+The helper accepts comma/whitespace ID text and .txt/.csv/.tsv lists. Supported
+IDs are PDB entries and assemblies, UniProt accessions, complete AlphaFold model
+IDs, MGYP identifiers, and complete TED domain IDs. UniProt accessions resolve
+to AlphaFold F1 model v6; explicit AlphaFold fragments/versions and TED model
+versions are preserved. Examples of explicit forms are AF-P12345-F2-model_v4 and
+AF-A0A287EUI1-F1-model_v4_TED01. Availability depends on the public provider.
+
+The helper also accepts local structures, folders, and ZIP/TAR archives. It
+downloads only from an exact allowlist of public RCSB, AlphaFold, ESM Atlas,
+and TED endpoints, with bounded download sizes and retries. It never reads
+account credentials. The ZIP contains structures and a manifest with input IDs,
+public source URLs, and SHA-256 hashes; a matching .manifest.json is written
+beside it. The runtime verifies the structure hashes and preserves this
+provenance in the per-input JSON. Use --help for all options and --force only
+when intentionally replacing an existing prepared ZIP.
+
+## Results and visualization
+
+The **Structures** table has one row per input. Its structure link opens the
+first-model structure with predicted-site markers; file links provide the mmCIF,
+PyMOL session, detailed prediction JSON, and marker annotations. Tamarind uses
+its own structure viewer, so the session's PyMOL colors and labels are available
+in the downloaded .pse.
+
+| Output | Contents |
+| --- | --- |
+| structures.csv | Per-input counts, highest probability, truncation, structure links and export warnings |
+| sites.csv and sites/*.csv | Combined and per-input sites: coordinates, probabilities, coordinating residues and templates |
+| structures/*.pdb and structures/*.cif | Original first-model atoms and experimental ions plus predicted-site Zn markers |
+| structures/*.pse | A ready-to-open PyMOL session per input |
+| structures/*_sites.json | Marker identity, full coordinates, coordinating residues, chain/residue mappings and export notes |
+| predictions/*.json and prediction.json | Per-input predictions and batch summary with settings, provenance, resources and timings |
+| CITATION.txt, CITATION.bib, citation.json | The ZincSight paper citation |
+| zincsight_results.zip | All result files together |
+
+Coordinates remain in the input frame. The predicted Zn atoms are **location
+markers**, not metal-identity assignments, and use a separate unused chain.
+Original ions remain present. mmCIF and JSON retain full predicted coordinates;
+standard PDB rounds coordinates to 0.001 Å. Long chain IDs or residue numbers may
+need explicit mappings for PDB. If the structure exceeds PDB format limits,
+mmCIF and PyMOL remain available and the result records the reason.
+
+PyMOL sessions show the original protein as a lavender cartoon, coordinating
+residues as purple sticks with element-colored donor atoms, and predicted sites
+as spheres colored from red to green by probability, labeled with site rank and
+probability. Original atoms, experimental-metal selections, predicted markers,
+and per-site coordinating selections remain distinguishable. Rotamer sampling
+changes the prediction search; the session retains the original input
+coordinates. A zero-site result still includes its structure and session, with
+no invented markers and a header-only per-input sites CSV.
+
+## Settings and compute
+
+| Setting | Default and behavior |
+| --- | --- |
+| histidine_rotamers | true; samples alternative histidine orientations |
+| minimum_probability | 0.0001; output filter matching the notebook, not a biological confidence threshold |
+| max_sites | 100 per input; returns highest-probability sites, records the qualifying total and truncation |
+| cpu_workers | 4; limited to the allocated CPUs and a 3 GiB budget per worker |
+
+The deployment requests **4 vCPUs and 12 GiB memory**, with no GPU. The
+whole batch shares one private embedded PostgreSQL (PGlite) instance and one
+native ZincSight run. Available workers are capped by declared resources and
+detected CPU/memory limits. This budgets 3 GiB per CPU worker; there is no GPU
+implementation to accelerate this engine. Larger allocations can help native
+parallel stages and batches, but speed depends on structure size and workload.
+The platform job limit is 1,800 seconds; the scientific worker has a bounded
+1,200-second timeout. Reduce the batch if it exceeds this limit.
 
 ## Validation and scientific status
 
-The **Tamarind validation** GitHub Actions workflow validates `config.json` against
-Tamarind's live schema, builds the Docker image, and runs it with
-`--network none`. It mounts only the adapter and inputs at `/app`, exercising the
-same source-overlay behavior as Tamarind. Checks cover PDB/mmCIF, rotamers on/off,
-truncation, an empty result, invalid input, and exact agreement with the pinned
-wrapper for the same inputs and settings. This does not replace a test job on
-Tamarind itself.
+The scientific engine and weights remain pinned to commit
+7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03, with the source archive SHA-256
+verified during the Docker build. The image applies a checked transport-only
+patch so the job-local database uses a private Unix socket rather than loopback
+TCP. Results record the engine revision, integration version 0.2.0, and
+database_transport: unix_socket. To change the scientific revision, update the
+Dockerfile pin/digest and ENGINE_REVISION together and rerun validation.
 
-```bash
-# Run from this branch's repository root on a machine with Docker.
-python3 -m unittest discover -s tests -p test_tamarind.py -v
+The **Tamarind validation** workflow validates the live Tamarind schema, runs
+stdlib-only contract tests on the host, builds the dependency image, and runs
+all Tamarind unit tests inside that image. Its integration check mounts the
+entire integrations/tamarind directory and inputs over /app with networking
+disabled. It retains exact agreement with the pinned wrapper for PDB/mmCIF,
+rotamers on/off, truncation, and zero sites, then checks native file-list and
+prepared-archive batches, duplicate basenames, output ZIP integrity, citations,
+and reopening every PyMOL session. This still requires a separate live test
+on Tamarind to verify the deployed platform's preview and download behavior.
+
+~~~bash
+# Host tests do not require BioPython or PyMOL.
+for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py; do
+  python3 -m unittest discover -s tests -p "$test_file" -v
+done
 docker build -t zincsight-tamarind:test .
 python3 tests/check_tamarind_container.py \
   --image zincsight-tamarind:test --output /tmp/zincsight-tamarind-results
-```
+~~~
 
-The inherited preview includes reproducibility corrections that can change
-historical predictions. Published accuracy benchmarks have not been re-established
-for this revision. See [notebook regression](../mcp/NOTEBOOK_REGRESSION.md) and
-[rotamer diagnosis](../mcp/ROTAMER_DIAGNOSIS.md). The adapter does not change
+The inherited development preview contains reproducibility corrections that can
+change historical predictions. Published accuracy benchmarks have not been
+re-established for this revision. See [notebook regression](../mcp/NOTEBOOK_REGRESSION.md)
+and [rotamer diagnosis](../mcp/ROTAMER_DIAGNOSIS.md). The adapter does not change
 geometry/scoring formulas or trained weights. Predictions do not establish metal
-identity, occupancy, or catalytic activity, and absence of a prediction does not
-rule out binding.
-
-Please cite [Mechtinger et al., Protein Science (2025)](https://doi.org/10.1002/pro.70350).
-The existing repository license applies; see [LICENSE](../../LICENSE).
+identity, occupancy, or catalytic activity; absence of a prediction does not rule
+out binding. The existing repository [license](../../LICENSE) applies.
 

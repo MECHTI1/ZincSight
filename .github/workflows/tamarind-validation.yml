@@ -2,9 +2,9 @@ name: Tamarind validation
 on:
   push:
     branches: ['feature/tamarind-integration']
-    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/*tamarind*', '.github/workflows/tamarind-validation.yml']
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
   pull_request:
-    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/*tamarind*', '.github/workflows/tamarind-validation.yml']
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,9 +12,9 @@ concurrency:
   group: tamarind-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  offline-container:
+  contracts:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,11 +29,50 @@ jobs:
           jsonschema.validate(json.load(open('config.json')), json.load(open('/tmp/tamarind-tool.schema.json')))
           print('Tamarind configuration is valid.')
           PY
-      - name: Test input validation and output contract
-        run: python -m unittest discover -s tests -p test_tamarind.py -v
+      - name: Test standard-library input, resource and output contracts
+        run: |
+          python - <<'PY'
+          import ast, hashlib, json
+          from pathlib import Path
+          folder = Path('integrations/tamarind')
+          notebook = json.loads((folder / 'Prepare_Tamarind_Batch.ipynb').read_text())
+          assert notebook['nbformat'] == 4 and len(notebook['cells']) == 4
+          sources = []
+          for cell in notebook['cells']:
+              if cell['cell_type'] == 'code':
+                  source = ''.join(cell['source'])
+                  compile(source, '<colab_cell>', 'exec')
+                  for node in ast.walk(ast.parse(source)):
+                      if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'PREPARER_SOURCE' for t in node.targets):
+                          sources.append(ast.literal_eval(node.value))
+          helper = (folder / 'prepare_inputs.py').read_text()
+          assert sources == [helper], 'Regenerate the notebook when the preparer changes.'
+          assert notebook['metadata']['zincsight_preparer_sha256'] == hashlib.sha256(helper.encode()).hexdigest()
+          print('Colab cells compile and the embedded preparer matches the standalone source.')
+          PY
+          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py; do
+            python -m unittest discover -s tests -p "$test_file" -v
+          done
+  offline-container:
+    needs: contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Build the dependency image
         run: docker build --tag zincsight-tamarind:test .
-      - name: Run offline predictions and compare to the pinned wrapper
+      - name: Run all Tamarind unit tests in the offline dependency image
+        run: |
+          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_batch_engine.py test_structure_outputs.py; do
+            docker run --rm --network none --cpus 4 --memory 12g \
+              --user "$(id -u):$(id -g)" --volume "$PWD:/app" --workdir /app \
+              --entrypoint python zincsight-tamarind:test \
+              -m unittest discover -s tests -p "$test_file" -v
+          done
+      - name: Check offline batch predictions, structures, sessions and pinned-wrapper parity
         run: python tests/check_tamarind_container.py --image zincsight-tamarind:test --output /tmp/tamarind-results
       - name: Preserve fresh public-input test results
         if: always()
@@ -41,3 +80,4 @@ jobs:
         with:
           name: tamarind-container-results
           path: /tmp/tamarind-results
+
