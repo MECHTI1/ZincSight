@@ -38,8 +38,7 @@ jobs:
           assert config['homeDiskGi'] == 50 and config['maxRuntimeSeconds'] == 7200
           assert inputs['cpu_workers']['default'] == inputs['cpu_workers']['upperBound'] == 8
           structures = [item for item in config['producedOutputs'] if item['type'] == 'pdb']
-          assert len(structures) == 2
-          assert {item['path'] for item in structures} == {'*_ZincSight.pdb', '*_ZincSight.cif'}
+          assert len(structures) == 1 and structures[0]['path'] == '*_ZincSight_structure.*'
           print('Tamarind configuration is valid.')
           PY
       - name: Test standard-library input, resource and output contracts

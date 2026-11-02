@@ -134,7 +134,7 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
         viewer_kind = "pdb" if "pdb" in artifacts else "mmcif"
         display, label = _label(result)
         base = f"{number:0{width}d}_{label}_ZincSight"
-        viewer = base + (".pdb" if viewer_kind == "pdb" else ".cif")
+        viewer = base + "_structure" + (".pdb" if viewer_kind == "pdb" else ".cif")
         session = base + ".pse"
         public_sources.extend(((viewer, output / members[viewer_kind]),
                                (session, output / members["pymol_session"])))

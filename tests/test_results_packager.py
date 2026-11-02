@@ -100,8 +100,8 @@ class ResultsPackagerTests(unittest.TestCase):
         self.assertEqual(results, input_copy)
         mappings = metadata["structures"]
         self.assertEqual(metadata["bundle_path"], "ZincSight_results.zip")
-        self.assertEqual(mappings[results[0]["key"]]["viewer_file"], "01_1KLS_ZincSight.pdb")
-        self.assertEqual(mappings[results[1]["key"]]["viewer_file"], "02_2A0S-assembly1_ZincSight.cif")
+        self.assertEqual(mappings[results[0]["key"]]["viewer_file"], "01_1KLS_ZincSight_structure.pdb")
+        self.assertEqual(mappings[results[1]["key"]]["viewer_file"], "02_2A0S-assembly1_ZincSight_structure.cif")
         expected_public = {"00_Summary.csv", "sites.csv", "CITATION.txt", "prediction.json",
                            "ZincSight_results.zip"}
         for result in results:
@@ -115,6 +115,10 @@ class ResultsPackagerTests(unittest.TestCase):
             self.assertEqual(mapping["bundle_members"], {**result["artifacts"],
                              "prediction_json": result["prediction_json"], "sites_csv": f"sites/{result['key']}.csv"})
         self.assertEqual(set(self.snapshot()), expected_public)
+        self.assertEqual({path.name for path in self.output.glob("*_ZincSight_structure.*")},
+                         {mapping["viewer_file"] for mapping in mappings.values()})
+        self.assertEqual({mapping["pymol_session"] for mapping in mappings.values()},
+                         {"01_1KLS_ZincSight.pse", "02_2A0S-assembly1_ZincSight.pse"})
         self.assertEqual((self.output / "prediction.json").read_bytes(), originals["prediction.json"])
         self.assertEqual((self.output / "sites.csv").read_bytes(), originals["sites.csv"])
         self.assertEqual(metadata["predicted_sites_file"], "sites.csv")
@@ -171,9 +175,9 @@ class ResultsPackagerTests(unittest.TestCase):
         metadata = packager.finalize_outputs(self.output, structures=results)
         maps = list(metadata["structures"].values())
         self.assertEqual([m["display_name"] for m in maps], ["02_same", "02_same", "01_02_same", "My weird 🧬 name"])
-        self.assertEqual(maps[0]["viewer_file"], "01_02_same_ZincSight.pdb")
-        self.assertEqual(maps[1]["viewer_file"], "02_02_same_ZincSight.pdb")
-        self.assertEqual(maps[3]["viewer_file"], "04_My_weird_name_ZincSight.pdb")
+        self.assertEqual(maps[0]["viewer_file"], "01_02_same_ZincSight_structure.pdb")
+        self.assertEqual(maps[1]["viewer_file"], "02_02_same_ZincSight_structure.pdb")
+        self.assertEqual(maps[3]["viewer_file"], "04_My_weird_name_ZincSight_structure.pdb")
         self.assertEqual(len({m["viewer_file"] for m in maps}), 4)
         self.assertEqual(json.loads((self.output / "prediction.json").read_text())["structures"], results)
 

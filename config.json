@@ -181,16 +181,10 @@
       ]
     },
     {
-      "name": "Predicted structures (PDB)",
+      "name": "Predicted structures",
       "type": "pdb",
-      "path": "*_ZincSight.pdb",
-      "descr": "Annotated first-model structures retaining original atoms and ions with predicted-site markers. Inputs that exceed PDB format limits use the mmCIF output instead. Full-precision mmCIF for every input is included in the complete results ZIP."
-    },
-    {
-      "name": "Predicted structures (mmCIF)",
-      "type": "pdb",
-      "path": "*_ZincSight.cif",
-      "descr": "Annotated first-model structures for inputs that exceed PDB format limits, retaining original atoms and ions with predicted-site markers. Each input has one canonical PDB or mmCIF viewer file."
+      "path": "*_ZincSight_structure.*",
+      "descr": "One annotated first-model structure per input, in PDB or fallback mmCIF format, retaining original atoms and ions with predicted-site markers. Full-precision mmCIF for every input is included in the complete results ZIP."
     },
     {
       "name": "Predictions and provenance",

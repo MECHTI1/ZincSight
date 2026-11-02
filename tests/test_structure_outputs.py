@@ -81,6 +81,58 @@ class StructureOutputTests(unittest.TestCase):
             self.assertIn("Predicted site 1", labels[0])
             self.assertIn("p=0.912", labels[0])
 
+    def test_pymol_scenes_reduce_label_overlap_without_hiding_or_changing_sites(self):
+        # Deliberately put the highest probability last: the overview must use
+        # the score, not assume the first result is always the best one.
+        self.result = {"site_count": 3, "sites": [
+            {**copy.deepcopy(SITE), "probability": probability,
+             "coordinates_angstrom": [3.1 + rank, 4.2, 5.3]}
+            for rank, probability in enumerate((0.4, 0.7, 0.95))
+        ]}
+        before = copy.deepcopy(self.result)
+        exported = self.export()
+        with pymol2.PyMOL() as session:
+            cmd = session.cmd
+            cmd.load(exported["artifact_paths"]["pymol_session"])
+            self.assertEqual(cmd.get_scene_list(), ["Overview", "All_site_labels"])
+            self.assertEqual(cmd.get_setting_int("float_labels"), 1)
+            self.assertEqual(cmd.get_setting_float("ray_label_specular"), 0)
+            self.assertEqual(cmd.count_atoms("predicted_sites", state=1), 3)
+            self.assertEqual(cmd.count_atoms("predicted_sites and rep spheres", state=1), 3)
+            self.assertEqual(cmd.count_atoms("predicted_sites and rep labels", state=1), 1)
+            self.assertEqual(cmd.get_model("predicted_sites and rep labels", state=1).atom[0].resi, "3")
+            label_positions = []
+            cmd.iterate("predicted_sites and rep labels", "label_positions.append(s.label_position)",
+                        space={"label_positions": label_positions})
+            self.assertEqual(label_positions, [(0.0, 15.0, 20.0)])
+            originals = cmd.get_model("original_structure", state=1).atom
+            markers = cmd.get_model("predicted_sites", state=1).atom
+            original_snapshot = [(atom.chain, atom.resi, atom.name, atom.symbol, tuple(atom.coord))
+                                 for atom in originals]
+            marker_snapshot = [(atom.chain, atom.resi, atom.name, atom.symbol, tuple(atom.coord))
+                               for atom in markers]
+            camera = cmd.get_view()
+            labels = []
+            cmd.iterate("predicted_sites", "labels.append(label)", space={"labels": labels})
+            self.assertEqual(len(labels), 3)
+            for rank, (label, site, atom) in enumerate(zip(labels, self.result["sites"], markers), 1):
+                self.assertEqual(label, f"Predicted site {rank} | p={site['probability']:.3g}")
+                for actual, expected in zip(atom.coord, site["coordinates_angstrom"]):
+                    self.assertAlmostEqual(actual, expected, places=5)
+            cmd.scene("All_site_labels", "recall", animate=0)
+            self.assertEqual(cmd.count_atoms("predicted_sites and rep labels", state=1), 3)
+            self.assertEqual(cmd.count_atoms("predicted_sites and rep spheres", state=1), 3)
+            self.assertEqual(cmd.get_view(), camera)
+            cmd.scene("Overview", "recall", animate=0)
+            self.assertEqual(cmd.count_atoms("predicted_sites and rep labels", state=1), 1)
+            self.assertEqual(cmd.count_atoms("predicted_sites and rep spheres", state=1), 3)
+            self.assertEqual(cmd.get_view(), camera)
+            self.assertEqual([(a.chain, a.resi, a.name, a.symbol, tuple(a.coord)) for a in
+                              cmd.get_model("original_structure", state=1).atom], original_snapshot)
+            self.assertEqual([(a.chain, a.resi, a.name, a.symbol, tuple(a.coord)) for a in
+                              cmd.get_model("predicted_sites", state=1).atom], marker_snapshot)
+        self.assertEqual(self.result, before)
+
     def test_mmcif_precision_original_chain_ids_and_pdb_mapping_are_explicit(self):
         model = next(PDBParser(QUIET=True).get_structure("input", StringIO(PDB)).get_models())
         data = exporter._first_model_cif(PDB, "pdb", model)
@@ -117,6 +169,10 @@ class StructureOutputTests(unittest.TestCase):
             session.cmd.load(exported["artifact_paths"]["pymol_session"])
             self.assertNotIn("predicted_sites", session.cmd.get_names("objects"))
             self.assertEqual(session.cmd.count_atoms("experimental_metals"), 1)
+            self.assertEqual(session.cmd.get_scene_list(), ["Overview", "All_site_labels"])
+            for scene in ("All_site_labels", "Overview"):
+                session.cmd.scene(scene, "recall", animate=0)
+                self.assertNotIn("predicted_sites", session.cmd.get_names("objects"))
         annotations = json.loads(Path(exported["artifact_paths"]["site_annotations"]).read_text())
         self.assertEqual(annotations["site_count"], 0)
 

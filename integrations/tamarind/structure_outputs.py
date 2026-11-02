@@ -296,10 +296,29 @@ def _pymol_session(original_cif, sites, marker_chain, path, warnings):
             cmd.set("label_color", "black", "predicted_sites")
             cmd.set("label_outline_color", "white", "predicted_sites")
             cmd.set("label_size", 14, "predicted_sites")
+            cmd.set("float_labels", 1)
+            cmd.set("ray_label_specular", 0)
         cmd.disable("experimental_metals")
         cmd.set_title("original_structure", 1, "ZincSight | Protein Science (2025) | doi:10.1002/pro.70350")
         cmd.orient("original_structure")
         cmd.zoom("all", buffer=3)
+        # Keep every marker and probability label in the session while making
+        # the opening view readable when several predictions occupy one site.
+        # Scenes change label visibility only; both retain this same camera,
+        # original atoms, coordinating sticks, and every predicted-site sphere.
+        if sites:
+            highest_rank = max(range(1, len(sites) + 1),
+                               key=lambda rank: sites[rank - 1]["probability"])
+            # A text-only offset keeps the overview caption clear of the site
+            # geometry in ray-traced exports; marker coordinates never move.
+            cmd.set("label_position", [0, 15, 20], f"predicted_sites and resi {highest_rank}")
+            cmd.hide("labels", "predicted_sites")
+            cmd.show("labels", f"predicted_sites and resi {highest_rank}")
+        cmd.scene("Overview", "store")
+        if sites:
+            cmd.show("labels", "predicted_sites")
+        cmd.scene("All_site_labels", "store")
+        cmd.scene("Overview", "recall", animate=0)
         cmd.save(str(path))
 
 
@@ -341,7 +360,8 @@ def export_structure_outputs(structure_text, file_format, result, output_dir, st
         "pdb_chain_mapping": chain_mapping, "pdb_residue_mapping": residue_mapping,
         "visualization": {"original_structure": "lavender protein cartoon; original ions retained separately",
                           "coordinating_residues": "purple carbon sticks with element-colored donor atoms",
-                          "predicted_sites": "Zn-element spheres, colored from red (low probability) to green (high probability), with probability labels"},
+                          "predicted_sites": "Zn-element spheres, colored from red (low probability) to green (high probability), with probability labels",
+                          "pymol_scenes": "Overview labels the highest-probability site; All_site_labels shows every stored probability label. Both show all predicted-site spheres."},
         "site_count": len(sites), "sites": copy.deepcopy(sites), "warnings": warnings,
     }
     annotations_path.write_text(json.dumps(annotations, indent=2, allow_nan=False) + "\n", encoding="utf-8")
