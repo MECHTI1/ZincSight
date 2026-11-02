@@ -241,7 +241,7 @@ def check_platform_outputs(output, canaries, *, exit_code=0):
 
 def check_public_outputs(output, batch, details, *, service_canaries=None):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.3.2"
+    assert batch["integration_version"] == "0.3.3"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
@@ -253,6 +253,12 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
         assert reader.fieldnames == SITE_FIELDS
         site_rows = list(reader)
     assert len(summary) == batch["structure_count"] == len(batch["structures"])
+    config = json.loads((ROOT / "config.json").read_text())
+    structure_outputs = [item for item in config["producedOutputs"] if item["type"] == "pdb"]
+    assert {item["path"] for item in structure_outputs} == {"*_ZincSight.pdb", "*_ZincSight.cif"}
+    scoped_files = {path.name for item in structure_outputs for path in output.glob(item["path"])
+                    if path.is_file()}
+    assert scoped_files == {row["structure_file"] for row in summary}, "Structure output scopes must include exactly the annotated viewer files"
     expected_files = {"00_Summary.csv", "sites.csv", "prediction.json",
                       "CITATION.txt", "ZincSight_results.zip"}
     for row, result in zip(summary, batch["structures"]):
