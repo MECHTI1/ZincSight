@@ -18,6 +18,45 @@ analyzes all protein chains in each input's first model and returns **every site
 meeting the selected probability threshold**. There is no fixed structure-count,
 per-structure byte, total-byte, protein-residue or returned-site cap.
 
+### Fetch IDs inside Tamarind — no Colab
+
+Tamarind's native [Database](https://app.tamarind.bio/database) can fetch
+coordinate-bearing structures before ZincSight's offline container starts:
+
+1. Open **Database → +New → Fetch by identifier**.
+2. Choose **RCSB** for experimental PDB IDs such as `1KLS`, or **AlphaFold**
+   for UniProt accessions such as `P69905` and model entries such as
+   `AF-A0A3W0S055-F1`. Paste one or many IDs separated by spaces, commas or
+   newlines. Choose the source explicitly; add each source's IDs separately.
+3. Review the fetched structure previews and import them into a named group.
+4. In that group, use **Export Structures** to download a ZIP, then unzip it.
+5. Open ZincSight and multi-select the exported **PDB files** under
+   **Protein structures or batch archives**.
+
+This handoff was verified with all three example structures: the PDB uploads
+completed, Submit became enabled, and the native 3D preview loaded `1KLS`.
+No new prediction was submitted. This is a native Database workflow followed by
+file upload; it does not add inline ID/CSV/Excel tabs to ZincSight.
+
+For this native-export route, unzip before choosing the files. Uploading its ZIP
+directly in the tested chooser opened **Import PDB Files from ZIP**, which asks
+to create another molecule group; that dialog was canceled. Existing ordinary
+structure/archive inputs remain supported by the adapter.
+
+The exported files preserved every first-model atom and its coordinates in the
+three checked examples, including the original `1KLS` Zn ion, with no residue
+cropping. Export uses PDB serialization and model 1; `1KLS` models 2–30 are not
+retained. ZincSight also analyzes model 1.
+
+Native AlphaFold entry IDs differ from filename-style IDs such as
+`AF-A0A3W0S055-F1-model_v6`. The native exporter omits model-version headers;
+its checked coordinates match the v6 references, but that is not independent
+proof of the fetched release. For an explicitly required fragment/version, use
+the version-preserving reader below or upload the original provider coordinate
+file. See [Database documentation](https://docs.tamarind.bio/tamarind/database).
+
+### Prepare ID-list files locally — optional
+
 **TXT, CSV and TSV structure-ID lists are supported by the input preparer.**
 It downloads the requested structures before the offline Tamarind prediction job.
 Run the standard-library Python helper below on a computer with internet access;
@@ -41,7 +80,7 @@ model IDs, MGYP identifiers and complete TED domain IDs. UniProt resolves to
 AlphaFold F1 model v6; explicit fragment/version IDs are preserved. Examples:
 1KLS, 2A0S-assembly1, P12345, AF-P12345-F2-model_v4 and
 AF-A0A287EUI1-F1-model_v4_TED01. ID availability depends on the public provider.
-Tamarind jobs are offline, so download/ID resolution happens in the preparer.
+For this optional reader, download/ID resolution happens locally before the offline job; the native Database route above is a separate option.
 
 Run an ID list locally, without Colab or an API key:
 
