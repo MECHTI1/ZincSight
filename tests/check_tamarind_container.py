@@ -202,7 +202,7 @@ def check_csv(rows, results):
 
 def check_public_outputs(output, batch, details):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.2.1"
+    assert batch["integration_version"] == "0.2.2"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
@@ -316,7 +316,8 @@ def main():
         manifest = preparer.prepare_inputs(app / "inputs/prepared.zip",
                                            sources=[app / "inputs/1KLS.cif", app / "inputs/empty_sites.pdb"])
         base = ["docker", "run", "--rm", "--network", "none", "--cpus", "4", "--memory", "12g",
-                "--user", f"{os.getuid()}:{os.getgid()}", "--volume", f"{app}:/app"]
+                "--user", f"{os.getuid()}:{os.getgid()}", "--volume", f"{app}:/app",
+                "--volume", f"{app / 'out'}:/app/out"]
         resources = ["-e", "ZINCSIGHT_CPU_BUDGET=4", "-e", "ZINCSIGHT_MEMORY_GIB=12", "-e", "cpu_workers=4"]
         references = {}
 
@@ -337,6 +338,9 @@ def main():
             output = args.output / label
             output.mkdir(exist_ok=True)
             shutil.rmtree(app / "out", ignore_errors=True)
+            # A separate output mount cannot be renamed/replaced. Create it as
+            # the runner first; Docker would otherwise create a root-owned path.
+            (app / "out").mkdir()
             settings = ["-e", f"histidine_rotamers={rotamers}", "-e", f"max_sites={limit}"]
             for key, value in environment.items():
                 settings.extend(["-e", f"{key}={value}"])
@@ -391,6 +395,7 @@ def main():
             assert result["input_provenance"] == entry
 
         shutil.rmtree(app / "out", ignore_errors=True)
+        (app / "out").mkdir()
         invalid = subprocess.run(base + resources + ["-e", "structure=/app/inputs/invalid.pdb", args.image],
                                  text=True, capture_output=True, timeout=60)
         (args.output / "invalid.log").write_text(invalid.stdout + invalid.stderr)

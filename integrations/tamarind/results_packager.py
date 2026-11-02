@@ -1,8 +1,8 @@
 """Publish a compact Tamarind result view while retaining every detailed output.
 
 The ZIP keeps the original directory layout and JSON paths unchanged. Public
-viewer/session names and small tables are staged separately before replacing the
-output directory, so failed packaging leaves the original results available.
+viewer/session names and small tables are staged separately before replacing
+individual children, so the output directory remains compatible with mounts.
 """
 from __future__ import annotations
 
@@ -84,6 +84,9 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
     output = output.resolve()
     if not isinstance(structures, list) or not structures:
         raise ValueError("At least one structure is required to package results.")
+    # Capture the original children before creating any temporary files inside
+    # the mounted output directory. Never rename the directory itself.
+    original_children = sorted(output.iterdir())
     originals = []
     for path in sorted(output.rglob("*")):
         if path.is_symlink():
@@ -150,11 +153,13 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
     new_names = {SUMMARY_NAME, SITES_NAME, "public_manifest.json"} | {name for name, _ in public_sources}
     if new_names & {name for name, _ in originals}:
         raise ValueError("The output already contains a reserved public result filename.")
-    temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.packaging-", dir=output.parent))
+    temporary = Path(tempfile.mkdtemp(prefix=".packaging-", dir=output))
     staged, backup = temporary / "public", temporary / "original"
-    published = False
+    moved_originals, published = [], []
+    rollback_failed = False
     try:
         staged.mkdir()
+        backup.mkdir()
         for name in ("CITATION.txt", "prediction.json"):
             shutil.copy2(output / name, staged / name)
         for name, path in public_sources:
@@ -169,18 +174,43 @@ def finalize_outputs(output: Path, *, structures: list[dict]) -> dict:
             for name in (SUMMARY_NAME, SITES_NAME, *(name for name, _ in public_sources)):
                 archive.write(staged / name, name)
             archive.writestr("public_manifest.json", json.dumps(metadata, indent=2, allow_nan=False) + "\n")
-        # Both renames stay on the same filesystem. Keep the full original tree
-        # until the replacement has succeeded; restore it if publication fails.
-        os.replace(output, backup)
+        # /app/out may be a mount or have a parent owned by another user. Move
+        # only its children within the same writable volume, retaining every
+        # original until all public files have been published.
         try:
-            os.replace(staged, output)
-        except BaseException:
-            os.replace(backup, output)
+            for child in original_children:
+                destination = backup / child.name
+                os.replace(child, destination)
+                moved_originals.append((child, destination))
+            for child in sorted(staged.iterdir()):
+                destination = output / child.name
+                os.replace(child, destination)
+                published.append(destination)
+        except BaseException as error:
+            # Preserve the backup even if recovery itself is interrupted by a
+            # non-filesystem exception before it can finish recording errors.
+            rollback_failed = True
+            rollback_errors = []
+            for path in reversed(published):
+                try:
+                    path.unlink()
+                except OSError as exc:
+                    rollback_errors.append(exc)
+            for original, saved in reversed(moved_originals):
+                try:
+                    os.replace(saved, original)
+                except OSError as exc:
+                    rollback_errors.append(exc)
+            if rollback_errors:
+                raise RuntimeError(
+                    f"Result publication failed and rollback was incomplete; "
+                    f"original results remain under {output} and {backup}."
+                ) from error
+            rollback_failed = False
             raise
-        published = True
     finally:
         # A failed rollback must retain the original tree for recovery rather
         # than deleting the only copy while handling the initial exception.
-        if not backup.exists() or published:
+        if not rollback_failed:
             shutil.rmtree(temporary, ignore_errors=True)
     return metadata
