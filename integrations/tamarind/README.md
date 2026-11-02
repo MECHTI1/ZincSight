@@ -12,7 +12,8 @@ bound metal identity.
 
 ## Run a batch
 
-Upload many PDB/mmCIF files, one or more structure archives, or both. The tool
+Under **Protein structures or batch archives**, upload many PDB/mmCIF files,
+one or more structure archives, or both together in the same picker. The tool
 analyzes all protein chains in each input's first model and returns **every site
 meeting the selected probability threshold**. There is no fixed structure-count,
 per-structure byte, total-byte, protein-residue or returned-site cap.
@@ -21,14 +22,13 @@ For ID entry and file preparation, open
 [Prepare Tamarind Batch in Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/feature/tamarind-integration/integrations/tamarind/Prepare_Tamarind_Batch.ipynb).
 Paste comma/space/newline-separated IDs, optionally upload ID lists or structures,
 then prepare and download the input archives. Upload **all generated ZIP parts**
-together under **Batch archives or prepared ID batches**. The notebook only
+together under **Protein structures or batch archives**. The notebook only
 prepares inputs; predictions run on Tamarind. It embeds the preparer source and
 needs no API key or GPU.
 
 | Input | Accepted content |
 | --- | --- |
-| structures | One or many .pdb, .cif or .mmcif files |
-| batch_archive | One or many ZIP, TAR, TAR.GZ or TGZ archives, including prepared ID ZIP parts; members may also be .ent or gzip-compressed structures |
+| structures | One or many .pdb, .cif, .mmcif or .ent structures, ZIP/TAR/TAR.GZ/TGZ archives, gzip-compressed structures, or any mixture; includes prepared ID ZIP parts |
 
 Tamarind's upload transport accepts **200 MB per file**. The preparer splits
 larger batches by compressed upload bytes, not by structure count, and includes
@@ -130,7 +130,7 @@ validated version to the organization. Verify the viewer, sessions and downloade
 bundle on Tamarind itself. Test/production jobs consume account compute.
 See [Custom Tool conventions](https://docs.tamarind.bio/tamarind/custom-tools).
 
-Integration revision 0.3.1 keeps the engine/weights pinned to
+Integration revision 0.3.2 keeps the engine/weights pinned to
 7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03 and its
 source archive SHA-256 is checked during image build. Dependencies live under
 /opt because Tamarind overlays the submitted source at /app. A checked

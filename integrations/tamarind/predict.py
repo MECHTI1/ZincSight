@@ -18,7 +18,7 @@ from resources import worker_allocation
 
 ENGINE_ROOT = Path('/opt/zincsight')
 ENGINE_REVISION = '7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03'
-INTEGRATION_VERSION = '0.3.1'
+INTEGRATION_VERSION = '0.3.2'
 CITATION = (
     'Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion '
     'location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. '

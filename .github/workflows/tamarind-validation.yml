@@ -30,7 +30,10 @@ jobs:
           jsonschema.validate(config, json.load(open('/tmp/tamarind-tool.schema.json')))
           inputs = {item['name']: item for item in config['inputs']}
           assert config['displayName'] == 'ZincSight'
-          assert 'max_sites' not in inputs and inputs['batch_archive']['list'] is True
+          assert 'max_sites' not in inputs and 'batch_archive' not in inputs
+          assert inputs['structures']['type'] == 'file'
+          assert inputs['structures']['list'] is True and inputs['structures']['required'] is True
+          assert set(inputs['structures']['extension']) == {'pdb', 'cif', 'mmcif', 'ent', 'zip', 'tar', 'gz', 'tgz'}
           assert config['cpu'] == 8 and config['memory'] == '24Gi'
           assert config['homeDiskGi'] == 50 and config['maxRuntimeSeconds'] == 7200
           assert inputs['cpu_workers']['default'] == inputs['cpu_workers']['upperBound'] == 8
