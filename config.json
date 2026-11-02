@@ -1,0 +1,55 @@
+{
+  "displayName": "ZincSight Preview",
+  "description": "Predict zinc and potential transition-metal binding sites in protein structures.",
+  "paperUrl": "https://doi.org/10.1002/pro.70350",
+  "functions": [
+    "Accepts experimental or predicted protein structures in PDB or mmCIF format.",
+    "Returns coordinating residues, predicted ion coordinates, template matches and site probabilities as CSV and JSON.",
+    "Optional histidine rotamer sampling is enabled by default.",
+    "Trained on zinc sites; can also detect potential Fe, Mn, Co, Cu and Ni sites, without identifying the bound metal.",
+    "Development preview with reproducibility fixes; historical outputs can differ and published accuracy benchmarks have not been re-established for this revision."
+  ],
+  "tags": ["protein-structure", "metal-binding", "zinc"],
+  "gpuType": "None",
+  "cpu": 2,
+  "memory": "8Gi",
+  "maxRuntimeSeconds": 300,
+  "inputs": [
+    {
+      "name": "structure",
+      "displayName": "Protein structure",
+      "type": "pdb",
+      "extension": ["pdb", "cif", "mmcif"],
+      "required": true,
+      "descr": "Upload one structure, at most 5 MB and 4,000 protein residues. Uses the first model and all its protein chains."
+    },
+    {
+      "name": "histidine_rotamers",
+      "displayName": "Sample histidine rotamers",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "name": "minimum_probability",
+      "displayName": "Minimum site probability",
+      "type": "number",
+      "default": 0.0001,
+      "lowerBound": 0,
+      "upperBound": 1,
+      "descr": "Output filter; 0.0001 matches the notebook cutoff. This cutoff is not a biological confidence threshold."
+    },
+    {
+      "name": "max_sites",
+      "displayName": "Maximum returned sites",
+      "type": "number",
+      "default": 100,
+      "lowerBound": 1,
+      "upperBound": 100,
+      "descr": "Whole number. Returns highest-probability sites; JSON records the total count and whether results were truncated."
+    }
+  ],
+  "producedOutputs": [
+    {"name": "Predicted sites", "type": "csv", "path": "sites.csv"},
+    {"name": "Predictions and provenance", "type": "json", "path": "prediction.json"}
+  ]
+}

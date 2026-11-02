@@ -1,0 +1,3 @@
+# No application COPY: Tamarind mounts source at runtime.
+**
+!Dockerfile
