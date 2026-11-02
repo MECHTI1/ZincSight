@@ -1,0 +1,43 @@
+name: Tamarind validation
+on:
+  push:
+    branches: ['feature/tamarind-integration']
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/*tamarind*', '.github/workflows/tamarind-validation.yml']
+  pull_request:
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/*tamarind*', '.github/workflows/tamarind-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tamarind-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  offline-container:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate configuration against Tamarind's live schema
+        run: |
+          python -m pip install jsonschema==4.26.0
+          curl --fail --location --retry 3 https://app.tamarind.bio/tamarind-tool.schema.json -o /tmp/tamarind-tool.schema.json
+          python - <<'PY'
+          import json, jsonschema
+          jsonschema.validate(json.load(open('config.json')), json.load(open('/tmp/tamarind-tool.schema.json')))
+          print('Tamarind configuration is valid.')
+          PY
+      - name: Test input validation and output contract
+        run: python -m unittest discover -s tests -p test_tamarind.py -v
+      - name: Build the dependency image
+        run: docker build --tag zincsight-tamarind:test .
+      - name: Run offline predictions and compare to the pinned wrapper
+        run: python tests/check_tamarind_container.py --image zincsight-tamarind:test --output /tmp/tamarind-results
+      - name: Preserve fresh public-input test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamarind-container-results
+          path: /tmp/tamarind-results
