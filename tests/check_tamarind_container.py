@@ -6,7 +6,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import urllib.request
@@ -90,7 +92,7 @@ def assert_records(actual, expected, tolerance):
             assert all(abs(a - b) <= tolerance for a, b in zip(observed, reference)), (key, observed, reference)
 
 
-out = Path('/app/out')
+out = Path('/app/details_bundle')
 batch = json.loads((out / 'prediction.json').read_text())
 with (out / 'structures.csv').open() as stream:
     rows = list(csv.DictReader(stream))
@@ -198,6 +200,88 @@ def check_csv(rows, results):
         assert row["template_id"] == str(site["template_id"])
 
 
+def check_public_outputs(output, batch, details):
+    """Check the uncluttered surface, then recover the complete detailed layout."""
+    assert batch["integration_version"] == "0.2.1"
+    assert batch["output_layout"] == "summary_and_bundle"
+    assert batch["result_bundle"] == "ZincSight_results.zip"
+    with (output / "00_Summary.csv").open() as stream:
+        reader = csv.DictReader(stream)
+        assert reader.fieldnames == ["structure", "sites", "top_probability", "status", "structure_file"]
+        summary = list(reader)
+    with (output / "01_Predicted_sites.csv").open() as stream:
+        reader = csv.DictReader(stream)
+        assert reader.fieldnames == ["structure", "site", "probability", "coordinating_residues",
+                                     "template_id", "template_rmsd_angstrom"]
+        site_rows = list(reader)
+    assert len(summary) == batch["structure_count"] == len(batch["structures"])
+    expected_files = {"00_Summary.csv", "01_Predicted_sites.csv", "prediction.json",
+                      "CITATION.txt", "ZincSight_results.zip"}
+    expected_sites = []
+    for row, result in zip(summary, batch["structures"]):
+        assert row["structure"] == result["display_name"]
+        assert int(row["sites"]) == result["site_count"]
+        expected_status = "No sites predicted" if not result["sites"] else "Truncated" if result["truncated"] else "Complete"
+        assert row["status"] == expected_status
+        if result["sites"]:
+            assert float(row["top_probability"]) == max(site["probability"] for site in result["sites"])
+        else:
+            assert row["top_probability"] == ""
+        viewer = row["structure_file"]
+        assert Path(viewer).name == viewer and re.fullmatch(r"\d{2,3}_.+_ZincSight\.(pdb|cif)", viewer)
+        session = Path(viewer).with_suffix(".pse").name
+        assert not {viewer, session} & expected_files, "Public input filenames collide"
+        expected_files.update((viewer, session))
+        artifacts = result["artifacts"]
+        assert artifacts["structure"] == viewer
+        assert artifacts["pymol_session"] == session
+        assert artifacts["details_bundle"] == "ZincSight_results.zip"
+        assert artifacts["pdb" if viewer.endswith(".pdb") else "mmcif"] == viewer
+        assert set(artifacts.values()) == {viewer, session, "ZincSight_results.zip"}
+        for rank, site in enumerate(result["sites"], 1):
+            expected_sites.append((row["structure"], rank, site))
+    assert len(site_rows) == len(expected_sites)
+    for row, (structure, rank, site) in zip(site_rows, expected_sites):
+        assert row["structure"] == structure and int(row["site"]) == rank
+        assert float(row["probability"]) == site["probability"]
+        assert row["coordinating_residues"] == ", ".join(site["coordinating_residues"])
+        assert row["template_id"] == str(site["template_id"])
+        assert float(row["template_rmsd_angstrom"]) == site["template_rmsd_angstrom"]
+    assert {path.name for path in output.iterdir()} == expected_files
+    assert all(path.is_file() and path.stat().st_size for path in output.iterdir())
+    shutil.rmtree(details, ignore_errors=True)
+    details.mkdir()
+    with zipfile.ZipFile(output / "ZincSight_results.zip") as archive:
+        members = archive.infolist()
+        names = {info.filename for info in members}
+        assert len(names) == len(members), "Duplicate bundle member names"
+        assert not {"zincsight_results.zip", "ZincSight_results.zip"} & names, "Recursive results bundle"
+        assert {"structures.csv", "sites.csv", "prediction.json", "CITATION.txt", "CITATION.bib",
+                "citation.json", "00_Summary.csv", "01_Predicted_sites.csv", "public_manifest.json"} <= names
+        for info in members:
+            destination = (details / info.filename).resolve()
+            assert destination.is_relative_to(details.resolve()) and not stat.S_ISLNK(info.external_attr >> 16)
+            if info.is_dir():
+                destination.mkdir(parents=True, exist_ok=True)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(archive.read(info))  # Also verifies each member's CRC.
+        for filename in ("00_Summary.csv", "01_Predicted_sites.csv", "CITATION.txt"):
+            assert archive.read(filename) == (output / filename).read_bytes()
+        bundled = json.loads(archive.read("prediction.json"))
+        assert len(bundled["structures"]) == len(batch["structures"])
+        for row, result, original in zip(summary, batch["structures"], bundled["structures"]):
+            for key in PARITY_KEYS + ("key", "source", "input_sha256", "input_provenance"):
+                assert result[key] == original[key], key
+            assert result["prediction_json_in_bundle"] == original["prediction_json"]
+            assert json.loads(archive.read(original["prediction_json"])) == original
+            for name in result["bundle_members"].values():
+                assert name in names
+            for kind in ("pdb" if row["structure_file"].endswith(".pdb") else "mmcif", "pymol_session"):
+                assert (output / result["artifacts"][kind]).read_bytes() == archive.read(original["artifacts"][kind])
+    return bundled
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="zincsight-tamarind:test")
@@ -264,23 +348,18 @@ def main():
             assert batch["structure_count"] == len(results) == len(names)
             assert len({result["key"] for result in results}) == len(names)
             assert batch["performance"]["database_instances_per_batch"] == 1
+            bundled = check_public_outputs(app / "out", batch, app / "details_bundle")
             for name, result in zip(names, results):
                 baseline = reference("1KLS.pdb" if name == "duplicate/1KLS.pdb" else name, rotamers, limit)
                 for key in PARITY_KEYS:
                     assert result[key] == baseline[key], (label, name, key)
                 assert result["input_sha256"] == hashlib.sha256((app / "inputs" / name).read_bytes()).hexdigest()
-                assert json.loads((app / "out" / result["prediction_json"]).read_text()) == result
-            with (app / "out/sites.csv").open() as stream:
-                check_csv(list(csv.DictReader(stream)), results)
+            with (app / "details_bundle/sites.csv").open() as stream:
+                check_csv(list(csv.DictReader(stream)), bundled["structures"])
             assert batch["returned_site_count"] == sum(len(result["sites"]) for result in results)
             assert batch["site_count"] == sum(result["site_count"] for result in results)
             for filename in ("CITATION.txt", "CITATION.bib", "citation.json"):
-                assert "10.1002/pro.70350" in (app / "out" / filename).read_text()
-            with zipfile.ZipFile(app / "out/zincsight_results.zip") as archive:
-                expected = {p.relative_to(app / "out").as_posix() for p in (app / "out").rglob("*")
-                            if p.is_file() and p.name != "zincsight_results.zip"}
-                assert set(archive.namelist()) == expected
-                assert all(archive.read(name) == (app / "out" / name).read_bytes() for name in expected)
+                assert "10.1002/pro.70350" in (app / "details_bundle" / filename).read_text()
             run_checked(base + ["--entrypoint", "python", args.image, "-c", ROUNDTRIP_CHECK], output / "roundtrip.log")
             print(f"PASS {label}: {len(results)} structures, exact wrapper agreement and session roundtrip", flush=True)
             return batch

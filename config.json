@@ -4,12 +4,12 @@
   "paperUrl": "https://doi.org/10.1002/pro.70350",
   "functions": [
     "Upload multiple PDB/mmCIF structures together, or upload a ZIP/TAR archive. Each job accepts up to 100 structures, 5 MB per uncompressed structure and 100 MB total; each first model must contain 3–4,000 standard protein residues. Supply structures, a batch archive, or both.",
-    "One row per input in the Structures result opens its first-model structure, including inputs with no predicted sites. PDB/mmCIF exports retain original atoms and experimental ions and add clearly annotated predicted-site markers.",
-    "Download a PyMOL .pse session per input, with separate original atoms, experimental metals, predicted markers and coordinating residues. A complete results ZIP, per-site CSV, prediction JSON and citation files are available in Files.",
+    "The Summary table has one row per input with its qualifying-site count, top probability, status and viewable structure, including inputs with no predicted sites. Predicted sites lists the returned sites and coordinating residues. One canonical viewer file is provided per input: PDB, or mmCIF when PDB cannot represent the structure.",
+    "In Files, download a clearly named PyMOL .pse session per input or the complete ZincSight results ZIP. Sessions distinguish original atoms, experimental metals, predicted markers and coordinating residues. The ZIP contains full-precision mmCIF structures, complete site tables, per-structure JSON, marker annotations, provenance and BibTeX citation.",
     "Predicted Zn markers indicate potential binding-site locations. They do not identify the bound metal; this zinc-trained method can also detect potential Fe, Mn, Co, Cu and Ni sites.",
     "Four vCPUs and 12 GiB memory are allocated per job, with a 3 GiB budget per worker. The whole batch shares one private database and one native ZincSight prediction run. Optional histidine rotamer sampling is enabled by default.",
     "For Colab-style ID input, use the bundled integrations/tamarind/prepare_inputs.py companion on a networked computer and upload its prepared ZIP as the batch archive. It accepts PDB/assembly, UniProt, full AlphaFold model, MGYP and TED domain IDs, including ID-list files. Direct ID downloading in this Tamarind tool page is unavailable.",
-    "Please cite: Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350. The Paper link and downloadable CITATION.txt/CITATION.bib files reference this study; Tamarind manages the native Citations tab separately and it may retain its default citation.",
+    "Please cite: Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350. The Paper link and downloadable CITATION.txt reference this study; BibTeX is included in the complete results ZIP. Tamarind manages the native Citations tab separately and it may retain its default citation.",
     "Development preview with reproducibility fixes; historical outputs can differ and published accuracy benchmarks have not been re-established for this revision. Predictions are not experimental confirmation of binding, metal selectivity, occupancy or catalytic activity. No predicted sites does not rule out binding."
   ],
   "tags": [
@@ -85,136 +85,68 @@
   ],
   "producedOutputs": [
     {
-      "name": "Structures",
+      "name": "Summary",
       "type": "csv",
-      "path": "structures.csv",
+      "path": "00_Summary.csv",
       "primary": true,
       "structureColumn": "structure_file",
+      "descr": "One row per input with qualifying-site count, highest probability, result status and a viewable structure.",
       "columns": [
         {
-          "name": "structure_id",
-          "displayName": "Structure ID",
+          "name": "structure",
+          "displayName": "Structure",
           "type": "string"
         },
         {
-          "name": "source",
-          "displayName": "Input structure",
-          "type": "string"
+          "name": "sites",
+          "displayName": "Sites",
+          "type": "number",
+          "description": "Total sites passing the probability cutoff, before the per-structure return limit."
         },
         {
-          "name": "site_count",
-          "displayName": "Qualifying sites",
-          "type": "number"
-        },
-        {
-          "name": "returned_site_count",
-          "displayName": "Returned sites",
-          "type": "number"
-        },
-        {
-          "name": "highest_probability",
-          "displayName": "Highest site probability",
+          "name": "top_probability",
+          "displayName": "Top probability",
           "type": "number",
           "description": "Highest returned ZincSight site probability; empty when no sites pass the cutoff. This is not a biological confidence threshold."
         },
         {
-          "name": "truncated",
-          "displayName": "Site limit applied",
-          "type": "string"
-        },
-        {
-          "name": "protein_residue_count",
-          "displayName": "First-model protein residues",
-          "type": "number"
+          "name": "status",
+          "displayName": "Status",
+          "type": "string",
+          "description": "Result summary, including no-site results and any returned-site limit."
         },
         {
           "name": "structure_file",
           "displayName": "View structure",
           "type": "pdb",
-          "description": "Original first-model atoms plus annotated predicted Zn markers. Markers locate potential sites and do not assign the bound metal identity."
-        },
-        {
-          "name": "mmcif_file",
-          "displayName": "Download mmCIF",
-          "type": "file"
-        },
-        {
-          "name": "pymol_session",
-          "displayName": "Download PyMOL session",
-          "type": "file"
-        },
-        {
-          "name": "prediction_json",
-          "displayName": "Prediction JSON",
-          "type": "file"
-        },
-        {
-          "name": "site_annotations",
-          "displayName": "Marker annotations",
-          "type": "file"
-        },
-        {
-          "name": "warnings",
-          "displayName": "Structure export notes",
-          "type": "string"
+          "description": "First-model original atoms and ions plus annotated predicted-site Zn markers. Markers locate potential sites and do not assign bound metal identity."
         }
-      ],
-      "descr": "One row per input, including zero-site results, with a viewable structure and downloadable PyMOL session."
-    },
-    {
-      "name": "Structures with predicted sites",
-      "type": "pdb",
-      "path": "structures/*.pdb",
-      "descr": "First-model protein structures retaining original atoms and ions, with annotated predicted-site Zn markers."
+      ]
     },
     {
       "name": "Predicted sites",
       "type": "csv",
-      "path": "sites.csv",
+      "path": "01_Predicted_sites.csv",
+      "descr": "Returned sites across the batch with probabilities, coordinating residues and matched templates.",
       "columns": [
         {
-          "name": "structure_id",
-          "displayName": "Structure ID",
+          "name": "structure",
+          "displayName": "Structure",
           "type": "string"
         },
         {
-          "name": "source",
-          "displayName": "Input structure",
-          "type": "string"
-        },
-        {
-          "name": "site_rank",
-          "displayName": "Site rank",
+          "name": "site",
+          "displayName": "Site",
           "type": "rank"
         },
         {
           "name": "probability",
-          "displayName": "Site probability",
-          "type": "number"
-        },
-        {
-          "name": "x_angstrom",
-          "displayName": "X (Å)",
-          "type": "number"
-        },
-        {
-          "name": "y_angstrom",
-          "displayName": "Y (Å)",
-          "type": "number"
-        },
-        {
-          "name": "z_angstrom",
-          "displayName": "Z (Å)",
+          "displayName": "Probability",
           "type": "number"
         },
         {
           "name": "coordinating_residues",
           "displayName": "Coordinating residues",
-          "type": "string"
-        },
-        {
-          "name": "residue_combination",
-          "displayName": "Residue combination",
           "type": "string"
         },
         {
@@ -227,23 +159,24 @@
           "displayName": "Template RMSD (Å)",
           "type": "number"
         }
-      ],
-      "descr": "All returned sites across the batch, linked to their input structure IDs."
+      ]
     },
     {
-      "name": "Batch predictions and provenance",
+      "name": "Structures with predicted sites",
+      "type": "pdb",
+      "path": "*.pdb",
+      "descr": "One canonical first-model structure per input, retaining original atoms and ions and adding annotated predicted-site markers."
+    },
+    {
+      "name": "Structures requiring mmCIF",
+      "type": "pdb",
+      "path": "*.cif",
+      "descr": "Canonical viewable structures for inputs that exceed PDB formatting limits. Full-precision mmCIF for every input is included in the complete results ZIP."
+    },
+    {
+      "name": "Predictions and provenance",
       "type": "json",
       "path": "prediction.json"
-    },
-    {
-      "name": "Per-structure predictions",
-      "type": "json",
-      "path": "predictions/*.json"
-    },
-    {
-      "name": "ZincSight paper citation",
-      "type": "json",
-      "path": "citation.json"
     }
   ],
   "envVars": {
