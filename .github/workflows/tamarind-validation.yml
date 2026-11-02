@@ -26,7 +26,14 @@ jobs:
           curl --fail --location --retry 3 https://app.tamarind.bio/tamarind-tool.schema.json -o /tmp/tamarind-tool.schema.json
           python - <<'PY'
           import json, jsonschema
-          jsonschema.validate(json.load(open('config.json')), json.load(open('/tmp/tamarind-tool.schema.json')))
+          config = json.load(open('config.json'))
+          jsonschema.validate(config, json.load(open('/tmp/tamarind-tool.schema.json')))
+          inputs = {item['name']: item for item in config['inputs']}
+          assert config['displayName'] == 'ZincSight'
+          assert 'max_sites' not in inputs and inputs['batch_archive']['list'] is True
+          assert config['cpu'] == 8 and config['memory'] == '24Gi'
+          assert config['homeDiskGi'] == 50 and config['maxRuntimeSeconds'] == 7200
+          assert inputs['cpu_workers']['default'] == inputs['cpu_workers']['upperBound'] == 8
           print('Tamarind configuration is valid.')
           PY
       - name: Test standard-library input, resource and output contracts
@@ -66,13 +73,14 @@ jobs:
         run: docker build --tag zincsight-tamarind:test .
       - name: Run all Tamarind unit tests in the offline dependency image
         run: |
+          # CI has fewer resources than the deployed 8-vCPU/24-GiB allocation.
           for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_results_packager.py test_batch_engine.py test_structure_outputs.py; do
             docker run --rm --network none --cpus 4 --memory 12g \
               --user "$(id -u):$(id -g)" --volume "$PWD:/app" --workdir /app \
               --entrypoint python zincsight-tamarind:test \
               -m unittest discover -s tests -p "$test_file" -v
           done
-      - name: Check offline batch predictions, structures, sessions and pinned-wrapper parity
+      - name: Check all-site batch predictions, resource clamping, large structures and session parity
         run: python tests/check_tamarind_container.py --image zincsight-tamarind:test --output /tmp/tamarind-results
       - name: Preserve fresh public-input test results
         if: always()

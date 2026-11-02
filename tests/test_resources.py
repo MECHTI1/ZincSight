@@ -54,6 +54,16 @@ class ResourceTests(unittest.TestCase):
         with self.fake_files({}):
             self.assertIsNone(resources.detected_memory_gib())
 
+    def test_unlimited_container_uses_available_host_memory_before_total(self):
+        with self.fake_files({'/sys/fs/cgroup/memory.max': 'max',
+                              '/proc/meminfo': 'MemTotal:       50331648 kB\nMemAvailable:   12582912 kB\n'}):
+            self.assertEqual(resources.detected_memory_gib(), 12)
+            result = resources.worker_allocation(8, {}, cpu_limit=8)
+            self.assertEqual(result['cpu_workers'], 4)
+            self.assertEqual(result['effective_memory_gib'], 12)
+        with self.fake_files({'/proc/meminfo': 'MemTotal: 25165824 kB\n'}):
+            self.assertEqual(resources.detected_memory_gib(), 24)
+
     def test_worker_count_is_clamped_by_all_resource_constraints(self):
         environment = {'ZINCSIGHT_CPU_BUDGET': '8', 'ZINCSIGHT_MEMORY_GIB': '24'}
         cases = [(8, 8, 12, 4), (8, 2, 24, 2), (8, 8, 5.9, 1), (1, 8, 24, 1)]
@@ -71,9 +81,9 @@ class ResourceTests(unittest.TestCase):
     def test_declared_defaults_apply_if_memory_detection_is_unavailable(self):
         with patch.object(resources, 'detected_cpu_limit', return_value=8), patch.object(resources, 'detected_memory_gib', return_value=None):
             result = resources.worker_allocation(8, {})
-        self.assertEqual(result['cpu_workers'], 4)
-        self.assertEqual(result['effective_memory_gib'], 12)
-        self.assertEqual(result['declared_cpu_budget'], 4)
+        self.assertEqual(result['cpu_workers'], 8)
+        self.assertEqual(result['effective_memory_gib'], 24)
+        self.assertEqual(result['declared_cpu_budget'], 8)
 
     def test_invalid_worker_requests_and_detected_resources_are_rejected(self):
         for request in (0, 9, True, 2.5, float('nan'), '4'):

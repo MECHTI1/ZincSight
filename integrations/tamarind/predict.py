@@ -5,7 +5,9 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import sys
+import tempfile
 import time
 
 HERE = Path(__file__).resolve().parent
@@ -16,7 +18,7 @@ from resources import worker_allocation
 
 ENGINE_ROOT = Path('/opt/zincsight')
 ENGINE_REVISION = '7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03'
-INTEGRATION_VERSION = '0.2.3'
+INTEGRATION_VERSION = '0.3.0'
 CITATION = (
     'Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion '
     'location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. '
@@ -53,18 +55,15 @@ def read_parameters(environment):
         raise ValueError('histidine_rotamers must be true or false.')
     try:
         probability = float(environment.get('minimum_probability', '0.0001'))
-        count = float(environment.get('max_sites', '100'))
-        workers = float(environment.get('cpu_workers', '4'))
+        workers = float(environment.get('cpu_workers', '8'))
     except (ValueError, TypeError) as exc:
-        raise ValueError('Probability, site count and CPU workers must be numbers.') from exc
+        raise ValueError('Probability and CPU workers must be numbers.') from exc
     if not math.isfinite(probability) or not 0 <= probability <= 1:
         raise ValueError('minimum_probability must be between 0 and 1.')
-    if not math.isfinite(count) or not count.is_integer() or not 1 <= count <= 100:
-        raise ValueError('max_sites must be a whole number between 1 and 100 per structure.')
     if not math.isfinite(workers) or not workers.is_integer() or not 1 <= workers <= 8:
         raise ValueError('cpu_workers must be a whole number between 1 and 8.')
     return {'histidine_rotamers': flag in ('true', '1'), 'minimum_probability': probability,
-            'max_sites': int(count), 'cpu_workers': int(workers)}
+            'cpu_workers': int(workers)}
 
 
 def load_predictor():
@@ -92,25 +91,24 @@ def _csv_label(value):
     return "'" + value if value.startswith(('=', '+', '-', '@')) else value
 
 
-def run(app: Path, environment, predictor=None, exporter=None) -> dict:
+def _run(app: Path, environment, predictor=None, exporter=None, *, output: Path) -> dict:
     started = time.perf_counter()
     app = Path(app)
     parameters = read_parameters(environment)
     resources = worker_allocation(parameters.pop('cpu_workers'), environment)
-    structures = collect_structures(app, environment)
+    structures = collect_structures(app, environment, staging_dir=output.parent / 'staged_inputs')
     predictor = predictor or load_predictor()
     if exporter is None:
         from structure_outputs import export_structure_outputs
         exporter = export_structure_outputs
     prediction_started = time.perf_counter()
-    results = predictor(structures, **parameters, cpu_workers=resources['cpu_workers'],
-                        engine_root=ENGINE_ROOT, timeout=1200)
+    results = predictor(structures, **parameters, max_sites=None, cpu_workers=resources['cpu_workers'],
+                        engine_root=ENGINE_ROOT, timeout=7140)
     prediction_seconds = time.perf_counter() - prediction_started
     if (not isinstance(results, list) or len(results) != len(structures)
             or not all(isinstance(result, dict) for result in results)
             or [r.get('key') for r in results] != [s['key'] for s in structures]):
         raise RuntimeError('The engine returned inconsistent structure identities.')
-    output = app / 'out'
     output.mkdir(parents=True, exist_ok=True)
     reference = {'citation': CITATION, 'doi': '10.1002/pro.70350',
                  'url': 'https://doi.org/10.1002/pro.70350', 'bibtex': BIBTEX}
@@ -125,10 +123,12 @@ def run(app: Path, environment, predictor=None, exporter=None) -> dict:
             software_revision=ENGINE_REVISION, integration='tamarind',
             integration_version=INTEGRATION_VERSION, database_transport='unix_socket',
             validation_status=VALIDATION_STATUS, citation=CITATION, reference=reference,
-            returned_site_count=len(result['sites']), max_sites=parameters['max_sites'],
+            returned_site_count=len(result['sites']),
             resources=resources,
         )
-        artifacts = exporter(source['structure_text'], source['file_format'], result,
+        structure_text = (source['structure_text'] if 'structure_text' in source
+                          else Path(source['structure_path']).read_text(encoding='utf-8'))
+        artifacts = exporter(structure_text, source['file_format'], result,
                              output / 'structures', stem=source['key'])
         paths = {name: Path(path).resolve().relative_to(output.resolve()).as_posix()
                  for name, path in artifacts['artifact_paths'].items()}
@@ -169,7 +169,7 @@ def run(app: Path, environment, predictor=None, exporter=None) -> dict:
         'method': 'ZincSight', 'structure_count': len(results), 'structures': results,
         'site_count': sum(item['site_count'] for item in results),
         'returned_site_count': sum(item['returned_site_count'] for item in results),
-        'truncated': any(item['truncated'] for item in results), 'max_sites_per_structure': parameters['max_sites'],
+        'truncated': any(item['truncated'] for item in results),
         'histidine_rotamers': parameters['histidine_rotamers'],
         'minimum_probability': parameters['minimum_probability'],
         'citation': CITATION, 'reference': reference, 'software_revision': ENGINE_REVISION,
@@ -195,7 +195,7 @@ def run(app: Path, environment, predictor=None, exporter=None) -> dict:
         'Original atoms and experimental ions are retained. Marker annotations distinguish predictions.\n'
         'PDB coordinates have 0.001 Angstrom precision; mmCIF and JSON retain higher precision.\n'
         'The first model is analyzed and exported; later models are not analyzed.\n'
-        'The site limit applies independently to each input structure.\n\n' + CITATION + '\n', encoding='utf-8')
+        'All sites passing the probability filter are returned; no site-count truncation is applied.\n\n' + CITATION + '\n', encoding='utf-8')
     from results_packager import finalize_outputs
     package = finalize_outputs(output, structures=results)
     for item in results:
@@ -217,9 +217,26 @@ def run(app: Path, environment, predictor=None, exporter=None) -> dict:
         result.update({key: value for key, value in results[0].items()
                        if key not in ('resources', 'reference')})
     _write_json(output / 'prediction.json', result)
+    # The platform owns /app/out and may monitor file creation there. Build the
+    # complete presentation privately, then write final files directly without
+    # moving or deleting platform logs, status files, or the output directory.
+    public_output = app / 'out'
+    public_output.mkdir(parents=True, exist_ok=True)
+    for path in sorted(output.iterdir()):
+        if not path.is_file():
+            raise RuntimeError('The packaged public output contains an unexpected directory.')
+        target = public_output / path.name
+        if target.is_symlink():
+            raise RuntimeError('A public output filename points to an unsafe symbolic link.')
+        shutil.copyfile(path, target)
     print(f"Processed {len(results)} structures with {resources['cpu_workers']} CPU workers; "
           f"returned {result['returned_site_count']} sites. PDB/mmCIF and PyMOL sessions are ready.")
     return result
+
+
+def run(app: Path, environment, predictor=None, exporter=None) -> dict:
+    with tempfile.TemporaryDirectory(prefix='zincsight-results-', dir='/tmp') as directory:
+        return _run(app, environment, predictor, exporter, output=Path(directory) / 'results')
 
 
 if __name__ == '__main__':

@@ -206,6 +206,46 @@ class InputBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'named input values'):
             self.collect()
 
+    def test_large_batches_stream_to_disk_without_preview_count_or_byte_caps(self):
+        large = PDB + b'REMARK batch input\n' * 300_000
+        self.assertGreater(len(large), 5_000_000)
+        path = self.zip('large.zip', [(f'large-{i}.pdb', large) for i in range(20)]
+                        + [(f'small-{i}.pdb', PDB) for i in range(105)])
+        stage = self.app / 'private-staging'
+        items = self.collect(path, staging_dir=stage)
+        self.assertEqual(len(items), 125)
+        self.assertGreater(sum(item['input_bytes'] for item in items), 100_000_000)
+        self.assertTrue(all('structure_text' not in item for item in items))
+        self.assertTrue(all(Path(item['structure_path']).is_file() for item in items))
+        self.assertEqual(items[0]['input_sha256'], hashlib.sha256(large).hexdigest())
+        self.assertEqual(Path(items[0]['structure_path']).read_bytes(), large)
+
+    def test_multiple_prepared_archives_stream_without_basename_collisions(self):
+        manifest = {'structures': [{'path': 'structures/input.pdb', 'original_name': '1KLS.pdb',
+                                    'sha256': hashlib.sha256(PDB).hexdigest()}]}
+        first = self.zip('part-1.zip', [('manifest.json', json.dumps(manifest)), ('structures/input.pdb', PDB)])
+        second = self.zip('part-2.zip', [('manifest.json', json.dumps(manifest)), ('structures/input.pdb', PDB)])
+        items = bundle_reader.collect_structures(
+            self.app, {'batch_archive': json.dumps([str(first), str(second)])},
+            staging_dir=self.app / 'private-staging')
+        self.assertEqual(len(items), 2)
+        self.assertNotEqual(items[0]['structure_path'], items[1]['structure_path'])
+        self.assertEqual([item['source'] for item in items], ['1KLS.pdb', '1KLS.pdb'])
+
+    def test_staged_gzip_hashes_and_invalid_input_cleanup(self):
+        raw = gzip.compress(PDB)
+        path = self.write('input.pdb.gz', raw)
+        stage = self.app / 'private-staging'
+        item = self.collect(path, staging_dir=stage)[0]
+        self.assertEqual(Path(item['structure_path']).read_bytes(), PDB)
+        self.assertEqual(item['provenance']['compressed_sha256'], hashlib.sha256(raw).hexdigest())
+        for invalid in (b'\xff', b'ATOM\x00'):
+            other_stage = self.app / ('invalid-stage-' + str(len(invalid)))
+            path = self.write('invalid.pdb', invalid)
+            with self.assertRaises(ValueError):
+                self.collect(path, staging_dir=other_stage)
+            self.assertEqual(list(other_stage.iterdir()), [])
+
 
 if __name__ == '__main__':
     unittest.main()

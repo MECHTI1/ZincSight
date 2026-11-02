@@ -1,26 +1,26 @@
 {
-  "displayName": "ZincSight Preview",
-  "description": "Batch zinc-site prediction with viewable protein structures and downloadable PyMOL sessions. ZincSight: Mechtinger et al., Protein Science (2025).",
+  "displayName": "ZincSight",
+  "description": "Predict transition-metal binding sites in protein structures with interpretable template matches, viewable structures and PyMOL sessions.",
   "paperUrl": "https://doi.org/10.1002/pro.70350",
   "functions": [
-    "Upload multiple PDB/mmCIF structures together, or upload a ZIP/TAR archive. Each job accepts up to 100 structures, 5 MB per uncompressed structure and 100 MB total; each first model must contain 3–4,000 standard protein residues. Supply structures, a batch archive, or both.",
-    "The Summary table has one row per input with its qualifying-site count, top probability, status and viewable structure, including inputs with no predicted sites. Predicted sites lists the returned sites and coordinating residues. One canonical viewer file is provided per input: PDB, or mmCIF when PDB cannot represent the structure.",
-    "In Files, download a clearly named PyMOL .pse session per input or the complete ZincSight results ZIP. Sessions distinguish original atoms, experimental metals, predicted markers and coordinating residues. The ZIP contains full-precision mmCIF structures, complete site tables, per-structure JSON, marker annotations, provenance and BibTeX citation.",
-    "Predicted Zn markers indicate potential binding-site locations. They do not identify the bound metal; this zinc-trained method can also detect potential Fe, Mn, Co, Cu and Ni sites.",
-    "Four vCPUs and 12 GiB memory are allocated per job, with a 3 GiB budget per worker. The whole batch shares one private database and one native ZincSight prediction run. Optional histidine rotamer sampling is enabled by default.",
-    "For Colab-style ID input, use the bundled integrations/tamarind/prepare_inputs.py companion on a networked computer and upload its prepared ZIP as the batch archive. It accepts PDB/assembly, UniProt, full AlphaFold model, MGYP and TED domain IDs, including ID-list files. Direct ID downloading in this Tamarind tool page is unavailable.",
-    "Please cite: Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350. The Paper link and downloadable CITATION.txt reference this study; BibTeX is included in the complete results ZIP. Tamarind manages the native Citations tab separately and it may retain its default citation.",
-    "Development preview with reproducibility fixes; historical outputs can differ and published accuracy benchmarks have not been re-established for this revision. Predictions are not experimental confirmation of binding, metal selectivity, occupancy or catalytic activity. No predicted sites does not rule out binding."
+    "Predict binding sites for transition metals: zinc (Zn), iron (Fe), manganese (Mn), cobalt (Co), copper (Cu) and nickel (Ni). Zinc-trained and benchmarked across these metals; site markers locate binding sites without assigning the bound metal identity.",
+    "The published study reports high precision and recall for its transition-metal panel at probability >= 0.75. In its separate zinc coverage benchmark, sensitivity was 97.7% (1551/1588 zinc sites) at probability >= 0.5. See the Paper link for benchmark conditions.",
+    "Upload many PDB/mmCIF structures, archives, or prepared ID-batch ZIP parts together. There is no fixed structure-count, per-structure byte, protein-residue or returned-site cap. All sites meeting the selected probability threshold are returned. Tamarind upload files are limited to 200 MB each; prepared batches are split by upload bytes when needed.",
+    "For IDs, use Prepare Tamarind Batch in Colab: https://colab.research.google.com/github/MECHTI1/ZincSight/blob/feature/tamarind-integration/integrations/tamarind/Prepare_Tamarind_Batch.ipynb . Paste PDB/assembly, UniProt, full AlphaFold, MGYP or TED IDs, or upload ID lists, then upload every generated ZIP part here.",
+    "Summary has one row and viewable structure per input, including zero-site results. Predicted sites lists all qualifying sites and coordinating residues. Files provides one named structure and PyMOL session per input, the full prediction JSON, citation and complete results ZIP with full-precision mmCIF and detailed annotations.",
+    "Eight vCPUs, 24 GiB memory and 50 GiB working disk support large batches, with a 3 GiB worker budget and up to two hours per job. CPU workers defaults to 8. Histidine rotamer sampling is enabled by default. Batch size is governed by the actual memory, disk and job-time allocation.",
+    "Please cite Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350 . CITATION.txt and bundled BibTeX reference this paper; Tamarind controls its native Citations tab separately."
   ],
   "tags": [
     "protein-structure",
+    "transition-metals",
     "metal-binding",
     "zinc"
   ],
   "gpuType": "None",
-  "cpu": 4,
-  "memory": "12Gi",
-  "maxRuntimeSeconds": 1800,
+  "cpu": 8,
+  "memory": "24Gi",
+  "maxRuntimeSeconds": 7200,
   "inputs": [
     {
       "name": "structures",
@@ -33,11 +33,11 @@
       ],
       "list": true,
       "required": false,
-      "descr": "Upload one or more PDB/mmCIF structures, or use the batch archive below. Up to 100 inputs, 5 MB each and 100 MB total; 3–4,000 standard protein residues per first model. All chains in that model are analyzed; include side-chain coordinates."
+      "descr": "Upload one or many PDB/mmCIF structures, or use batch archives below. Every protein chain in the first model is analyzed; side-chain coordinates are required. No fixed structure-count or protein-size cap. Each uploaded file must fit the platform transport limit."
     },
     {
       "name": "batch_archive",
-      "displayName": "Batch archive or prepared ID batch",
+      "displayName": "Batch archives or prepared ID batches",
       "type": "file",
       "extension": [
         "zip",
@@ -46,7 +46,8 @@
         "tgz"
       ],
       "required": false,
-      "descr": "Optional ZIP, TAR, TAR.GZ or TGZ containing PDB/mmCIF files, including .pdb.gz/.cif.gz members. For IDs, upload the ZIP produced by the bundled prepare_inputs.py companion. Direct online ID fetching is unavailable in the Tamarind runtime. Supply structures or an archive."
+      "descr": "Upload one or more ZIP, TAR, TAR.GZ or TGZ archives containing structures. For IDs, upload every ZIP part produced by Prepare Tamarind Batch. Each upload is limited to 200 MB by Tamarind transport; the number of structures is not capped.",
+      "list": true
     },
     {
       "name": "histidine_rotamers",
@@ -62,25 +63,16 @@
       "default": 0.0001,
       "lowerBound": 0,
       "upperBound": 1,
-      "descr": "Output filter; 0.0001 matches the notebook cutoff. This cutoff is not a biological confidence threshold."
-    },
-    {
-      "name": "max_sites",
-      "displayName": "Maximum returned sites per structure",
-      "type": "number",
-      "default": 100,
-      "lowerBound": 1,
-      "upperBound": 100,
-      "descr": "Whole number from 1 to 100 per input. Returns each structure's highest-probability sites; CSV/JSON record the total qualifying count and whether that structure was truncated."
+      "descr": "Return every site meeting this probability cutoff. Default 0.0001 matches BatchDrive; use a higher cutoff to focus on higher-scoring sites."
     },
     {
       "name": "cpu_workers",
       "displayName": "CPU workers",
       "type": "number",
-      "default": 4,
+      "default": 8,
       "lowerBound": 1,
-      "upperBound": 4,
-      "descr": "Whole number from 1 to 4. Uses the available CPU and memory allocation, with 3 GiB budgeted per worker. Higher values parallelize the native structure-processing stages; actual speed depends on the batch."
+      "upperBound": 8,
+      "descr": "Use 1–8 CPU workers within the 8-vCPU/24-GiB job allocation. Default 8; 3 GiB is budgeted per worker. Actual parallel speed depends on structure size and batch workload."
     }
   ],
   "producedOutputs": [
@@ -101,19 +93,19 @@
           "name": "sites",
           "displayName": "Sites",
           "type": "number",
-          "description": "Total sites passing the probability cutoff, before the per-structure return limit."
+          "description": "All sites meeting the selected probability threshold."
         },
         {
           "name": "top_probability",
           "displayName": "Top probability",
           "type": "number",
-          "description": "Highest returned ZincSight site probability; empty when no sites pass the cutoff. This is not a biological confidence threshold."
+          "description": "Highest site probability; blank when no sites meet the threshold."
         },
         {
           "name": "status",
           "displayName": "Status",
           "type": "string",
-          "description": "Result summary, including no-site results and any returned-site limit."
+          "description": "Prediction status, including inputs with no qualifying sites."
         },
         {
           "name": "structure_file",
@@ -127,7 +119,7 @@
       "name": "Predicted sites",
       "type": "csv",
       "path": "01_Predicted_sites.csv",
-      "descr": "Returned sites across the batch with probabilities, coordinating residues and matched templates.",
+      "descr": "All qualifying sites across the batch with probabilities, coordinating residues and matched templates.",
       "columns": [
         {
           "name": "structure",
@@ -164,14 +156,7 @@
     {
       "name": "Structures with predicted sites",
       "type": "pdb",
-      "path": "*.pdb",
-      "descr": "One canonical first-model structure per input, retaining original atoms and ions and adding annotated predicted-site markers."
-    },
-    {
-      "name": "Structures requiring mmCIF",
-      "type": "pdb",
-      "path": "*.cif",
-      "descr": "Canonical viewable structures for inputs that exceed PDB formatting limits. Full-precision mmCIF for every input is included in the complete results ZIP."
+      "descr": "One canonical first-model structure per input, in PDB or fallback mmCIF format, retaining original atoms and ions and adding annotated predicted-site markers. Full-precision mmCIF for every input is included in the complete results ZIP."
     },
     {
       "name": "Predictions and provenance",
@@ -180,7 +165,8 @@
     }
   ],
   "envVars": {
-    "ZINCSIGHT_CPU_BUDGET": "4",
-    "ZINCSIGHT_MEMORY_GIB": "12"
-  }
+    "ZINCSIGHT_CPU_BUDGET": "8",
+    "ZINCSIGHT_MEMORY_GIB": "24"
+  },
+  "homeDiskGi": 50
 }

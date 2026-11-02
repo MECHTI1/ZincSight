@@ -32,18 +32,31 @@ def detected_memory_gib():
     for name in ('/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes'):
         try:
             value = int(Path(name).read_text().strip())
-            if value < 2**60:
+            if 0 <= value < 2**60:
                 return value / 2**30
         except (OSError, ValueError):
             pass
+    # Unlimited/missing cgroup controllers do not imply unlimited host RAM.
+    # MemAvailable accounts for current host use and reclaimable page cache.
+    try:
+        values = {}
+        for line in Path('/proc/meminfo').read_text().splitlines():
+            name, _, value = line.partition(':')
+            if name in ('MemAvailable', 'MemTotal'):
+                values[name] = int(value.split()[0]) * 1024
+        available = values.get('MemAvailable', values.get('MemTotal'))
+        if available is not None and available >= 0:
+            return available / 2**30
+    except (OSError, ValueError, IndexError):
+        pass
     return None
 
 
 def worker_allocation(requested, environment, *, cpu_limit=None, memory_gib=None):
     if isinstance(requested, bool) or not isinstance(requested, int) or not 1 <= requested <= 8:
         raise ValueError('Requested CPU workers must be an integer between 1 and 8.')
-    declared_cpu = int(environment.get('ZINCSIGHT_CPU_BUDGET', '4'))
-    declared_memory = float(environment.get('ZINCSIGHT_MEMORY_GIB', '12'))
+    declared_cpu = int(environment.get('ZINCSIGHT_CPU_BUDGET', '8'))
+    declared_memory = float(environment.get('ZINCSIGHT_MEMORY_GIB', '24'))
     if declared_cpu < 1 or not math.isfinite(declared_memory) or declared_memory < 3:
         raise ValueError('Allocate at least one CPU and 3 GiB of memory for ZincSight.')
     cpu_limit = detected_cpu_limit() if cpu_limit is None else cpu_limit

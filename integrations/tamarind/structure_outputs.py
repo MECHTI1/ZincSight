@@ -24,8 +24,8 @@ CHAIN_CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digi
 
 def _validate_sites(result):
     sites = result.get("sites", [])
-    if not isinstance(sites, list) or len(sites) > 9999:
-        raise ValueError("Structure export expects a list of at most 9,999 returned sites.")
+    if not isinstance(sites, list):
+        raise ValueError("Structure export expects a list of predicted sites.")
     for site in sites:
         coordinates = site.get("coordinates_angstrom", [])
         probability = site.get("probability")
@@ -135,6 +135,9 @@ def _write_pdb(model, sites, marker_chain, path, warnings):
     from Bio.PDB.Residue import Residue
     import numpy as np
 
+    if len(sites) > 9999:
+        warnings.append("PDB omitted: predicted marker residue numbering exceeds the PDB format; use mmCIF/PyMOL.")
+        return None, {}, {}, None
     export_model = copy.deepcopy(model)
     # PDBIO writes every disordered residue/alternate atom, whereas get_atoms()
     # exposes only the selected conformer. Validate exactly the atoms it writes.

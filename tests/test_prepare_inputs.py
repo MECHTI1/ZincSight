@@ -190,12 +190,16 @@ class PreparationTests(unittest.TestCase):
         folder = self.root / "many"
         for index in range(11):
             self.write(f"many/{index}.md", b"ignore")
-        with patch.object(prepare, "MAX_ARCHIVE_ENTRIES", 1), self.assertRaises(ValueError):
-            prepare.prepare_inputs(self.root / "folder-limit.zip", sources=[folder])
+        with self.assertRaises(ValueError):
+            prepare.prepare_inputs(self.root / "folder-limit.zip", sources=[folder], max_folder_entries=10)
+        with zipfile.ZipFile(archive, "a") as stream:
+            stream.writestr("second.bin", b"ignore")
+        with self.assertRaises(ValueError):
+            prepare.prepare_inputs(self.root / "entry-limit.zip", sources=[archive], max_archive_entries=1)
 
     def test_failure_preserves_existing_outputs_and_successful_archives_are_deterministic(self):
         valid = self.write("input.pdb")
-        first, second = self.root / "first.zip", self.root / "second.zip"
+        first, second = self.root / "first/batch.zip", self.root / "second/batch.zip"
         prepare.prepare_inputs(first, sources=[valid])
         prepare.prepare_inputs(second, sources=[valid])
         self.assertEqual(first.read_bytes(), second.read_bytes())
@@ -209,6 +213,82 @@ class PreparationTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             prepare.prepare_inputs(first, sources=[valid])
         self.assertEqual(list(self.root.glob(".zincsight-*")), [])
+
+    def test_defaults_accept_more_than_previous_count_file_and_total_caps(self):
+        folder = self.root / "batch"
+        for index in range(101):
+            self.write(f"batch/small-{index}.pdb")
+        # Large text fixtures stay inexpensive to compress while proving the old
+        # 5 MB/file and 100 MB combined checks are absent, not merely raised.
+        large = PDB + b"REMARK " + b"x" * 5_000_000 + b"\n"
+        for index in range(21):
+            self.write(f"batch/large-{index}.pdb", large)
+        manifest = prepare.prepare_inputs(self.root / "scale.zip", sources=[folder])
+        self.assertEqual(manifest["structure_count"], 122)
+        self.assertGreater(manifest["total_structure_bytes"], 100_000_000)
+        self.assertEqual(len(manifest["archives"]), 1)
+        self.assertTrue(all(entry["archive_file"] == "scale.zip" for entry in manifest["structures"]))
+
+    def test_upload_parts_preserve_every_structure_hash_and_have_valid_subset_manifests(self):
+        data = PDB + b"REMARK " + b"".join(hashlib.sha256(str(i).encode()).hexdigest().encode() for i in range(20))
+        sources = [self.write(f"source-{i}.pdb", data + str(i).encode()) for i in range(5)]
+        output = self.root / "parts.zip"
+        manifest = prepare.prepare_inputs(output, sources=sources, upload_max_bytes=2000)
+        self.assertGreater(len(manifest["archives"]), 1)
+        self.assertFalse(output.exists())
+        seen = []
+        for record in manifest["archives"]:
+            path = output.parent / record["path"]
+            self.assertLessEqual(path.stat().st_size, 2000)
+            with zipfile.ZipFile(path) as archive:
+                subset = json.loads(archive.read("manifest.json"))
+                self.assertEqual(subset["structure_count"], record["structure_count"])
+                for entry in subset["structures"]:
+                    self.assertEqual(entry["archive_file"], record["path"])
+                    self.assertEqual(hashlib.sha256(archive.read(entry["path"])).hexdigest(), entry["sha256"])
+                    seen.append(entry["path"])
+        self.assertEqual(seen, [entry["path"] for entry in manifest["structures"]])
+        self.assertEqual(len(seen), len(sources))
+        self.assertEqual(json.loads(output.with_suffix(".manifest.json").read_text()), manifest)
+
+    def test_single_oversized_upload_and_invalid_optional_guards_publish_nothing(self):
+        source = self.write("input.pdb")
+        for options in ({"upload_max_bytes": 100}, {"upload_max_bytes": prepare.UPLOAD_MAX_BYTES + 1},
+                        {"max_structures": 0}, {"max_file_bytes": True}, {"max_total_bytes": -1},
+                        {"max_id_file_bytes": 1, "ids": "1KLS"}):
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                prepare.prepare_inputs(self.root / "none.zip", sources=[source], **options)
+            self.assertFalse((self.root / "none.zip").exists())
+
+    def test_force_replaces_the_complete_old_output_family_without_stale_upload_parts(self):
+        first = self.write("first.pdb")
+        second = self.write("second.pdb")
+        output = self.root / "family.zip"
+        multipart = prepare.prepare_inputs(output, sources=[first, second], upload_max_bytes=1500)
+        self.assertEqual(len(multipart["archives"]), 2)
+        previous_parts = [self.root / record["path"] for record in multipart["archives"]]
+        single = prepare.prepare_inputs(output, sources=[first], overwrite=True)
+        self.assertEqual(len(single["archives"]), 1)
+        self.assertTrue(output.exists())
+        self.assertTrue(all(not part.exists() for part in previous_parts))
+
+    def test_publication_failure_restores_existing_zip_and_manifest(self):
+        source = self.write("input.pdb")
+        output = self.root / "stable.zip"
+        prepare.prepare_inputs(output, sources=[source])
+        previous = output.read_bytes(), output.with_suffix(".manifest.json").read_bytes()
+        original, calls = prepare.os.replace, 0
+
+        def replace(source_path, target_path):
+            nonlocal calls
+            calls += 1
+            if calls == 4:
+                raise OSError("manifest publication failed")
+            return original(source_path, target_path)
+
+        with patch.object(prepare.os, "replace", side_effect=replace), self.assertRaises(OSError):
+            prepare.prepare_inputs(output, sources=[source], overwrite=True)
+        self.assertEqual((output.read_bytes(), output.with_suffix(".manifest.json").read_bytes()), previous)
 
     def test_cli_accepts_local_files_without_network_or_credentials(self):
         path = self.write("sample.pdb")
