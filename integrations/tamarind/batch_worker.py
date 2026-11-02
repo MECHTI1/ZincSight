@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 
-def normalize_structure(item, root, query, max_residues, write_first_model):
+def normalize_structure(item, root, query, write_first_model):
     from Bio.PDB import MMCIFParser, PDBParser
     from Bio.PDB.Polypeptide import is_aa
 
@@ -16,8 +16,8 @@ def normalize_structure(item, root, query, max_residues, write_first_model):
         model = next(structure.get_models())
         count = sum(residue.id[0] == " " and is_aa(residue, standard=True)
                     for residue in model.get_residues())
-        if not 3 <= count <= max_residues:
-            raise ValueError(f"Input must have between 3 and {max_residues} standard protein residues in its first model; found {count}.")
+        if count < 3:
+            raise ValueError(f"Input must have at least 3 standard protein residues in its first model; found {count}.")
         normalized = query / f"{item['key']}.cif"
         write_first_model(model, original, item["file_format"], normalized)
         return normalized, count
@@ -34,10 +34,9 @@ def main():
     manifest = json.loads((root / "batch-inputs.json").read_text(encoding="utf-8"))
     query = root / "query"
     query.mkdir()
-    maximum = int(os.environ.get("ZINCSIGHT_MAX_RESIDUES", "4000"))
     normalized, counts = [], {}
     for item in manifest:
-        path, count = normalize_structure(item, root, query, maximum, write_first_model)
+        path, count = normalize_structure(item, root, query, write_first_model)
         normalized.append(str(path))
         counts[item["key"]] = count
     # All originals are validated before starting one private database. Import

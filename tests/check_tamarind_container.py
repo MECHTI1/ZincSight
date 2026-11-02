@@ -233,7 +233,7 @@ def check_platform_outputs(output, canaries, *, exit_code=0):
 
 def check_public_outputs(output, batch, details, *, service_canaries=None):
     """Check the uncluttered surface, then recover the complete detailed layout."""
-    assert batch["integration_version"] == "0.2.3"
+    assert batch["integration_version"] == "0.3.0"
     assert batch["output_layout"] == "summary_and_bundle"
     assert batch["result_bundle"] == "ZincSight_results.zip"
     with (output / "00_Summary.csv").open() as stream:
@@ -259,7 +259,7 @@ def check_public_outputs(output, batch, details, *, service_canaries=None):
         else:
             assert row["top_probability"] == ""
         viewer = row["structure_file"]
-        assert Path(viewer).name == viewer and re.fullmatch(r"\d{2,3}_.+_ZincSight\.(pdb|cif)", viewer)
+        assert Path(viewer).name == viewer and re.fullmatch(r"\d{2,}_.+_ZincSight\.(pdb|cif)", viewer)
         session = Path(viewer).with_suffix(".pse").name
         assert not {viewer, session} & expected_files, "Public input filenames collide"
         expected_files.update((viewer, session))
@@ -341,6 +341,10 @@ def main():
             "ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00 90.00           C  \n"
             "ATOM      2  CA  ALA A   2       3.800   0.000   0.000  1.00 90.00           C  \n"
             "ATOM      3  CA  ALA A   3       7.600   0.000   0.000  1.00 90.00           C  \nEND\n")
+        (app / "inputs/large_5001_residues.pdb").write_text("".join(
+            f"ATOM  {index:5d}  CA  ALA A{index:4d}    {(index % 25) * 3.8:8.3f}"
+            f"{((index // 25) % 25) * 3.8:8.3f}{(index // 625) * 3.8:8.3f}  1.00 90.00           C  \n"
+            for index in range(1, 5002)) + "END\n")
         (app / "inputs/duplicate").mkdir()
         shutil.copy2(app / "inputs/1KLS.pdb", app / "inputs/duplicate/1KLS.pdb")
         hashes = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
@@ -354,29 +358,29 @@ def main():
         base = ["docker", "run", "--rm", "--network", "none", "--cpus", "4", "--memory", "12g",
                 "--user", f"{os.getuid()}:{os.getgid()}", "--volume", f"{app}:/app",
                 "--volume", f"{app / 'out'}:/app/out"]
-        resources = ["-e", "ZINCSIGHT_CPU_BUDGET=4", "-e", "ZINCSIGHT_MEMORY_GIB=12", "-e", "cpu_workers=4"]
+        resources = ["-e", "ZINCSIGHT_CPU_BUDGET=8", "-e", "ZINCSIGHT_MEMORY_GIB=24", "-e", "cpu_workers=8"]
         references = {}
 
-        def reference(name, rotamers, limit):
-            key = (name, rotamers, limit)
+        def reference(name, rotamers):
+            key = (name, rotamers)
             if key not in references:
                 command = ["python", "-m", "integrations.mcp.predict", "--database", "pglite",
                            "--structure", f"/app/inputs/{name}", "--format", "pdb" if name.endswith(".pdb") else "cif",
-                           "--max-sites", limit, "--minimum-probability", "0.0001"]
+                           "--max-sites", "100", "--minimum-probability", "0.0001"]
                 if rotamers == "true":
                     command.append("--histidine-rotamers")
-                log = args.output / (name.replace("/", "_") + f"-{rotamers}-{limit}-reference.log")
+                log = args.output / (name.replace("/", "_") + f"-{rotamers}-reference.log")
                 direct = run_checked(base + ["--workdir", "/opt/zincsight", args.image] + command, log)
                 references[key] = json.loads(direct.stdout)
             return references[key]
 
-        def case(label, names, environment, rotamers="true", limit="100"):
+        def case(label, names, environment, rotamers="true", compare_to_wrapper=True):
             output = args.output / label
             output.mkdir(exist_ok=True)
             # A separate output mount cannot be renamed/replaced. Create it as
             # the runner first; Docker would otherwise create a root-owned path.
             canaries = prepare_platform_outputs(app / "out")
-            settings = ["-e", f"histidine_rotamers={rotamers}", "-e", f"max_sites={limit}"]
+            settings = ["-e", f"histidine_rotamers={rotamers}"]
             for key, value in environment.items():
                 settings.extend(["-e", f"{key}={value}"])
             try:
@@ -390,11 +394,16 @@ def main():
             assert batch["structure_count"] == len(results) == len(names)
             assert len({result["key"] for result in results}) == len(names)
             assert batch["performance"]["database_instances_per_batch"] == 1
+            assert batch["resources"]["requested_cpu_workers"] == 8
+            assert 1 <= batch["resources"]["cpu_workers"] <= 4  # CI container has 4 CPU/12 GiB.
             bundled = check_public_outputs(app / "out", batch, app / "details_bundle", service_canaries=canaries)
             for name, result in zip(names, results):
-                baseline = reference("1KLS.pdb" if name == "duplicate/1KLS.pdb" else name, rotamers, limit)
-                for key in PARITY_KEYS:
-                    assert result[key] == baseline[key], (label, name, key)
+                if compare_to_wrapper:
+                    baseline = reference("1KLS.pdb" if name == "duplicate/1KLS.pdb" else name, rotamers)
+                    for key in PARITY_KEYS:
+                        assert result[key] == baseline[key], (label, name, key)
+                assert result["site_count"] == result["returned_site_count"] == len(result["sites"])
+                assert not result["truncated"]
                 assert result["input_sha256"] == hashlib.sha256((app / "inputs" / name).read_bytes()).hexdigest()
             with (app / "details_bundle/sites.csv").open() as stream:
                 check_csv(list(csv.DictReader(stream)), bundled["structures"])
@@ -403,25 +412,31 @@ def main():
             for filename in ("CITATION.txt", "CITATION.bib", "citation.json"):
                 assert "10.1002/pro.70350" in (app / "details_bundle" / filename).read_text()
             run_checked(base + ["--entrypoint", "python", args.image, "-c", ROUNDTRIP_CHECK], output / "roundtrip.log")
-            print(f"PASS {label}: {len(results)} structures, exact wrapper agreement and session roundtrip", flush=True)
+            validation = "exact wrapper agreement" if compare_to_wrapper else "uncapped residue validation"
+            print(f"PASS {label}: {len(results)} structures, {validation} and session roundtrip", flush=True)
             return batch
 
-        for label, name, rotamers, limit in [
-                ("pdb-rotamers", "1KLS.pdb", "true", "100"),
-                ("cif-rotamers", "1KLS.cif", "true", "100"),
-                ("cif-no-rotamers", "1KLS.cif", "false", "100"),
-                ("truncated", "2A0S-assembly1.cif", "true", "1"),
-                ("no-sites", "empty_sites.pdb", "true", "100")]:
-            batch = case(label, [name], {"structure": f"/app/inputs/{name}"}, rotamers, limit)
+        for label, name, rotamers in [
+                ("pdb-rotamers", "1KLS.pdb", "true"),
+                ("cif-rotamers", "1KLS.cif", "true"),
+                ("cif-no-rotamers", "1KLS.cif", "false"),
+                ("all-sites", "2A0S-assembly1.cif", "true"),
+                ("no-sites", "empty_sites.pdb", "true")]:
+            batch = case(label, [name], {"structure": f"/app/inputs/{name}"}, rotamers)
             result = batch["structures"][0]
             # Preserve the flat single-input JSON compatibility and exact baseline checks.
             assert all(batch[key] == result[key] for key in PARITY_KEYS)
-            if label == "truncated":
-                assert result["truncated"] and result["site_count"] > 1 and len(result["sites"]) == 1
+            if label == "all-sites":
+                assert result["site_count"] == len(result["sites"]) == 36
             elif label == "no-sites":
                 assert result["site_count"] == 0 and not result["truncated"]
             else:
                 assert result["site_count"] >= 1
+
+        batch = case("uncapped-residues", ["large_5001_residues.pdb"],
+                     {"structures": json.dumps(["/app/inputs/large_5001_residues.pdb"])}, compare_to_wrapper=False)
+        assert batch["structures"][0]["protein_residue_count"] == 5001
+        assert batch["structures"][0]["sites"] == []
 
         names = ["1KLS.pdb", "duplicate/1KLS.pdb", "empty_sites.pdb"]
         batch = case("batch-list", names, {"structures": json.dumps([f"/app/inputs/{name}" for name in names])})

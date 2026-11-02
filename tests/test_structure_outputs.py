@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from Bio.PDB import MMCIFIO, PDBParser
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
@@ -191,6 +192,40 @@ class StructureOutputTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.export()
         self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_more_than_9999_sites_all_survive_in_cif_annotations_and_session_handoff(self):
+        sites = [{**SITE, "probability": (index + 1) / 10001,
+                  "coordinates_angstrom": [index / 10, (index % 91) / 11, -(index % 101) / 13],
+                  "template_id": str(index + 1)} for index in range(10000)]
+        self.result = {"site_count": len(sites), "sites": sites}
+        def write_session(original_cif, received_sites, marker_chain, path, warnings):
+            self.assertTrue(original_cif.is_file())
+            self.assertIs(received_sites, sites)
+            self.assertEqual(len(received_sites), 10000)
+            path.write_bytes(b"mock session retains all supplied site records")
+        # Session styling is exercised with real PyMOL above. This test checks
+        # the large-result format boundary without generating 10,000 labels.
+        with patch.object(exporter, "_pymol_session", side_effect=write_session) as session:
+            exported = self.export()
+        session.assert_called_once()
+        self.assertNotIn("pdb", exported["artifact_paths"])
+        self.assertFalse((self.output / "structure.pdb").exists())
+        self.assertTrue(any("marker residue numbering" in warning for warning in exported["warnings"]))
+        cif = MMCIF2Dict(exported["artifact_paths"]["mmcif"])
+        marker_indexes = [i for i, chain in enumerate(cif["_atom_site.auth_asym_id"])
+                          if chain == exported["predicted_marker_chain"]]
+        self.assertEqual(len(marker_indexes), 10000)
+        self.assertEqual(len(cif["_atom_site.id"]), 10005)
+        self.assertEqual(cif["_atom_site.auth_seq_id"][marker_indexes[-1]], "10000")
+        self.assertEqual(cif["_zincsight_site.id"], [str(i) for i in range(1, 10001)])
+        for rank in (0, 9998, 9999):
+            index = marker_indexes[rank]
+            self.assertEqual([float(cif["_atom_site.Cartn_" + axis][index]) for axis in "xyz"],
+                             sites[rank]["coordinates_angstrom"])
+        annotations = json.loads(Path(exported["artifact_paths"]["site_annotations"]).read_text())
+        self.assertEqual(annotations["site_count"], 10000)
+        self.assertEqual(annotations["sites"], sites)
+        self.assertTrue(Path(exported["artifact_paths"]["pymol_session"]).is_file())
 
 
 if __name__ == "__main__":

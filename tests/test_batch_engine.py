@@ -53,7 +53,7 @@ class BatchEngineTests(unittest.TestCase):
 
     def validate(self, structures=None, **changes):
         options = dict(histidine_rotamers=True, minimum_probability=0.0001,
-                       max_sites=100, cpu_workers=4, timeout=1200)
+                       max_sites=None, cpu_workers=4, timeout=1740)
         options.update(changes)
         return engine._validate_inputs([self.item] if structures is None else structures, **options)
 
@@ -66,11 +66,11 @@ class BatchEngineTests(unittest.TestCase):
             (support / filename).write_text("# fake worker support\n")
         return root
 
-    def test_invalid_duplicate_keys_sizes_and_parameters_fail_before_starting_engine(self):
+    def test_invalid_duplicate_keys_content_and_parameters_fail_before_starting_engine(self):
         for key in ("../escape", "x/y", "", "a.b", "x" * 65):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 self.validate([{**self.item, "key": key}])
-        for structures in ([], [self.item, self.item], [self.item] * 101):
+        for structures in ([], [self.item, self.item]):
             with self.assertRaises(ValueError):
                 self.validate(structures)
         for option, value in (("histidine_rotamers", "false"), ("max_sites", True),
@@ -78,13 +78,62 @@ class BatchEngineTests(unittest.TestCase):
                               ("minimum_probability", float("nan")), ("timeout", -1)):
             with self.subTest(option=option), self.assertRaises(ValueError):
                 self.validate(**{option: value})
-        with patch.object(engine, "MAX_BYTES", 10), self.assertRaisesRegex(ValueError, "5 MB"):
-            self.validate()
-        with patch.object(engine, "MAX_TOTAL_BYTES", len(PDB.encode()) + 1), self.assertRaisesRegex(ValueError, "100 MB"):
-            self.validate([self.item, {**self.item, "key": "b"}])
         for content in ("", "ATOM  \x00", "not a PDB"):
             with self.assertRaises(ValueError):
                 self.validate([{**self.item, "structure_text": content}])
+
+    def test_native_batches_are_not_limited_by_preview_counts_or_byte_ceilings(self):
+        structures = [{**self.item, "key": f"s{number}"} for number in range(137)]
+        self.assertEqual(len(self.validate(structures)), 137)
+        # Reuse one string object to exercise >5 MB each and >100 MB combined
+        # without making a second full batch-sized allocation in this test.
+        content = "REMARK 123 padding\n" * 300_000 + PDB
+        structures = [{**self.item, "key": f"s{number}", "structure_text": content} for number in range(21)]
+        self.assertGreater(len(content.encode()), 5_000_000)
+        self.assertGreater(len(content.encode()) * len(structures), 100_000_000)
+        self.assertEqual(len(self.validate(structures, max_sites=1000)), 21)
+
+    def test_disk_staged_structures_validate_and_copy_without_batch_text_materialization(self):
+        original = self.work / 'private-staged.pdb'
+        original.write_text(PDB)
+        item = {key: value for key, value in self.item.items() if key != 'structure_text'}
+        item['structure_path'] = original
+        validated, = self.validate([item])
+        self.assertEqual(validated['structure_path'], original.resolve())
+        self.assertNotIn('structure_text', validated)
+        root = self.fake_engine()
+        pinned = SimpleNamespace(LIMITATIONS='limitations', parse_sites=Mock())
+
+        def launch(*args, **kwargs):
+            work = Path(kwargs['cwd'])
+            self.assertEqual((work / 'inputs/a.pdb').read_bytes(), original.read_bytes())
+            self.assertEqual(json.loads((work / 'batch-inputs.json').read_text())[0]['path'], 'inputs/a.pdb')
+            (work / 'status.json').write_text(json.dumps({'has_sites': False, 'protein_residue_counts': {'a': 3}}))
+            return SimpleNamespace(pid=12345, wait=Mock(return_value=0))
+
+        with patch.object(engine, '_load_runner', return_value=pinned), \
+                patch.object(engine.subprocess, 'Popen', side_effect=launch), patch.object(engine.os, 'killpg'):
+            result, = engine.run_predictions([item], histidine_rotamers=False,
+                                             minimum_probability=0, cpu_workers=8, engine_root=root)
+        self.assertEqual(result['source'], 'one.pdb')
+
+    def test_disk_staged_missing_ambiguous_link_and_binary_files_are_rejected(self):
+        item = {key: value for key, value in self.item.items() if key != 'structure_text'}
+        original = self.work / 'input.pdb'
+        original.write_text(PDB)
+        link = self.work / 'linked.pdb'
+        link.symlink_to(original)
+        for path in (self.work, self.work / 'missing.pdb', link, ''):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.validate([{**item, 'structure_path': path}])
+        with self.assertRaisesRegex(ValueError, 'exactly one'):
+            self.validate([{**self.item, 'structure_path': original}])
+        with self.assertRaisesRegex(ValueError, 'exactly one'):
+            self.validate([item])
+        for contents in (b'', b'ATOM  \x00', b'ATOM  \xff', b'not a structure'):
+            original.write_bytes(contents)
+            with self.subTest(contents=contents), self.assertRaises(ValueError):
+                self.validate([{**item, 'structure_path': original}])
 
     def test_first_model_count_excludes_nucleic_acids_and_hetero_residues(self):
         original = self.work / "input.pdb"
@@ -93,20 +142,32 @@ class BatchEngineTests(unittest.TestCase):
         query.mkdir()
         writer = Mock()
         item = {**self.item, "path": "input.pdb"}
-        path, count = worker.normalize_structure(item, self.work, query, 4000, writer)
+        path, count = worker.normalize_structure(item, self.work, query, writer)
         self.assertEqual((path, count), (query / "a.cif", 3))
         model, input_path, file_format, output_path = writer.call_args.args
         self.assertEqual(len(list(model.get_residues())), 3)
         self.assertEqual((input_path, file_format, output_path), (original, "pdb", path))
         hetero = "HETATM    5  CA  ALA H   4       5.000   6.000   7.000  1.00 20.00           C\n"
         original.write_text(PDB.replace("ENDMDL", hetero + "ENDMDL", 1))
-        self.assertEqual(worker.normalize_structure(item, self.work, query, 4000, writer)[1], 3)
+        self.assertEqual(worker.normalize_structure(item, self.work, query, writer)[1], 3)
         original.write_text(PDB.replace("ALA", " DA"))
         with self.assertRaisesRegex(ValueError, "Structure a.*found 0"):
-            worker.normalize_structure(item, self.work, query, 4000, writer)
-        original.write_text(PDB)
-        with self.assertRaisesRegex(ValueError, "found 3"):
-            worker.normalize_structure(item, self.work, query, 2, writer)
+            worker.normalize_structure(item, self.work, query, writer)
+        original.write_text("\n".join(PDB.splitlines()[1:3]) + "\nEND\n")
+        with self.assertRaisesRegex(ValueError, "at least 3.*found 2"):
+            worker.normalize_structure(item, self.work, query, writer)
+
+    def test_first_model_has_no_artificial_maximum_protein_residue_count(self):
+        original = self.work / "large.pdb"
+        original.write_text("\n".join(
+            f"ATOM  {i:5d}  CA  ALA A{i:4d}    {float(i):8.3f}{0.:8.3f}{0.:8.3f}  1.00 20.00           C"
+            for i in range(1, 5002)) + "\nEND\n")
+        query = self.work / "query"
+        query.mkdir()
+        writer = Mock()
+        item = {**self.item, "path": "large.pdb"}
+        self.assertEqual(worker.normalize_structure(item, self.work, query, writer)[1], 5001)
+        writer.assert_called_once()
 
     def test_one_database_and_one_native_call_receive_all_inputs_and_requested_cpu_count(self):
         manifest = [{"key": key, "source": key + ".pdb", "path": key + ".pdb", "file_format": "pdb"}
@@ -206,6 +267,28 @@ class BatchEngineTests(unittest.TestCase):
         self.assertEqual([(item["site_count"], len(item["sites"]), item["truncated"]) for item in result],
                          [(2, 1, True), (0, 0, False)])
         self.assertEqual(parse.call_args.args[1:], (["a", "b"], 0.5, pinned.parse_sites))
+
+    def test_default_returns_all_sites_above_one_hundred_without_truncation(self):
+        root = self.fake_engine()
+        sites = [{"probability": 0.9, "template_id": str(i)} for i in range(211)]
+        pinned = SimpleNamespace(LIMITATIONS="limitations", parse_sites=Mock())
+
+        def launch(*args, **kwargs):
+            work = Path(kwargs["cwd"])
+            (work / "status.json").write_text(json.dumps({"has_sites": True,
+                                                        "protein_residue_counts": {"a": 5001}}))
+            return SimpleNamespace(pid=12345, wait=Mock(return_value=0))
+
+        with patch.object(engine, "_load_runner", return_value=pinned), \
+                patch.object(engine.subprocess, "Popen", side_effect=launch), \
+                patch.object(engine.os, "killpg"), \
+                patch.object(engine, "_parse_batch_sites", return_value={"a": sites}):
+            result, = engine.run_predictions([self.item], histidine_rotamers=False,
+                                             minimum_probability=0.5, cpu_workers=4, engine_root=root)
+        self.assertEqual(result["sites"], sites)
+        self.assertEqual(result["site_count"], 211)
+        self.assertFalse(result["truncated"])
+        self.assertEqual(result["protein_residue_count"], 5001)
 
     def test_timeout_kills_worker_session_logs_failure_and_cleans_temporary_files(self):
         root = self.fake_engine()
