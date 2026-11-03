@@ -1,0 +1,84 @@
+name: Tamarind validation
+on:
+  push:
+    branches: ['master']
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_results_packager.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
+  pull_request:
+    paths: ['Dockerfile', '.dockerignore', 'config.json', 'run.sh', 'integrations/tamarind/**', 'tests/check_tamarind_container.py', 'tests/test_tamarind.py', 'tests/test_prepare_inputs.py', 'tests/test_input_bundle.py', 'tests/test_resources.py', 'tests/test_results_packager.py', 'tests/test_batch_engine.py', 'tests/test_structure_outputs.py', '.github/workflows/tamarind-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tamarind-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate configuration against Tamarind's live schema
+        run: |
+          python -m pip install jsonschema==4.26.0
+          curl --fail --location --retry 3 https://app.tamarind.bio/tamarind-tool.schema.json -o /tmp/tamarind-tool.schema.json
+          python - <<'PY'
+          import json, jsonschema
+          config = json.load(open('config.json'))
+          jsonschema.validate(config, json.load(open('/tmp/tamarind-tool.schema.json')))
+          inputs = {item['name']: item for item in config['inputs']}
+          assert config['displayName'] == 'ZincSight'
+          assert 'max_sites' not in inputs and 'batch_archive' not in inputs
+          assert inputs['structures']['type'] == 'file'
+          assert inputs['structures']['list'] is True and inputs['structures']['required'] is True
+          assert set(inputs['structures']['extension']) == {'pdb', 'cif', 'mmcif', 'ent', 'zip', 'tar', 'gz', 'tgz'}
+          assert config['cpu'] == 8 and config['memory'] == '24Gi'
+          assert config['homeDiskGi'] == 50 and config['maxRuntimeSeconds'] == 7200
+          assert inputs['cpu_workers']['default'] == inputs['cpu_workers']['upperBound'] == 8
+          structures = [item for item in config['producedOutputs'] if item['type'] == 'pdb']
+          assert len(structures) == 1 and structures[0]['path'] == '*_ZincSight_structure.*'
+          print('Tamarind configuration is valid.')
+          PY
+      - name: Test standard-library input, resource and output contracts
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          folder = Path('integrations/tamarind')
+          for path in folder.glob('*.py'):
+              compile(ast.parse(path.read_text()), str(path), 'exec')
+          print('Tamarind adapter and input preparer compile.')
+          PY
+          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_results_packager.py; do
+            python -m unittest discover -s tests -p "$test_file" -v
+          done
+  offline-container:
+    needs: contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the dependency image
+        run: docker build --tag zincsight-tamarind:test .
+      - name: Run all Tamarind unit tests in the offline dependency image
+        run: |
+          # CI has fewer resources than the deployed 8-vCPU/24-GiB allocation.
+          for test_file in test_prepare_inputs.py test_tamarind.py test_input_bundle.py test_resources.py test_results_packager.py test_batch_engine.py test_structure_outputs.py; do
+            docker run --rm --network none --cpus 4 --memory 12g \
+              --user "$(id -u):$(id -g)" --volume "$PWD:/app" --workdir /app \
+              --entrypoint python zincsight-tamarind:test \
+              -m unittest discover -s tests -p "$test_file" -v
+          done
+      - name: Check all-site batch predictions, resource clamping, large structures and session parity
+        run: python tests/check_tamarind_container.py --image zincsight-tamarind:test --output /tmp/tamarind-results
+      - name: Preserve fresh public-input test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamarind-container-results
+          path: /tmp/tamarind-results
