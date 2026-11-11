@@ -94,13 +94,24 @@ Results reported for the original ZincSight method and comparison tools on 27 no
 
 On this dataset (mean protein length: 485 amino acids), the study reported mean runtimes of 0.87 s per structure for ZincSight with histidine rotamer sampling, 0.47 s without, 2.56 s for Master of Metals, 17.4 s for PinMyMetal and 39.8 s for Metal3D (Section 2.7).
 
+## Run on Tamarind
+
+Open [ZincSight on Tamarind](https://app.tamarind.bio/tools/transition-metal-binding-site-predictor),
+or use the [ZincSight website](https://zincsight-direct.betteremery1.chatgpt.site/)
+for pasted IDs, ID-list files and mixed batches. Predictions require your own
+Tamarind account with access to the tool and available compute allowance.
+See [Tamarind inputs, outputs and deployment](integrations/tamarind/README.md).
+
 ## Use with Codex, ChatGPT and Claude
 
-For assistant-based predictions, see the optional **[ZincSight Preview installation guide](https://github.com/MECHTI1/ZincSight/blob/feature/mcp-integration/integrations/mcp/DISTRIBUTION.md)** for supported environments. After installation, try:
+For assistant-based predictions, see the optional **[ZincSight Preview installation guide](https://github.com/MECHTI1/ZincSight/blob/7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03/integrations/mcp/DISTRIBUTION.md)** for supported environments.
+Use source ref `7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03` for marketplace installation;
+the archived guide uses the former feature-branch name. The preview remains
+available in Git history. After installation, try:
 
 > Use ZincSight Preview on PDB 1KLS to predict potential transition-metal binding sites. Report the coordinating residues, predicted metal coordinates and site probabilities.
 
-This is an experimental integration that requires a compatible execution environment. Results can differ from the original Colab workflow; see the [validation status](https://github.com/MECHTI1/ZincSight/blob/feature/mcp-integration/integrations/mcp/NOTEBOOK_REGRESSION.md).
+This is an experimental integration that requires a compatible execution environment. Results can differ from the original Colab workflow; see the [validation status](https://github.com/MECHTI1/ZincSight/blob/7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03/integrations/mcp/NOTEBOOK_REGRESSION.md).
 
 ## Citation
 

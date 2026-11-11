@@ -1,0 +1,201 @@
+{
+  "displayName": "ZincSight",
+  "description": "Predict transition-metal binding sites. Open the ZincSight website using the Paper button for direct IDs and batch lists.",
+  "functions": [
+    "Open the ZincSight website using the Paper button above: enter PDB, UniProt or AlphaFold IDs, upload TXT/CSV/TSV lists, or process multiple structures directly.",
+    "Who can use it: anyone can open the website without ChatGPT sign-in or a paid ChatGPT plan. Predictions require your own Tamarind API key with access to ZincSight in the Tel Aviv University Tamarind organization and available job allowance. Jobs run in that Tamarind account; the website does not grant tool access to other organizations.",
+    "Predict binding sites for transition metals: zinc (Zn), iron (Fe), manganese (Mn), cobalt (Co), copper (Cu) and nickel (Ni). Zinc-trained and benchmarked across these metals; site markers locate binding sites without assigning the bound metal identity.",
+    "The published study reports high precision and recall for its transition-metal panel at probability >= 0.75. In its separate zinc coverage benchmark, sensitivity was 97.7% (1551/1588 zinc sites) at probability >= 0.5. See the Paper link for benchmark conditions.",
+    "Upload many PDB/mmCIF structures, archives, or prepared ID-batch ZIP parts together. There is no fixed structure-count, per-structure byte, protein-residue or returned-site cap. All sites meeting the selected probability threshold are returned. Tamarind upload files are limited to 200 MB each; prepared batches are split by upload bytes when needed.",
+    "Summary has one row and viewable structure per input, including zero-site results. Predicted sites lists all qualifying sites and coordinating residues. Files provides one named structure and PyMOL session per input, the full prediction JSON, citation and complete results ZIP with full-precision mmCIF and detailed annotations.",
+    "Eight vCPUs, 24 GiB memory and 50 GiB working disk support large batches, with a 3 GiB worker budget and up to two hours per job. CPU workers defaults to 8. Histidine rotamer sampling is enabled by default. Batch size is governed by the actual memory, disk and job-time allocation.",
+    "Please cite Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion location in proteins with ZincSight. Protein Science. 2025;34(11):e70350. https://doi.org/10.1002/pro.70350 . CITATION.txt and bundled BibTeX reference this paper; Tamarind controls its native Citations tab separately."
+  ],
+  "gpuType": "None",
+  "memory": "24Gi",
+  "cpu": 8,
+  "homeDiskGi": 50,
+  "envVars": {
+    "ZINCSIGHT_CPU_BUDGET": "8",
+    "ZINCSIGHT_MEMORY_GIB": "24"
+  },
+  "paperUrl": "https://zincsight-direct.betteremery1.chatgpt.site/",
+  "tags": [
+    "protein-structure",
+    "transition-metals",
+    "metal-binding",
+    "zinc"
+  ],
+  "inputs": [
+    {
+      "name": "structures",
+      "type": "file",
+      "required": true,
+      "extension": [
+        "pdb",
+        "cif",
+        "mmcif",
+        "ent",
+        "zip",
+        "tar",
+        "gz",
+        "tgz"
+      ],
+      "descr": "Upload one or many PDB/mmCIF/ENT structures, archives or gzip-compressed structures. For PDB/UniProt/AlphaFold IDs, use Database > + New > Fetch by identifier, then Export Structures; unzip and upload the exported PDBs together here. For TXT/CSV/TSV ID lists or exact AlphaFold model versions, use prepare_inputs.py and upload every prepared ZIP part; Colab is optional. Every protein chain in the first model is analyzed; side-chain coordinates are required. Upload limit: 200 MB per file; no fixed structure-count or protein-size cap.",
+      "displayName": "Protein structures or batch archives",
+      "list": true
+    },
+    {
+      "name": "histidine_rotamers",
+      "type": "boolean",
+      "default": true,
+      "descr": "Enabled by default. Samples alternative histidine side-chain orientations to improve sensitivity, with a possible small increase in false positives. Disable to use the input orientations only.",
+      "displayName": "Sample histidine rotamers"
+    },
+    {
+      "name": "minimum_probability",
+      "type": "number",
+      "default": 0.0001,
+      "lowerBound": 0,
+      "upperBound": 1,
+      "descr": "Return every site meeting this probability cutoff. Default 0.0001 matches BatchDrive; use a higher cutoff to focus on higher-scoring sites.",
+      "displayName": "Minimum site probability"
+    },
+    {
+      "name": "cpu_workers",
+      "type": "number",
+      "default": 8,
+      "lowerBound": 1,
+      "upperBound": 8,
+      "descr": "Use 1\u20138 CPU workers within the 8-vCPU/24-GiB job allocation. Default 8; 3 GiB is budgeted per worker. Actual parallel speed depends on structure size and batch workload.",
+      "displayName": "CPU workers"
+    }
+  ],
+  "producedOutputs": [
+    {
+      "name": "Summary",
+      "descr": "One row per input with qualifying-site count, highest probability, result status and a viewable structure.",
+      "path": "00_Summary.csv",
+      "type": "csv",
+      "primary": true,
+      "structureColumn": "structure_file",
+      "columns": [
+        {
+          "name": "structure",
+          "displayName": "Structure",
+          "type": "string"
+        },
+        {
+          "name": "sites",
+          "displayName": "Sites",
+          "description": "All sites meeting the selected probability threshold.",
+          "type": "number"
+        },
+        {
+          "name": "top_probability",
+          "displayName": "Top probability",
+          "description": "Highest site probability; blank when no sites meet the threshold.",
+          "type": "number"
+        },
+        {
+          "name": "status",
+          "displayName": "Status",
+          "description": "Prediction status, including inputs with no qualifying sites.",
+          "type": "string"
+        },
+        {
+          "name": "structure_file",
+          "displayName": "View structure",
+          "description": "First-model original atoms and ions plus annotated predicted-site Zn markers. Markers locate potential sites and do not assign bound metal identity.",
+          "type": "pdb"
+        }
+      ]
+    },
+    {
+      "name": "Predicted sites",
+      "descr": "All qualifying sites with input identities, probabilities, full ion coordinates in \u00c5, coordinating residues and template diagnostics. Advanced coordinates remain in the original input frame.",
+      "path": "sites.csv",
+      "type": "csv",
+      "columns": [
+        {
+          "name": "structure_id",
+          "displayName": "Structure ID",
+          "description": "Stable input identifier linking this site to its summary row and detailed predictions.",
+          "type": "string"
+        },
+        {
+          "name": "source",
+          "displayName": "Input structure",
+          "description": "Original input filename or prepared-batch structure name.",
+          "type": "string"
+        },
+        {
+          "name": "site_rank",
+          "displayName": "Site",
+          "description": "Per-structure rank, ordered by decreasing probability.",
+          "type": "rank"
+        },
+        {
+          "name": "probability",
+          "displayName": "Probability",
+          "description": "ZincSight probability for the predicted binding site.",
+          "type": "number"
+        },
+        {
+          "name": "x_angstrom",
+          "displayName": "X (\u00c5)",
+          "description": "Predicted ion X coordinate in the original input coordinate frame.",
+          "type": "number"
+        },
+        {
+          "name": "y_angstrom",
+          "displayName": "Y (\u00c5)",
+          "description": "Predicted ion Y coordinate in the original input coordinate frame.",
+          "type": "number"
+        },
+        {
+          "name": "z_angstrom",
+          "displayName": "Z (\u00c5)",
+          "description": "Predicted ion Z coordinate in the original input coordinate frame.",
+          "type": "number"
+        },
+        {
+          "name": "coordinating_residues",
+          "displayName": "Coordinating residues",
+          "description": "JSON list of chain/residue identifiers that define the predicted site.",
+          "type": "string"
+        },
+        {
+          "name": "residue_combination",
+          "displayName": "Residue combination",
+          "description": "Coordinating amino-acid combination matched to the ZincSight template.",
+          "type": "string"
+        },
+        {
+          "name": "template_id",
+          "displayName": "Template ID",
+          "description": "Matched experimental template supporting the prediction.",
+          "type": "string"
+        },
+        {
+          "name": "template_rmsd_angstrom",
+          "displayName": "Template RMSD (\u00c5)",
+          "description": "Structural deviation between the candidate site and its matched template.",
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "Predicted structures",
+      "descr": "One annotated first-model structure per input, in PDB or fallback mmCIF format, retaining original atoms and ions with predicted-site markers. Full-precision mmCIF for every input is included in the complete results ZIP.",
+      "path": "*_ZincSight_structure.*",
+      "type": "pdb"
+    },
+    {
+      "name": "Predictions and provenance",
+      "path": "prediction.json",
+      "type": "json"
+    }
+  ],
+  "maxRuntimeSeconds": 7200
+}
