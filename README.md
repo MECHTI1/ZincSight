@@ -92,7 +92,13 @@ Results reported for the original ZincSight method and comparison tools on 27 no
 | AlphaFold 3 (3 Zn) | 0.59 | 0.72 |
 | AlphaFold 3 (4 Zn) | 0.64 | 0.69 |
 
-On this dataset (mean protein length: 485 amino acids), the study reported mean runtimes of 0.87 s per structure for ZincSight with histidine rotamer sampling, 0.47 s without, 2.56 s for Master of Metals, 17.4 s for PinMyMetal and 39.8 s for Metal3D (Section 2.7).
+On this dataset (mean protein length: 485 amino acids), the study reported mean runtimes of 0.87 s per structure for ZincSight with histidine rotamer sampling and 0.47 s without, using two Intel i7 CPU cores. Reported comparison-tool means were 2.56 s for Master of Metals, 17.4 s for PinMyMetal and 39.8 s for Metal3D (Section 2.7). These are study measurements, not Tamarind turnaround estimates.
+
+## Large-scale application: N-Zinclopedia
+
+ZincSight was used to screen **1,334,703 protein and domain structure representatives** for the [N-Zinclopedia database](https://bentallab.github.io/nzinclopedia/), as reported in the [2026 N-Zinclopedia preprint](https://doi.org/10.64898/2026.10.18.759936). This total counts structures screened, rather than proteins confirmed to bind a metal. The database combines ZincSight predictions with MAHOMES-II classifications of candidate catalytic and non-catalytic sites; computational predictions require experimental evaluation.
+
+The demonstrated screening scale, CPU inference and experimental coordination templates make ZincSight useful for large protein batches and for inspecting the basis of site predictions. Its published benchmark does not include [SuperMetal](https://pmc.ncbi.nlm.nih.gov/articles/PMC11974720/); a shared benchmark is needed to compare their accuracy or throughput directly.
 
 ## Run on Tamarind
 
