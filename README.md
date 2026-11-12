@@ -98,7 +98,7 @@ On this dataset (mean protein length: 485 amino acids), the study reported mean 
 
 ZincSight was used to screen **1,334,703 protein and domain structure representatives** for the [N-Zinclopedia database](https://bentallab.github.io/nzinclopedia/), as reported in the [2026 N-Zinclopedia preprint](https://doi.org/10.64898/2026.10.18.759936). This total counts structures screened, rather than proteins confirmed to bind a metal. The database combines ZincSight predictions with MAHOMES-II classifications of candidate catalytic and non-catalytic sites; computational predictions require experimental evaluation.
 
-The demonstrated screening scale, CPU inference and experimental coordination templates make ZincSight useful for large protein batches and for inspecting the basis of site predictions. Its published benchmark does not include [SuperMetal](https://pmc.ncbi.nlm.nih.gov/articles/PMC11974720/); a shared benchmark is needed to compare their accuracy or throughput directly.
+The demonstrated screening scale, CPU inference and experimental coordination templates make ZincSight useful for large protein batches and for inspecting the basis of site predictions.
 
 ## Citation
 
