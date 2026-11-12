@@ -102,7 +102,7 @@ CSV/TSV tables may use an ID column such as `structure_id`, `model_id`,
 are ignored. The first recognized ID column is used. Without a recognized header,
 every nonempty cell is treated as ID text. Separators are detected from the content,
 so a comma-separated list saved as `.tsv` also works. `#` introduces a comment.
-See the preserved [example lists](https://github.com/MECHTI1/ZincSight/tree/c0644e3798465d99ee92b5357537645e2f075e58/integrations/tamarind/examples) for ready-to-edit TXT, CSV and TSV files.
+See the preserved [example lists](https://github.com/MECHTI1/ZincSight/tree/6dafd3388222fde76a3e31e8f18af1d3341498ed/integrations/tamarind/examples) for ready-to-edit TXT, CSV and TSV files.
 
 Known structure filename suffixes (`.pdb`, `.cif`, `.mmcif`, `.ent`, optionally
 followed by `.gz`) are accepted as ID spellings. For example,
@@ -131,7 +131,7 @@ smaller upload part size; --force replaces an existing prepared output family.
 No account credentials or absolute local paths are included in the archives.
 
 For an optional browser notebook, use
-[Prepare Tamarind Batch in Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/c0644e3798465d99ee92b5357537645e2f075e58/integrations/tamarind/Prepare_Tamarind_Batch.ipynb).
+[Prepare Tamarind Batch in Colab](https://colab.research.google.com/github/MECHTI1/ZincSight/blob/6dafd3388222fde76a3e31e8f18af1d3341498ed/integrations/tamarind/Prepare_Tamarind_Batch.ipynb).
 It embeds the same helper and accepts the same ID lists, structures and archives.
 It only prepares inputs; predictions run on Tamarind. No API key or GPU is needed.
 
@@ -210,7 +210,7 @@ bundle on Tamarind itself. Test/production jobs consume account compute.
 See [Custom Tool conventions](https://docs.tamarind.bio/tamarind/custom-tools).
 
 Integration revision 0.3.4 keeps the engine/weights pinned to
-7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03 and its
+8d663023e8e0d4b9b6fe850307652beaff3a0946 and its
 source archive SHA-256 is checked during image build. Dependencies live under
 /opt because Tamarind overlays the submitted source at /app. A checked
 transport-only patch provides a job-private Unix database socket. Prediction and
@@ -241,8 +241,8 @@ python3 tests/check_tamarind_container.py \
 
 Published benchmark numbers describe the paper's evaluation. This integration's
 pinned engineering revision includes reproducibility corrections; see
-[notebook regression](https://github.com/MECHTI1/ZincSight/blob/7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03/integrations/mcp/NOTEBOOK_REGRESSION.md) and
-[rotamer diagnosis](https://github.com/MECHTI1/ZincSight/blob/7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03/integrations/mcp/ROTAMER_DIAGNOSIS.md) for technical validation context.
+[notebook regression](https://github.com/MECHTI1/ZincSight/blob/8d663023e8e0d4b9b6fe850307652beaff3a0946/integrations/mcp/NOTEBOOK_REGRESSION.md) and
+[rotamer diagnosis](https://github.com/MECHTI1/ZincSight/blob/8d663023e8e0d4b9b6fe850307652beaff3a0946/integrations/mcp/ROTAMER_DIAGNOSIS.md) for technical validation context.
 
 Please cite Mechtinger G, Axel G, Kolodny R, Ben-Tal N. *Interpretable prediction
 of zinc ion location in proteins with ZincSight*. Protein Science.

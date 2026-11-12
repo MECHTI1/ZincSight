@@ -17,7 +17,7 @@ from input_bundle import collect_structures
 from resources import worker_allocation
 
 ENGINE_ROOT = Path('/opt/zincsight')
-ENGINE_REVISION = '7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03'
+ENGINE_REVISION = '8d663023e8e0d4b9b6fe850307652beaff3a0946'
 INTEGRATION_VERSION = '0.3.4'
 CITATION = (
     'Mechtinger G, Axel G, Kolodny R, Ben-Tal N. Interpretable prediction of zinc ion '

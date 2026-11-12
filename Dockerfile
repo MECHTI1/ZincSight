@@ -11,11 +11,11 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Bump revision and archive digest together, then rerun the offline checks.
-ENV ZINCSIGHT_ENGINE_REVISION=7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03
+ENV ZINCSIGHT_ENGINE_REVISION=8d663023e8e0d4b9b6fe850307652beaff3a0946
 RUN curl --fail --location --retry 3 \
       "https://codeload.github.com/MECHTI1/ZincSight/tar.gz/${ZINCSIGHT_ENGINE_REVISION}" \
       -o /tmp/zincsight.tar.gz \
-    && echo "703a51cc5bcb1bed28ac59510d97149b10293a61f7919b1703ed6458392df061  /tmp/zincsight.tar.gz" | sha256sum -c - \
+    && echo "7b54c485f7ba9afda9eb7ed2f11a979cfca5e4fcf40420c274184117e8078026  /tmp/zincsight.tar.gz" | sha256sum -c - \
     && mkdir -p /opt/zincsight \
     && tar -xzf /tmp/zincsight.tar.gz --strip-components=1 -C /opt/zincsight \
     && printf '%s\n' "$ZINCSIGHT_ENGINE_REVISION" > /opt/zincsight/SOURCE_REVISION \
