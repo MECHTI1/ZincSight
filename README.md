@@ -100,25 +100,6 @@ ZincSight was used to screen **1,334,703 protein and domain structure representa
 
 The demonstrated screening scale, CPU inference and experimental coordination templates make ZincSight useful for large protein batches and for inspecting the basis of site predictions. Its published benchmark does not include [SuperMetal](https://pmc.ncbi.nlm.nih.gov/articles/PMC11974720/); a shared benchmark is needed to compare their accuracy or throughput directly.
 
-## Run on Tamarind
-
-Open [ZincSight on Tamarind](https://app.tamarind.bio/tools/transition-metal-binding-site-predictor),
-or use the [ZincSight website](https://zincsight-direct.betteremery1.chatgpt.site/)
-for pasted IDs, ID-list files and mixed batches. Predictions require your own
-Tamarind account with access to the tool and available compute allowance.
-See [Tamarind inputs, outputs and deployment](integrations/tamarind/README.md).
-
-## Use with Codex, ChatGPT and Claude
-
-For assistant-based predictions, see the optional **[ZincSight Preview installation guide](https://github.com/MECHTI1/ZincSight/blob/7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03/integrations/mcp/DISTRIBUTION.md)** for supported environments.
-Use source ref `7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03` for marketplace installation;
-the archived guide uses the former feature-branch name. The preview remains
-available in Git history. After installation, try:
-
-> Use ZincSight Preview on PDB 1KLS to predict potential transition-metal binding sites. Report the coordinating residues, predicted metal coordinates and site probabilities.
-
-This is an experimental integration that requires a compatible execution environment. Results can differ from the original Colab workflow; see the [validation status](https://github.com/MECHTI1/ZincSight/blob/7bf80c27fd7f0e8ce7b6b100e305a7bc18620a03/integrations/mcp/NOTEBOOK_REGRESSION.md).
-
 ## Citation
 
 If you use ZincSight or its results, please cite:

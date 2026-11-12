@@ -1,0 +1,57 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "zincsight-preview",
+  "version": "0.1.0-preview.6",
+  "description": "Experimental transition-metal binding-site predictions for Zn, Fe, Mn, Co, Cu and Ni from protein structures. Returns coordinating residues, metal positions and probability scores; does not identify the bound metal. Runs with embedded PostgreSQL.",
+  "author": {
+    "name": "Gilad Mechtinger",
+    "url": "https://github.com/MECHTI1"
+  },
+  "homepage": "https://github.com/MECHTI1/ZincSight",
+  "repository": "https://github.com/MECHTI1/ZincSight",
+  "keywords": [
+    "transition metals",
+    "zinc",
+    "iron",
+    "manganese",
+    "cobalt",
+    "copper",
+    "nickel",
+    "protein structure",
+    "structural biology",
+    "bioinformatics",
+    "metal-binding sites"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "ZincSight Preview",
+        "shortDescription": "Predict transition-metal sites",
+        "longDescription": "Predict potential transition-metal binding sites in experimental or predicted protein structures, and interpret ZincSight results. Supports zinc, iron, manganese, cobalt, copper and nickel site-finding requests; it does not assign the bound metal. The bundled launcher runs public, pinned ZincSight code inside the user's compatible execution environment, with an isolated Python environment and embedded PostgreSQL. No predictor API key, Tamarind account, or hosted predictor connection is needed. Setup requires Python 3.12, Node.js 22+, npm, a C compiler, PyMOL system libraries and downloads from public package registries. Where execution is unavailable, use the original public Colab notebook. This experimental integration includes reproducibility fixes and can differ from the published notebook; published accuracy benchmarks have not been re-established for this revision. Accepts one structure per call, up to 5 MB and 4,000 residues; returns at most 100 sites and reports truncation.",
+        "developerName": "Gilad Mechtinger",
+        "category": "Scientific Research",
+        "capabilities": [],
+        "websiteURL": "https://github.com/MECHTI1/ZincSight",
+        "supportURL": "https://github.com/MECHTI1/ZincSight/issues",
+        "defaultPrompt": [
+          "Use ZincSight Preview on PDB 1KLS to predict transition-metal binding sites and report residues and metal positions.",
+          "Use ZincSight Preview on UniProt P0A6G5 with histidine rotamer sampling and explain its Zn labels.",
+          "Use ZincSight Preview to analyze my uploaded protein structure and save the full prediction JSON."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg"
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "Standalone skills-based preview; no Tamarind or hosted predictor connection. Preserves the previously tested launcher, dependency lock, source revision and checksum. Updates listing category, supported agent metadata, execution limits and data-flow guidance."
+      },
+      "review": {
+        "prompts": [
+          "Predict potential metal-binding sites in PDB 1KLS and report the coordinating residues and ion coordinates.",
+          "Find possible iron-binding sites in this uploaded protein structure. Explain whether the predictions identify iron specifically.",
+          "Interpret my ZincSight JSON output and explain its probability scores."
+        ]
+      }
+    }
+  }
+}
